@@ -415,8 +415,9 @@ const W1 = {
               <strong style="font-size:${hero?'19px':'14.5px'}">${dayName(d, hero)} ${d.n}</strong>
               ${i===TODAY?`<span class="today-tag">${t('today','hoy')}</span>`:''}
             </div>
-            ${past ? `<span class="tiny dim">${t('locked','bloqueado')}</span>`
-                   : `<button class="btn ${hero?'':'ghost'} sm" onclick="doReroll(${i})">↻ ${hero?t('Reroll','Resortear'):''}</button>`}
+            <!-- #5: elapsed days of the CURRENT week do not lock. They are dimmed
+                 because they are behind you, not because they are read-only. -->
+            <button class="btn ${hero?'':'ghost'} sm" onclick="doReroll(${i})">↻ ${hero?t('Reroll','Resortear'):''}</button>
           </div>
           ${COURSES.map(c=>`
             <div style="display:flex;gap:14px;align-items:baseline;padding:${hero?'7px':'3px'} 0">
@@ -443,7 +444,8 @@ const W1 = {
         </div>
       </div>
       <div class="tiny dim" style="margin-top:16px">${t(
-        'Past days stay visible but locked.','Los días pasados siguen visibles pero bloqueados.')}</div>`;
+        'Days already past are dimmed, but the whole current week can still be rerolled.',
+        'Los días ya pasados se atenúan, pero toda la semana en curso se puede resortear.')}</div>`;
     },
     dishes: () => CONTENT.dishes(),
     history: () => CONTENT.history(),
