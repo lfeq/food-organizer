@@ -699,6 +699,57 @@ body {
   text-overflow: ellipsis;
 }
 
+/* Reroll button — icon-only on compact cards, labeled on featured card */
+.plan-reroll-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0.15rem 0.3rem;
+  margin-left: auto;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.plan-reroll-btn:hover:not(:disabled) {
+  color: #3d7a3b;
+  border-color: #3d7a3b44;
+}
+
+.plan-reroll-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.plan-reroll-btn--labeled {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.5rem;
+  color: #555;
+}
+
+/* Toast notification */
+.plan-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 0.875rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  max-width: 320px;
+  z-index: 1000;
+  animation: toast-in 0.2s ease-out;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* Auth actions row (change-password page) */
 .auth-actions {
   display: flex;

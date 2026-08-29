@@ -4,6 +4,7 @@ import { PgClient } from "@effect/sql-pg"
 import { uuidv7 } from "uuidv7"
 import { Runtime } from "#/runtime.server"
 import { ok, err, type Result } from "#/result-codes"
+import { drawN, pickReroll } from "#/generator"
 
 export type Course = "soup" | "side" | "main"
 
@@ -161,19 +162,9 @@ export const generateWeek = createServerFn({ method: "POST" })
             return err("GENERATE_EMPTY_COURSE", emptyCourses.join(",")) as Result<WeekPlan>
           }
 
-          // Draw 7 dishes per course without replacement (cycling if < 7)
-          const drawSeven = (pool: Array<{ id: string; name: string }>) => {
-            const shuffled = [...pool].sort(() => Math.random() - 0.5)
-            const result: Array<{ id: string; name: string }> = []
-            while (result.length < 7) {
-              result.push(...shuffled.slice(0, 7 - result.length))
-            }
-            return result.slice(0, 7)
-          }
-
-          const drawnSoup = drawSeven(byCourse.soup)
-          const drawnSide = drawSeven(byCourse.side)
-          const drawnMain = drawSeven(byCourse.main)
+          const drawnSoup = drawN(byCourse.soup, 7)
+          const drawnSide = drawN(byCourse.side, 7)
+          const drawnMain = drawN(byCourse.main, 7)
 
           // Delete existing plan for this week if any (overwrite in place)
           yield* sql`DELETE FROM weekly_plan WHERE week_start = ${data.weekStart}::date`
@@ -215,6 +206,113 @@ export const generateWeek = createServerFn({ method: "POST" })
           }
 
           return ok({ id: planId, week_start: data.weekStart, days: planDays }) as Result<WeekPlan>
+        })
+      )
+    )
+
+    if (Exit.isSuccess(result)) return result.value
+    return err("DB_UNREACHABLE")
+  })
+
+/** Redraws all three courses for one plan day without touching the rest of the week. */
+export const rerollDay = createServerFn({ method: "POST" })
+  .validator((data: { planDayId: string }) => data)
+  .handler(async ({ data }): Promise<Result<{ slots: SlotRow[]; causedRepeat: boolean }>> => {
+    type R = Result<{ slots: SlotRow[]; causedRepeat: boolean }>
+    const result = await Runtime.runPromiseExit(
+      Effect.flatMap(PgClient.PgClient, (sql) =>
+        Effect.gen(function* () {
+          // Load plan_day + its weekly_plan week_start
+          const dayRows = yield* sql<{ id: string; day_date: string; weekly_plan_id: string; week_start: string }>`
+            SELECT pd.id, pd.day_date::text AS day_date, pd.weekly_plan_id,
+                   wp.week_start::text AS week_start
+            FROM plan_day pd
+            JOIN weekly_plan wp ON wp.id = pd.weekly_plan_id
+            WHERE pd.id = ${data.planDayId}
+          `
+          if (dayRows.length === 0) return err("PLAN_NOT_FOUND") as R
+
+          const dayRow = dayRows[0]
+
+          // Verify the week is writable
+          const settings = yield* sql<{ week_start_dow: number; timezone: string }>`
+            SELECT week_start_dow, timezone FROM settings LIMIT 1
+          `
+          if (settings.length === 0) return err("DB_UNREACHABLE") as R
+
+          const { week_start_dow, timezone } = settings[0]
+          const nowRow = yield* sql<{ today: string }>`
+            SELECT (now() AT TIME ZONE ${timezone})::date::text AS today
+          `
+          const todayStr = nowRow[0].today
+          const todayDate = new Date(todayStr + "T00:00:00")
+          const daysBack = (todayDate.getDay() - week_start_dow + 7) % 7
+          const currentWeekStart = new Date(todayDate)
+          currentWeekStart.setDate(todayDate.getDate() - daysBack)
+          const nextWeekStart = new Date(currentWeekStart)
+          nextWeekStart.setDate(currentWeekStart.getDate() + 7)
+          const toDateStr = (d: Date) => d.toISOString().slice(0, 10)
+
+          if (
+            dayRow.week_start !== toDateStr(currentWeekStart) &&
+            dayRow.week_start !== toDateStr(nextWeekStart)
+          ) {
+            return err("WEEK_NOT_WRITABLE") as R
+          }
+
+          // Load all slots for the week
+          const allSlots = yield* sql<{ plan_day_id: string; course: Course; dish_name: string; dish_id: string | null }>`
+            SELECT s.plan_day_id, s.course, s.dish_name, s.dish_id
+            FROM slot s
+            JOIN plan_day pd ON pd.id = s.plan_day_id
+            WHERE pd.weekly_plan_id = ${dayRow.weekly_plan_id}
+          `
+
+          // Load all dishes per course
+          const dishes = yield* sql<{ id: string; name: string; course: Course }>`
+            SELECT id, name, course FROM dish ORDER BY course, name
+          `
+          const byCourse: Record<Course, Array<{ id: string; name: string }>> = {
+            soup: [], side: [], main: [],
+          }
+          for (const d of dishes) byCourse[d.course].push({ id: d.id, name: d.name })
+
+          // Pick new dishes for each course and update in place
+          const courses: Course[] = ["soup", "side", "main"]
+          const newSlots: SlotRow[] = []
+          let causedRepeat = false
+
+          for (const course of courses) {
+            const pool = byCourse[course]
+            if (pool.length === 0) continue
+
+            const usedNames = new Set(
+              allSlots.filter((s) => s.course === course).map((s) => s.dish_name as string)
+            )
+            const otherDayNames = new Set(
+              allSlots
+                .filter((s) => s.course === course && s.plan_day_id !== data.planDayId)
+                .map((s) => s.dish_name as string)
+            )
+            const currentSlot = allSlots.find(
+              (s) => s.course === course && s.plan_day_id === data.planDayId
+            )
+            const excludeName = (currentSlot?.dish_name ?? "") as string
+
+            const { dish, causedRepeat: courseRepeat } = pickReroll(
+              pool, usedNames, excludeName, otherDayNames
+            )
+            if (courseRepeat) causedRepeat = true
+            newSlots.push({ course, dish_name: dish.name, dish_id: dish.id })
+
+            yield* sql`
+              UPDATE slot
+              SET dish_name = ${dish.name}, dish_id = ${dish.id}
+              WHERE plan_day_id = ${data.planDayId} AND course = ${course}
+            `
+          }
+
+          return ok({ slots: newSlots, causedRepeat }) as R
         })
       )
     )

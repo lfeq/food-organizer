@@ -318,4 +318,40 @@ Issue #18 — Generating a week, and the plan screen.
 
 **What to pick up next:**
 
-Issue #19 — Regenerating a day, and the repeating-week notice.
+Issue #20 — History: browsing past weeks.
+
+---
+
+## 2026-08-28 — Reroll and repeating-week notice (issue #19)
+
+**What was done:**
+
+- Extracted pure generator logic to `src/generator.ts`: `drawN` (Fisher-Yates shuffle
+  with cycle for short catalogues) and `pickReroll` (picks unused dish first, falls back
+  to full course minus replaced dish, returns `causedRepeat`).
+- Refactored `generateWeek` in `plan-fns.ts` to use `drawN` instead of the old biased
+  sort-shuffle.
+- Added `rerollDay` server fn in `plan-fns.ts`: verifies week is writable server-side,
+  loads all week slots, computes candidates per course (dishes not used anywhere in the
+  week), falls back to full course minus replaced dish when empty, UPDATEs the 3 slot
+  rows in place (respects the `UNIQUE(plan_day_id, course)` constraint and the deferred
+  completeness trigger — no delete/re-insert needed).
+- Plan route (`plan.$weekStart.tsx`): labeled "↻ Reroll day" button on the featured
+  (today/first) card; icon-only "↻" button on each of the 6 compact cards; both visible
+  only when `isWritable` (elapsed days in current week keep their control per spec).
+  Outcome-triggered toast fires when `causedRepeat` is true; auto-dismisses after 4 s.
+- Added CSS for `.plan-reroll-btn`, `.plan-reroll-btn--labeled`, `.plan-toast` with
+  slide-in animation.
+- 14 unit tests in `src/__tests__/generator.test.ts` covering: empty pool throws;
+  drawN at 6/7/8/9 dishes; reroll never returns replaced dish; no repeat while
+  candidates remain (8-dish pool); fallback fires and causes repeat at exactly 7 dishes;
+  9-dish pool has two candidates, no repeat possible.
+
+**Key notes for next agent:**
+
+- The `dish_name` on `slot` is `citext` (case-insensitive in DB) but compared as
+  plain string in TypeScript — safe because names round-trip through the DB unchanged.
+- `rerollDay` updates slots IN PLACE (UPDATE, not DELETE+INSERT) to avoid temporarily
+  violating the `every plan_day must have exactly three slot rows` constraint trigger.
+- Toast state survives `router.invalidate()` because the component is not unmounted
+  during a loader reload.

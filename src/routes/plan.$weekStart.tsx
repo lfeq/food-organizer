@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useRouter, redirect } from "@tanstack/react-router"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { doLogout } from "#/auth-fns"
 import {
   getWeekPlan,
   generateWeek,
   getPlanSettings,
   getRepeatingCourses,
+  rerollDay,
   type Course,
 } from "#/plan-fns"
 
@@ -75,6 +76,13 @@ function PlanPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmRegen, setConfirmRegen] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 4000)
+    return () => clearTimeout(t)
+  }, [toast])
 
   const { plan, repeating, today, currentWeekStr, nextWeekStr, isWritable } = loaderData
 
@@ -109,6 +117,21 @@ function PlanPage() {
     } else {
       void doGenerate()
     }
+  }
+
+  async function handleReroll(planDayId: string) {
+    setBusy(true)
+    setError(null)
+    const res = await rerollDay({ data: { planDayId } })
+    setBusy(false)
+    if (!res.ok) {
+      setError("Reroll failed. Try again.")
+      return
+    }
+    if (res.data.causedRepeat) {
+      setToast("A dish now repeats this week — add more dishes to avoid it.")
+    }
+    await router.invalidate()
   }
 
   const todayDayDate = today
@@ -228,6 +251,16 @@ function PlanPage() {
                   {featuredDay.day_date === todayDayDate && (
                     <span className="plan-today-tag">today</span>
                   )}
+                  {isWritable && (
+                    <button
+                      className="plan-reroll-btn plan-reroll-btn--labeled"
+                      onClick={() => void handleReroll(featuredDay.id)}
+                      disabled={busy}
+                      title="Reroll this day"
+                    >
+                      ↻ Reroll day
+                    </button>
+                  )}
                 </div>
                 <ul className="plan-today-slots">
                   {featuredDay.slots.map((slot) => (
@@ -252,6 +285,16 @@ function PlanPage() {
                 >
                   <div className="plan-day-header">
                     <span className="plan-day-date">{formatDate(day.day_date)}</span>
+                    {isWritable && (
+                      <button
+                        className="plan-reroll-btn"
+                        onClick={() => void handleReroll(day.id)}
+                        disabled={busy}
+                        title="Reroll this day"
+                      >
+                        ↻
+                      </button>
+                    )}
                   </div>
                   <ul className="plan-compact-slots">
                     {day.slots.map((slot) => (
@@ -264,6 +307,12 @@ function PlanPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {toast && (
+          <div className="plan-toast" role="status">
+            {toast}
           </div>
         )}
 

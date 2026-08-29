@@ -14,7 +14,7 @@ build the app from it without reopening the tickets.
 - [ ] §13 step 5 — Catalogue
 - [ ] §13 step 6 — Generating
 - [ ] §13 step 7 — Plan screen
-- [ ] §13 step 8 — Regenerating and repeating-week
+- [x] §13 step 8 — Regenerating and repeating-week
 - [ ] §13 step 9 — History
 - [ ] §13 step 10 — Accounts
 - [ ] §13 step 11 — Bilingual pass
