@@ -10,6 +10,26 @@
  * a broken deploy to reach production. Every path below either applies the
  * pending migrations or exits non-zero. See
  * https://github.com/lfeq/food-organizer/issues/52
+ *
+ * A companion policy, recorded here because there is nowhere better: NO PREVIEW
+ * BUILD HAS DATABASE CREDENTIALS, BY DESIGN. Vercel offers no way to stop a
+ * fork pull request from deploying (only an authorization gate), so the target
+ * was removed instead of the trigger -- Preview is off in the Neon
+ * integration's environment scope, leaving `DATABASE_URL` and
+ * `DATABASE_URL_UNPOOLED` on Production only. An authorized fork PR build
+ * therefore dies right here, in this script, and that red is the intended
+ * outcome, not a bug to fix. Do not add a VERCEL_ENV skip to "fix" it, and do
+ * not enable Neon preview branching: a copy-on-write branch is still a full
+ * copy of production rows handed to a stranger's build.
+ * See https://github.com/lfeq/food-organizer/issues/56
+ *
+ * That scope lives in the Neon integration's Deployments Configuration in the
+ * Vercel dashboard -- not in `vercel.json` (JSON, which cannot carry this
+ * comment) and not in the variable editor (the integration is Vercel-Managed,
+ * so the scope is locked there). Nothing asserts it: a check would need a
+ * VERCEL_TOKEN, and `ci.yml` may never hold a secret. It is prose because it is
+ * unassertable, which is also why it drifts -- if you are here because it
+ * drifted, see https://github.com/lfeq/food-organizer/issues/57
  */
 import pg from "pg"
 import { readdir, readFile } from "fs/promises"
