@@ -13,6 +13,11 @@ jobs:
         with:
           node-version: "22.12"
           cache: "npm"
+      # Node 22.12 ships npm 10, which rejects this lockfile: it demands an
+      # entry for `lru-cache@11.5.2`, an *optional peer* of nitro's unstorage
+      # that npm 11 legitimately declines to lock. The lockfile is written by
+      # npm 11; give CI the same npm rather than downgrade the lockfile.
+      - run: npm i -g npm@11
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
