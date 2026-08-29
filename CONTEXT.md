@@ -91,3 +91,20 @@ Generating has no memory: what came out last week does not influence this week.
 
 Redrawing a single [plan day](#plan-day) — "I don't feel like Wednesday, give
 me another". Distinct from generating, which produces the whole week.
+
+## Locale
+
+_(Spanish UI: "idioma")_
+
+Which language the interface is rendered in for one viewer: Spanish (`es-MX`)
+or English (`en-US`). A locale is a property of a viewing session, not of a
+[member](#member) and not of anything the household owns.
+
+Locale applies to **UI copy only** — the words the app itself supplies. It never
+applies to household data: a [dish](#dish) name is typed by a member and is
+shown exactly as typed in either locale, and a [weekly plan](#weekly-plan) holds
+no localised text. Nothing stored is ever localised.
+
+The distinction the term exists to make is **UI copy versus household data**. If
+a string was written by whoever built the app, it has a locale; if it was typed
+by a member, it does not.
