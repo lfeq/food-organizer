@@ -10,13 +10,13 @@ build the app from it without reopening the tickets.
 - [x] §13 step 1 — Walking skeleton: TanStack Start app, SSR, Deploy Button
 - [x] §13 step 2 — Effect runtime seam: ManagedRuntime, PgClient with retry
 - [x] §13 step 3 — Migrations: runner + first migration (citext, enums, trigger)
-- [ ] §13 step 4 — Auth and first run
-- [ ] §13 step 5 — Catalogue
-- [ ] §13 step 6 — Generating
-- [ ] §13 step 7 — Plan screen
+- [x] §13 step 4 — Auth and first run
+- [x] §13 step 5 — Catalogue
+- [x] §13 step 6 — Generating
+- [x] §13 step 7 — Plan screen
 - [x] §13 step 8 — Regenerating and repeating-week
-- [ ] §13 step 9 — History
-- [ ] §13 step 10 — Accounts
+- [x] §13 step 9 — History
+- [x] §13 step 10 — Accounts
 - [ ] §13 step 11 — Bilingual pass
 
 **How to read it.** Sections state decisions, not options. Where a heading is

@@ -178,7 +178,9 @@ function PlanPage() {
           <li className="sidebar-nav-item">
             <Link to="/dishes" className="sidebar-nav-link">Dishes</Link>
           </li>
-          <li className="sidebar-nav-item sidebar-nav-item--disabled">History</li>
+          <li className="sidebar-nav-item">
+            <Link to="/history" className="sidebar-nav-link">History</Link>
+          </li>
           {member.role === "admin" && (
             <li className="sidebar-nav-item">
               <Link to="/accounts" className="sidebar-nav-link">Accounts</Link>

@@ -126,7 +126,9 @@ function AccountsPage() {
           <li className="sidebar-nav-item">
             <Link to="/dishes" className="sidebar-nav-link">Dishes</Link>
           </li>
-          <li className="sidebar-nav-item sidebar-nav-item--disabled">History</li>
+          <li className="sidebar-nav-item">
+            <Link to="/history" className="sidebar-nav-link">History</Link>
+          </li>
           <li className="sidebar-nav-item sidebar-nav-item--active">Accounts</li>
         </ul>
         <div className="sidebar-bottom">

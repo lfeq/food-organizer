@@ -321,6 +321,42 @@ export const rerollDay = createServerFn({ method: "POST" })
     return err("DB_UNREACHABLE")
   })
 
+/** Returns all past weekly_plan rows (week_start < current week), newest first. */
+export const listPastWeeks = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ week_start: string }[]> => {
+    const result = await Runtime.runPromiseExit(
+      Effect.flatMap(PgClient.PgClient, (sql) =>
+        Effect.gen(function* () {
+          const settings = yield* sql<{ week_start_dow: number; timezone: string }>`
+            SELECT week_start_dow, timezone FROM settings LIMIT 1
+          `
+          if (settings.length === 0) return []
+
+          const { week_start_dow, timezone } = settings[0]
+          const nowRow = yield* sql<{ today: string }>`
+            SELECT (now() AT TIME ZONE ${timezone})::date::text AS today
+          `
+          const todayStr = nowRow[0].today
+          const todayDate = new Date(todayStr + "T00:00:00")
+          const daysBack = (todayDate.getDay() - week_start_dow + 7) % 7
+          const currentWeekStart = new Date(todayDate)
+          currentWeekStart.setDate(todayDate.getDate() - daysBack)
+          const currentWeekStr = currentWeekStart.toISOString().slice(0, 10)
+
+          return yield* sql<{ week_start: string }>`
+            SELECT week_start::text AS week_start
+            FROM weekly_plan
+            WHERE week_start < ${currentWeekStr}::date
+            ORDER BY week_start DESC
+          `
+        })
+      )
+    )
+    if (Exit.isSuccess(result)) return [...result.value]
+    return []
+  }
+)
+
 /** Returns which courses repeat in the given week (dish_name appears more than once in a course). */
 export const getRepeatingCourses = createServerFn({ method: "GET" })
   .validator((data: { weeklyPlanId: string }) => data)

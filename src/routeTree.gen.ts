@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as DishesRouteImport } from './routes/dishes'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as PlanWeekStartRouteImport } from './routes/plan.$weekStart'
@@ -53,6 +54,11 @@ const PlanWeekStartRoute = PlanWeekStartRouteImport.update({
   path: '/plan/$weekStart',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlanNextRoute = PlanNextRouteImport.update({
   id: '/plan/next',
   path: '/plan/next',
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/accounts': typeof AccountsRoute
   '/change-password': typeof ChangePasswordRoute
   '/dishes': typeof DishesRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
   '/plan/$weekStart': typeof PlanWeekStartRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/accounts': typeof AccountsRoute
   '/change-password': typeof ChangePasswordRoute
   '/dishes': typeof DishesRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
   '/plan/$weekStart': typeof PlanWeekStartRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/accounts': typeof AccountsRoute
   '/change-password': typeof ChangePasswordRoute
   '/dishes': typeof DishesRoute
+  '/history': typeof HistoryRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
   '/plan/$weekStart': typeof PlanWeekStartRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/change-password'
     | '/dishes'
+    | '/history'
     | '/login'
     | '/setup'
     | '/plan/$weekStart'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/change-password'
     | '/dishes'
+    | '/history'
     | '/login'
     | '/setup'
     | '/plan/$weekStart'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/change-password'
     | '/dishes'
+    | '/history'
     | '/login'
     | '/setup'
     | '/plan/$weekStart'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   AccountsRoute: typeof AccountsRoute
   ChangePasswordRoute: typeof ChangePasswordRoute
   DishesRoute: typeof DishesRoute
+  HistoryRoute: typeof HistoryRoute
   LoginRoute: typeof LoginRoute
   SetupRoute: typeof SetupRoute
   PlanWeekStartRoute: typeof PlanWeekStartRoute
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlanWeekStartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/plan/next': {
       id: '/plan/next'
       path: '/plan/next'
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountsRoute: AccountsRoute,
   ChangePasswordRoute: ChangePasswordRoute,
   DishesRoute: DishesRoute,
+  HistoryRoute: HistoryRoute,
   LoginRoute: LoginRoute,
   SetupRoute: SetupRoute,
   PlanWeekStartRoute: PlanWeekStartRoute,
