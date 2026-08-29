@@ -16,6 +16,12 @@ A dish is a catalogue entry, never an act of eating. The word "comida" is
 deliberately avoided in code because in Spanish it means both the midday meal
 and an item on the list.
 
+Two dishes in the same course cannot share a name; the same name in two
+different courses is allowed, since a dish can be both a side and a main. A
+dish outlives its author: if that [member](#member) is removed, the dish stays
+in the catalogue with no author rather than being reassigned to someone who did
+not write it.
+
 ## Course
 
 _(Spanish UI: "tiempo")_
@@ -37,13 +43,18 @@ _(Spanish UI: "integrante")_
 A person in the household. A member is always an account: there is no notion of
 a household member who cannot log in. Two roles:
 
-- `admin` — whoever deployed the instance. Creates member accounts, resets
-  passwords, removes members.
+- `admin` — creates member accounts, resets passwords, removes members, and
+  grants or removes the admin role, including their own. The first admin is
+  whoever deployed the instance, but the role is not theirs alone: **an instance
+  may have any number of admins, and never fewer than one.**
 - `member` — everyone else. Equal to each other: adds dishes, generates and
   regenerates plans.
 
 Both roles have identical rights over the catalogue and over plans. The admin
 role covers account management only.
+
+Removing a member does not remove what they contributed: their [dishes](#dish)
+stay in the catalogue and the weeks they generated stay in history.
 
 ## Household
 
@@ -55,30 +66,52 @@ so conversations about "the family's dishes" have a name for the boundary.
 
 _(Spanish UI: "plan semanal")_
 
-What the household intends to eat at midday for one calendar week. Exactly one
-weekly plan exists per calendar week, identified by that week; past weeks are
-kept as history.
+What the household intends to eat at midday for one week. Exactly one weekly
+plan exists per week, identified by the date its [week start](#week-start) falls
+on; past weeks are kept as history.
+
+A week with no weekly plan is simply a week nobody has generated: there is no
+such thing as an empty or half-filled plan. A weekly plan comes into existence
+complete, with all seven days and all twenty-one slots, or not at all.
 
 A weekly plan is a record of what was decided, not a live view of the
 catalogue: once generated it holds its own copy of what came out, so deleting a
 [dish](#dish) later never alters a plan that already used it.
 
-Only the current and the next calendar week can be changed. Earlier weeks are
-history: a record of what the household ate, which nothing can rewrite.
+Only the current and the next week can be changed. Earlier weeks are history: a
+record of what the household ate, which nothing can rewrite.
+
+## Week start
+
+Which weekday a week begins on for this instance — **Sunday by default**, and
+chosen once, by the admin, before the first [weekly plan](#weekly-plan) exists.
+After that it is fixed, because changing it would leave every stored week
+misaligned with the definition it was created under.
+
+A week start is a property of the instance, not of a person and not of a
+locale: the household plans one shared week, so everyone sees the
+same seven days in the same order.
 
 ## Plan day
 
 _(Spanish UI: "día del plan")_
 
-One of the seven days (Monday through Sunday) of a [weekly plan](#weekly-plan).
-Holds three [slots](#slot), one per [course](#course).
+One of the seven days of a [weekly plan](#weekly-plan), beginning at the
+instance's [week start](#week-start). Holds three [slots](#slot), one per
+[course](#course).
 
 ## Slot
 
 _(Spanish UI: "casilla")_
 
 One (course, day) position within a [weekly plan](#weekly-plan) — for example,
-Wednesday's soup. Holds the [dish](#dish) that was drawn for it.
+Wednesday's soup. Holds the **name** of the [dish](#dish) that was drawn for it,
+copied at the moment it was drawn, not a live reference to the catalogue entry.
+So renaming a dish does not rewrite the weeks it already appeared in, and
+deleting one does not empty them.
+
+Two slots hold the same dish when they hold the same name. Identity here is the
+name the household read on the plan, not the catalogue row it came from.
 
 ## Generating
 
