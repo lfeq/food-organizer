@@ -42,5 +42,5 @@ The dev server starts on <http://localhost:3000>.
 To apply migrations locally:
 
 ```bash
-node scripts/migrate.mjs
+npm run migrate
 ```
