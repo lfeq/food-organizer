@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router"
 import { useState, useContext } from "react"
 import { doLogout } from "#/auth-fns"
 import { setLocale } from "#/locale-fns"
-import { LocaleContext, t } from "#/i18n"
+import { LocaleContext, t, interpolate, type StringKey } from "#/i18n"
 import { listDishes, addDish, editDish, deleteDish, type Dish } from "#/dishes-fns"
 
 export const Route = createFileRoute("/dishes")({
@@ -17,10 +17,18 @@ type ModalState =
   | { kind: "delete"; dish: Dish }
 
 const COURSES = ["soup", "side", "main"] as const
-const COURSE_LABELS: Record<string, string> = {
-  soup: "Soups",
-  side: "Sides",
-  main: "Mains",
+type Course = typeof COURSES[number]
+
+const COURSE_PLURAL_KEY: Record<Course, StringKey> = {
+  soup: "courseSoupPlural",
+  side: "courseSidePlural",
+  main: "courseMainPlural",
+}
+
+const COURSE_LABEL_KEY: Record<Course, StringKey> = {
+  soup: "courseSoup",
+  side: "courseSide",
+  main: "courseMain",
 }
 
 function DishesPage() {
@@ -53,17 +61,13 @@ function DishesPage() {
     setError(null)
   }
 
-  async function handleAdd(name: string, course: "soup" | "side" | "main") {
+  async function handleAdd(name: string, course: Course) {
     setBusy(true)
     setError(null)
     const res = await addDish({ data: { name, course, authorId: member.id } })
     setBusy(false)
     if (!res.ok) {
-      setError(
-        res.code === "DISH_NAME_TAKEN"
-          ? "A dish with that name already exists in this course."
-          : "Something went wrong."
-      )
+      setError(res.code === "DISH_NAME_TAKEN" ? t(locale, "dishErrNameTaken") : t(locale, "errGeneric"))
       return
     }
     closeModal()
@@ -76,11 +80,7 @@ function DishesPage() {
     const res = await editDish({ data: { id, name } })
     setBusy(false)
     if (!res.ok) {
-      setError(
-        res.code === "DISH_NAME_TAKEN"
-          ? "A dish with that name already exists in this course."
-          : "Something went wrong."
-      )
+      setError(res.code === "DISH_NAME_TAKEN" ? t(locale, "dishErrNameTaken") : t(locale, "errGeneric"))
       return
     }
     closeModal()
@@ -93,7 +93,7 @@ function DishesPage() {
     const res = await deleteDish({ data: { id } })
     setBusy(false)
     if (!res.ok) {
-      setError("Something went wrong.")
+      setError(t(locale, "errGeneric"))
       return
     }
     closeModal()
@@ -145,14 +145,14 @@ function DishesPage() {
       </nav>
 
       <main className="main-content">
-        <h1>Dishes</h1>
+        <h1>{t(locale, "dishesH1")}</h1>
         <div className="catalogue-grid">
           {COURSES.map((course) => {
             const col = dishes.filter((d) => d.course === course)
             return (
               <section key={course} className="catalogue-col">
                 <header className="catalogue-col-header">
-                  <span className="catalogue-col-title">{COURSE_LABELS[course]}</span>
+                  <span className="catalogue-col-title">{t(locale, COURSE_PLURAL_KEY[course])}</span>
                   <span className="catalogue-col-count">{col.length}</span>
                 </header>
                 <ul className="dish-list">
@@ -161,7 +161,7 @@ function DishesPage() {
                       <div className="dish-item-main">
                         <span className="dish-name">{dish.name}</span>
                         <span className="dish-author">
-                          {dish.author_username ?? "removed member"}
+                          {dish.author_username ?? t(locale, "dishRemovedMember")}
                         </span>
                       </div>
                       <div className="dish-actions">
@@ -169,13 +169,13 @@ function DishesPage() {
                           className="dish-btn"
                           onClick={() => openModal({ kind: "edit", dish })}
                         >
-                          Edit
+                          {t(locale, "editBtn")}
                         </button>
                         <button
                           className="dish-btn dish-btn--danger"
                           onClick={() => openModal({ kind: "delete", dish })}
                         >
-                          Delete
+                          {t(locale, "deleteBtn")}
                         </button>
                       </div>
                     </li>
@@ -185,7 +185,7 @@ function DishesPage() {
                   className="dish-add-btn"
                   onClick={() => openModal({ kind: "add", course })}
                 >
-                  + Add dish
+                  {t(locale, "dishesAddBtn")}
                 </button>
               </section>
             )
@@ -237,16 +237,19 @@ function AddModal({
   onSubmit,
   onCancel,
 }: {
-  course: "soup" | "side" | "main"
+  course: Course
   busy: boolean
   error: string | null
   onSubmit: (name: string) => void
   onCancel: () => void
 }) {
   const [name, setName] = useState("")
+  const locale = useContext(LocaleContext)
   return (
     <>
-      <h2 className="modal-title">Add dish — {COURSE_LABELS[course]}</h2>
+      <h2 className="modal-title">
+        {interpolate(t(locale, "dishAddTitle"), { course: t(locale, COURSE_LABEL_KEY[course]) })}
+      </h2>
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -254,7 +257,7 @@ function AddModal({
         }}
       >
         <label className="modal-label">
-          Name
+          {t(locale, "nameLabel")}
           <input
             className="modal-input"
             value={name}
@@ -266,10 +269,10 @@ function AddModal({
         {error && <p className="form-error">{error}</p>}
         <div className="modal-actions">
           <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
-            Cancel
+            {t(locale, "cancel")}
           </button>
           <button type="submit" className="btn-primary" disabled={busy || !name.trim()}>
-            Add
+            {t(locale, "add")}
           </button>
         </div>
       </form>
@@ -291,12 +294,11 @@ function EditModal({
   onCancel: () => void
 }) {
   const [name, setName] = useState(dish.name)
+  const locale = useContext(LocaleContext)
   return (
     <>
-      <h2 className="modal-title">Edit dish</h2>
-      <p className="modal-notice">
-        Renaming a dish updates the catalogue and every future plan, but leaves past weeks unchanged.
-      </p>
+      <h2 className="modal-title">{t(locale, "dishEditTitle")}</h2>
+      <p className="modal-notice">{t(locale, "dishEditNotice")}</p>
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -304,7 +306,7 @@ function EditModal({
         }}
       >
         <label className="modal-label">
-          Name
+          {t(locale, "nameLabel")}
           <input
             className="modal-input"
             value={name}
@@ -316,10 +318,10 @@ function EditModal({
         {error && <p className="form-error">{error}</p>}
         <div className="modal-actions">
           <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
-            Cancel
+            {t(locale, "cancel")}
           </button>
           <button type="submit" className="btn-primary" disabled={busy || !name.trim()}>
-            Save
+            {t(locale, "save")}
           </button>
         </div>
       </form>
@@ -340,19 +342,20 @@ function DeleteModal({
   onConfirm: () => void
   onCancel: () => void
 }) {
+  const locale = useContext(LocaleContext)
   return (
     <>
-      <h2 className="modal-title">Delete "{dish.name}"?</h2>
-      <p className="modal-notice">
-        Past weeks keep this dish — only future plans are affected.
-      </p>
+      <h2 className="modal-title">
+        {interpolate(t(locale, "dishDeleteTitle"), { name: dish.name })}
+      </h2>
+      <p className="modal-notice">{t(locale, "dishDeleteNotice")}</p>
       {error && <p className="form-error">{error}</p>}
       <div className="modal-actions">
         <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
-          Cancel
+          {t(locale, "cancel")}
         </button>
         <button type="button" className="btn-danger" onClick={onConfirm} disabled={busy}>
-          Delete
+          {t(locale, "deleteBtn")}
         </button>
       </div>
     </>

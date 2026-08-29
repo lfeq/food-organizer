@@ -17,7 +17,7 @@ build the app from it without reopening the tickets.
 - [x] §13 step 8 — Regenerating and repeating-week
 - [x] §13 step 9 — History
 - [x] §13 step 10 — Accounts
-- [ ] §13 step 11 — Bilingual pass
+- [x] §13 step 11 — Bilingual pass
 
 **How to read it.** Sections state decisions, not options. Where a heading is
 marked **Derived**, the content is mechanical fill-in written while assembling

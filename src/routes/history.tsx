@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router"
 import { useContext } from "react"
 import { doLogout } from "#/auth-fns"
 import { setLocale } from "#/locale-fns"
-import { LocaleContext, t } from "#/i18n"
+import { LocaleContext, t, interpolate, INTL_LOCALE } from "#/i18n"
 import { listPastWeeks, getPlanSettings } from "#/plan-fns"
 
 function computeCurrentWeekStart(dow: number, refDate: Date): Date {
@@ -56,7 +56,7 @@ function HistoryPage() {
 
   function formatWeekLabel(weekStart: string) {
     const d = new Date(weekStart + "T00:00:00")
-    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    return d.toLocaleDateString(INTL_LOCALE[locale], { month: "long", day: "numeric", year: "numeric" })
   }
 
   return (
@@ -109,12 +109,12 @@ function HistoryPage() {
 
       <main className="main-content">
         <div className="plan-header">
-          <h1 className="plan-title">History</h1>
+          <h1 className="plan-title">{t(locale, "historyH1")}</h1>
         </div>
 
         {pastWeeks.length === 0 ? (
           <div className="plan-empty">
-            <p>No past weeks yet.</p>
+            <p>{t(locale, "historyNone")}</p>
           </div>
         ) : (
           <ul className="history-list">
@@ -125,7 +125,7 @@ function HistoryPage() {
                   params={{ weekStart: w.week_start }}
                   className="history-week-link"
                 >
-                  Week of {formatWeekLabel(w.week_start)}
+                  {interpolate(t(locale, "historyWeekOf"), { date: formatWeekLabel(w.week_start) })}
                 </Link>
               </li>
             ))}

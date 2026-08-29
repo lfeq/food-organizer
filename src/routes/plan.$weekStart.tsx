@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter, redirect } from "@tanstack/react-rout
 import { useState, useEffect, useContext } from "react"
 import { doLogout } from "#/auth-fns"
 import { setLocale } from "#/locale-fns"
-import { LocaleContext, t } from "#/i18n"
+import { LocaleContext, t, interpolate, INTL_LOCALE, type StringKey } from "#/i18n"
 import {
   getWeekPlan,
   generateWeek,
@@ -12,10 +12,16 @@ import {
   type Course,
 } from "#/plan-fns"
 
-const COURSE_LABELS: Record<Course, string> = {
-  soup: "Soup",
-  side: "Side",
-  main: "Main",
+const COURSE_LABEL_KEY: Record<Course, StringKey> = {
+  soup: "courseSoup",
+  side: "courseSide",
+  main: "courseMain",
+}
+
+const COURSE_PLURAL_KEY: Record<Course, StringKey> = {
+  soup: "courseSoupPlural",
+  side: "courseSidePlural",
+  main: "courseMainPlural",
 }
 
 function computeWeekStart(dow: number, refDate: Date): Date {
@@ -36,7 +42,6 @@ export const Route = createFileRoute("/plan/$weekStart")({
     const plan = await getWeekPlan({ data: { weekStart: params.weekStart } })
     const repeating = plan ? await getRepeatingCourses({ data: { weeklyPlanId: plan.id } }) : []
 
-    // Compute current and next week for nav and writability
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const currentWeekStart = computeWeekStart(settings.week_start_dow, today)
@@ -49,7 +54,6 @@ export const Route = createFileRoute("/plan/$weekStart")({
     const isWritable =
       params.weekStart === currentWeekStr || params.weekStart === nextWeekStr
 
-    // Redirect invalid week param (malformed date)
     const dateRe = /^\d{4}-\d{2}-\d{2}$/
     if (!dateRe.test(params.weekStart)) {
       throw redirect({ to: "/plan/$weekStart", params: { weekStart: currentWeekStr } })
@@ -107,12 +111,15 @@ function PlanPage() {
     setBusy(false)
     if (!res.ok) {
       if (res.code === "GENERATE_EMPTY_COURSE") {
-        const courses = (res.detail ?? "").split(",").map((c) => COURSE_LABELS[c as Course] ?? c)
-        setError(`Add at least one dish before generating: ${courses.join(", ")}`)
+        const courses = (res.detail ?? "")
+          .split(",")
+          .map((c) => t(locale, COURSE_PLURAL_KEY[c as Course] ?? "courseSoupPlural"))
+          .join(", ")
+        setError(interpolate(t(locale, "planErrEmptyCourse"), { courses }))
       } else if (res.code === "WEEK_NOT_WRITABLE") {
-        setError("Only the current and next week can be generated.")
+        setError(t(locale, "planErrNotWritable"))
       } else {
-        setError("Something went wrong. Try again.")
+        setError(t(locale, "errGeneric"))
       }
       return
     }
@@ -133,21 +140,18 @@ function PlanPage() {
     const res = await rerollDay({ data: { planDayId } })
     setBusy(false)
     if (!res.ok) {
-      setError("Reroll failed. Try again.")
+      setError(t(locale, "planErrRerollFailed"))
       return
     }
     if (res.data.causedRepeat) {
-      setToast("A dish now repeats this week — add more dishes to avoid it.")
+      setToast(t(locale, "planRerollToast"))
     }
     await router.invalidate()
   }
 
   const todayDayDate = today
-
-  // Determine which day is "today" in the plan (for current week display)
   const todayDay = plan?.days.find((d) => d.day_date === todayDayDate)
   const otherDays = plan?.days.filter((d) => d.day_date !== todayDayDate) ?? []
-  // If today not in this week, the first day acts as "today card" substitute
   const featuredDay = todayDay ?? plan?.days[0] ?? null
   const sidebarDays = todayDay ? otherDays : (plan?.days.slice(1) ?? [])
 
@@ -157,14 +161,18 @@ function PlanPage() {
 
   function formatDate(dateStr: string) {
     const d = new Date(dateStr + "T00:00:00")
-    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+    return d.toLocaleDateString(INTL_LOCALE[locale], { weekday: "short", month: "short", day: "numeric" })
   }
 
   function isElapsed(dateStr: string) {
     return dateStr < todayDayDate
   }
 
-  const weekLabel = isCurrentWeek ? "This week" : isNextWeek ? "Next week" : formatDate(weekStart)
+  const weekLabel = isCurrentWeek
+    ? t(locale, "thisWeek")
+    : isNextWeek
+      ? t(locale, "nextWeek")
+      : formatDate(weekStart)
 
   return (
     <div className="app-layout">
@@ -225,11 +233,11 @@ function PlanPage() {
               onClick={handleGenerateClick}
               disabled={busy}
             >
-              {plan ? "Regenerate" : "Generate"}
+              {plan ? t(locale, "planRegenerate") : t(locale, "planGenerate")}
             </button>
           )}
           {isPastWeek && (
-            <span className="plan-readonly-badge">Past week — read only</span>
+            <span className="plan-readonly-badge">{t(locale, "planPastReadOnly")}</span>
           )}
         </div>
 
@@ -239,7 +247,7 @@ function PlanPage() {
           <div className="plan-repeat-banner">
             {repeating.map((c) => (
               <p key={c} className="plan-repeat-line">
-                {COURSE_LABELS[c]}s repeat this week — add more dishes to avoid duplicates.
+                {interpolate(t(locale, "planRepeatBanner"), { course: t(locale, COURSE_PLURAL_KEY[c]) })}
               </p>
             ))}
           </div>
@@ -247,10 +255,10 @@ function PlanPage() {
 
         {!plan && (
           <div className="plan-empty">
-            <p>No plan for this week yet.</p>
+            <p>{t(locale, "planNoWeek")}</p>
             {isWritable && (
               <button className="btn-primary" onClick={handleGenerateClick} disabled={busy}>
-                Generate
+                {t(locale, "planGenerate")}
               </button>
             )}
           </div>
@@ -258,7 +266,6 @@ function PlanPage() {
 
         {plan && (
           <div className="plan-columns">
-            {/* Today / featured day — large card on left */}
             {featuredDay && (
               <div
                 className={[
@@ -272,23 +279,23 @@ function PlanPage() {
                 <div className="plan-day-header">
                   <span className="plan-day-date">{formatDate(featuredDay.day_date)}</span>
                   {featuredDay.day_date === todayDayDate && (
-                    <span className="plan-today-tag">today</span>
+                    <span className="plan-today-tag">{t(locale, "planToday")}</span>
                   )}
                   {isWritable && (
                     <button
                       className="plan-reroll-btn plan-reroll-btn--labeled"
                       onClick={() => void handleReroll(featuredDay.id)}
                       disabled={busy}
-                      title="Reroll this day"
+                      title={t(locale, "planRerollDay")}
                     >
-                      ↻ Reroll day
+                      {t(locale, "planRerollDay")}
                     </button>
                   )}
                 </div>
                 <ul className="plan-today-slots">
                   {featuredDay.slots.map((slot) => (
                     <li key={slot.course} className="plan-today-slot">
-                      <span className="plan-slot-course">{COURSE_LABELS[slot.course]}</span>
+                      <span className="plan-slot-course">{t(locale, COURSE_LABEL_KEY[slot.course])}</span>
                       <span className="plan-slot-dish">{slot.dish_name}</span>
                     </li>
                   ))}
@@ -296,7 +303,6 @@ function PlanPage() {
               </div>
             )}
 
-            {/* Other six days — compact cards */}
             <div className="plan-others-col">
               {sidebarDays.map((day) => (
                 <div
@@ -313,16 +319,16 @@ function PlanPage() {
                         className="plan-reroll-btn"
                         onClick={() => void handleReroll(day.id)}
                         disabled={busy}
-                        title="Reroll this day"
+                        title={t(locale, "planRerollDay")}
                       >
-                        ↻
+                        {t(locale, "planRerollIcon")}
                       </button>
                     )}
                   </div>
                   <ul className="plan-compact-slots">
                     {day.slots.map((slot) => (
                       <li key={slot.course} className="plan-compact-slot">
-                        <span className="plan-slot-course plan-slot-course--compact">{COURSE_LABELS[slot.course]}</span>
+                        <span className="plan-slot-course plan-slot-course--compact">{t(locale, COURSE_LABEL_KEY[slot.course])}</span>
                         <span className="plan-slot-dish plan-slot-dish--compact">{slot.dish_name}</span>
                       </li>
                     ))}
@@ -339,20 +345,17 @@ function PlanPage() {
           </div>
         )}
 
-        {/* Regenerate confirmation dialog */}
         {confirmRegen && (
           <div className="modal-backdrop" onClick={() => setConfirmRegen(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <h2 className="modal-title">Regenerate this week?</h2>
-              <p className="modal-notice">
-                The current plan will be replaced with a new one drawn from the catalogue. This cannot be undone.
-              </p>
+              <h2 className="modal-title">{t(locale, "planRegenTitle")}</h2>
+              <p className="modal-notice">{t(locale, "planRegenNotice")}</p>
               <div className="modal-actions">
                 <button className="btn-secondary" onClick={() => setConfirmRegen(false)} disabled={busy}>
-                  Cancel
+                  {t(locale, "cancel")}
                 </button>
                 <button className="btn-danger" onClick={() => void doGenerate()} disabled={busy}>
-                  Regenerate
+                  {t(locale, "planRegenerate")}
                 </button>
               </div>
             </div>

@@ -463,3 +463,26 @@ active locale by default; English (`en`) via cookie.
   becomes a bottleneck, cache in a module-level variable with a short TTL.
 - The `display_name` column already exists in `settings` (migration 0002, added during #15).
   No new migration was needed for #21.
+
+---
+
+## #23 — Translate every screen (2026-08-28)
+
+**Completed the bilingual pass (§13 step 11).**
+
+- Expanded `src/i18n.ts` from 6 sidebar-only keys to ~100 keys covering all screens. Added `INTL_LOCALE: Record<Locale, string>` (`en → "en-US"`, `es → "es-MX"`) for locale-aware date formatting.
+
+- Updated all routes to use `t(locale, key)` and `interpolate()`:
+  - `plan.$weekStart.tsx`: course labels, all UI chrome, error messages, repeat banner, reroll toast, regen modal, date formatting via `INTL_LOCALE[locale]`
+  - `dishes.tsx`: catalogue headers, modal titles/notices/actions, error messages
+  - `history.tsx`: heading, empty state, week links (`"Week of {date}"` / `"Semana del {date}"`)
+  - `accounts.tsx`: table headers, role actions, settings panel labels, all modals; weekday names generated via `Intl.DateTimeFormat` (no hardcoded English array)
+  - `login.tsx`, `setup.tsx`, `change-password.tsx`: all labels, error messages, and button states translated using `useContext(LocaleContext)`
+
+- Fixed `lang` attribute: `RootLayout` now calls `useEffect` to set `document.documentElement.lang = locale` on every locale change.
+
+- Modal sub-components (`AddModal`, `EditModal`, `DeleteModal`, `CreateModal`, etc.) each call `useContext(LocaleContext)` directly — no locale prop drilling.
+
+- All 14 tests pass; `tsc --noEmit` is clean.
+
+**Next ticket:** #24 — Download my data (export).

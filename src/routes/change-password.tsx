@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
-import { useState } from "react"
+import { useState, useContext } from "react"
 import { doChangePassword, doLogout } from "#/auth-fns"
+import { LocaleContext, t } from "#/i18n"
 
 export const Route = createFileRoute("/change-password")({
   component: ChangePasswordPage,
@@ -8,6 +9,7 @@ export const Route = createFileRoute("/change-password")({
 
 function ChangePasswordPage() {
   const router = useRouter()
+  const locale = useContext(LocaleContext)
   const [newPassword, setNewPassword] = useState("")
   const [confirm, setConfirm] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -21,7 +23,7 @@ function ChangePasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (newPassword !== confirm) {
-      setError("Passwords do not match.")
+      setError(t(locale, "changePwErrMismatch"))
       return
     }
     setBusy(true)
@@ -31,8 +33,8 @@ function ChangePasswordPage() {
     if (!res.ok) {
       setError(
         res.code === "AUTH_PASSWORD_TOO_SHORT"
-          ? "Password must be at least 8 characters."
-          : "Something went wrong."
+          ? t(locale, "changePwErrTooShort")
+          : t(locale, "errGeneric")
       )
       return
     }
@@ -42,13 +44,11 @@ function ChangePasswordPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-title">Set your password</h1>
-        <p className="auth-subtitle">
-          You must choose a new password before continuing.
-        </p>
+        <h1 className="auth-title">{t(locale, "changePwTitle")}</h1>
+        <p className="auth-subtitle">{t(locale, "changePwSubtitle")}</p>
         <form onSubmit={handleSubmit}>
           <label className="modal-label">
-            New password
+            {t(locale, "changePwNewPw")}
             <input
               className="modal-input"
               type="password"
@@ -59,7 +59,7 @@ function ChangePasswordPage() {
             />
           </label>
           <label className="modal-label">
-            Confirm password
+            {t(locale, "changePwConfirm")}
             <input
               className="modal-input"
               type="password"
@@ -76,14 +76,14 @@ function ChangePasswordPage() {
               onClick={handleLogout}
               disabled={busy}
             >
-              Sign out
+              {t(locale, "signOut")}
             </button>
             <button
               type="submit"
               className="btn-primary"
               disabled={busy || !newPassword || !confirm}
             >
-              Set password
+              {t(locale, "changePwSetBtn")}
             </button>
           </div>
         </form>

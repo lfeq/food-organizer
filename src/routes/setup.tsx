@@ -1,13 +1,21 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
-import { useState } from "react"
+import { useState, useContext } from "react"
 import { doSetup } from "#/auth-fns"
+import { LocaleContext, t, INTL_LOCALE } from "#/i18n"
 
 export const Route = createFileRoute("/setup")({
   component: SetupPage,
 })
 
+function getWeekdayName(intlLocale: string, dow: number): string {
+  const d = new Date(2000, 0, 2 + dow)
+  return new Intl.DateTimeFormat(intlLocale, { weekday: "long" }).format(d)
+}
+
 function SetupPage() {
   const router = useRouter()
+  const locale = useContext(LocaleContext)
+  const intlLocale = INTL_LOCALE[locale]
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [weekStart, setWeekStart] = useState(0)
@@ -32,11 +40,10 @@ function SetupPage() {
         await router.navigate({ to: "/" })
       } else {
         const messages: Record<string, string> = {
-          USERNAME_INVALID:
-            "Username may only contain letters, digits, - and _.",
-          USERNAME_TAKEN: "Setup has already been completed.",
-          AUTH_PASSWORD_TOO_SHORT: "Password must be at least 8 characters.",
-          DB_UNREACHABLE: "Database error. Please try again.",
+          USERNAME_INVALID: t(locale, "setupErrUsernameInvalid"),
+          USERNAME_TAKEN: t(locale, "setupErrUsernameTaken"),
+          AUTH_PASSWORD_TOO_SHORT: t(locale, "setupErrPasswordTooShort"),
+          DB_UNREACHABLE: t(locale, "setupErrDb"),
         }
         setError(messages[result.code] ?? result.code)
       }
@@ -48,13 +55,11 @@ function SetupPage() {
   return (
     <div className="setup-page">
       <div className="setup-card">
-        <h1>Welcome to Food Organizer</h1>
-        <p className="setup-subtitle">
-          Create the household account to get started.
-        </p>
+        <h1>{t(locale, "setupTitle")}</h1>
+        <p className="setup-subtitle">{t(locale, "setupSubtitle")}</p>
         <form onSubmit={handleSubmit}>
           <label>
-            Username
+            {t(locale, "usernameLabel")}
             <input
               type="text"
               value={username}
@@ -66,7 +71,7 @@ function SetupPage() {
             />
           </label>
           <label>
-            Password
+            {t(locale, "passwordLabel")}
             <input
               type="password"
               value={password}
@@ -77,17 +82,17 @@ function SetupPage() {
             />
           </label>
           <label>
-            Week starts on
+            {t(locale, "setupWeekStartsOn")}
             <select
               value={weekStart}
               onChange={(e) => setWeekStart(Number(e.target.value))}
             >
-              <option value={0}>Sunday</option>
-              <option value={1}>Monday</option>
+              <option value={0}>{getWeekdayName(intlLocale, 0)}</option>
+              <option value={1}>{getWeekdayName(intlLocale, 1)}</option>
             </select>
           </label>
           <label>
-            Timezone
+            {t(locale, "setupTimezone")}
             <input
               type="text"
               value={timezone}
@@ -97,7 +102,7 @@ function SetupPage() {
           </label>
           {error && <p className="form-error">{error}</p>}
           <button type="submit" disabled={loading}>
-            {loading ? "Setting up…" : "Create account"}
+            {loading ? t(locale, "setupSettingUp") : t(locale, "setupCreateAccount")}
           </button>
         </form>
       </div>

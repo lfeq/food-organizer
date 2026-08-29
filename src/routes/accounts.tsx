@@ -2,7 +2,7 @@ import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-rout
 import { useState, useContext } from "react"
 import { doLogout } from "#/auth-fns"
 import { setLocale } from "#/locale-fns"
-import { LocaleContext, t } from "#/i18n"
+import { LocaleContext, t, interpolate, INTL_LOCALE } from "#/i18n"
 import {
   listMembers,
   createMember,
@@ -32,11 +32,17 @@ type ModalState =
   | { kind: "reset-done"; username: string; tempPassword: string }
   | { kind: "remove"; member: Member }
 
+function getWeekdayName(intlLocale: string, dow: number): string {
+  const d = new Date(2000, 0, 2 + dow)
+  return new Intl.DateTimeFormat(intlLocale, { weekday: "long" }).format(d)
+}
+
 function AccountsPage() {
   const { authState, displayName } = Route.useRouteContext()
   const [members, instanceSettings] = Route.useLoaderData()
   const router = useRouter()
   const locale = useContext(LocaleContext)
+  const intlLocale = INTL_LOCALE[locale]
   const [modal, setModal] = useState<ModalState>({ kind: "none" })
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -77,10 +83,10 @@ function AccountsPage() {
     if (!res.ok) {
       setError(
         res.code === "USERNAME_TAKEN"
-          ? "That username is already taken."
+          ? t(locale, "accountsErrUsernameTaken")
           : res.code === "USERNAME_INVALID"
-            ? "Username may only contain letters, digits, - and _."
-            : "Something went wrong."
+            ? t(locale, "accountsErrUsernameInvalid")
+            : t(locale, "errGeneric")
       )
       return
     }
@@ -94,7 +100,7 @@ function AccountsPage() {
     const res = await resetMemberPassword({ data: { memberId: member.id } })
     setBusy(false)
     if (!res.ok) {
-      setError("Something went wrong.")
+      setError(t(locale, "errGeneric"))
       return
     }
     setModal({ kind: "reset-done", username: member.username, tempPassword: res.data.tempPassword })
@@ -107,7 +113,7 @@ function AccountsPage() {
     const res = await removeMember({ data: { memberId: member.id } })
     setBusy(false)
     if (!res.ok) {
-      setError("Something went wrong.")
+      setError(t(locale, "errGeneric"))
       return
     }
     closeModal()
@@ -140,10 +146,10 @@ function AccountsPage() {
     if (!res.ok) {
       setSettingsError(
         res.code === "WEEK_START_FROZEN"
-          ? "Week start cannot change once a plan exists."
+          ? t(locale, "settingsErrFrozen")
           : res.code === "AUTH_INVALID_CREDENTIALS"
-            ? "Not authorized."
-            : "Something went wrong."
+            ? t(locale, "errGeneric")
+            : t(locale, "errGeneric")
       )
       return
     }
@@ -194,19 +200,19 @@ function AccountsPage() {
 
       <main className="main-content">
         <div className="accounts-header">
-          <h1>Accounts</h1>
+          <h1>{t(locale, "accountsH1")}</h1>
           <button className="btn-primary" onClick={() => openModal({ kind: "create" })}>
-            Add member
+            {t(locale, "accountsAddMember")}
           </button>
         </div>
 
         <table className="members-table">
           <thead>
             <tr>
-              <th>Username</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th>{t(locale, "accountsColUsername")}</th>
+              <th>{t(locale, "accountsColRole")}</th>
+              <th>{t(locale, "accountsColStatus")}</th>
+              <th>{t(locale, "accountsColActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -216,14 +222,14 @@ function AccountsPage() {
                 <tr key={m.id}>
                   <td className="member-username">
                     {m.username}
-                    {m.id === me.id && <span className="member-you"> (you)</span>}
+                    {m.id === me.id && <span className="member-you"> {t(locale, "accountsYou")}</span>}
                   </td>
                   <td>
                     <span className={`role-badge role-badge--${m.role}`}>{m.role}</span>
                   </td>
                   <td>
                     {m.must_change_password && (
-                      <span className="status-badge">must change password</span>
+                      <span className="status-badge">{t(locale, "accountsMustChange")}</span>
                     )}
                   </td>
                   <td className="member-actions">
@@ -231,9 +237,9 @@ function AccountsPage() {
                       <button
                         className="btn-secondary"
                         disabled
-                        title="Last admin — cannot demote"
+                        title={t(locale, "accountsLastAdmin")}
                       >
-                        Last admin
+                        {t(locale, "accountsLastAdmin")}
                       </button>
                     ) : (
                       <button
@@ -243,7 +249,7 @@ function AccountsPage() {
                         }
                         disabled={busy}
                       >
-                        {m.role === "admin" ? "Make member" : "Make admin"}
+                        {m.role === "admin" ? t(locale, "accountsMakeMember") : t(locale, "accountsMakeAdmin")}
                       </button>
                     )}
                     <button
@@ -251,14 +257,14 @@ function AccountsPage() {
                       onClick={() => openModal({ kind: "reset", member: m })}
                       disabled={busy}
                     >
-                      Reset password
+                      {t(locale, "accountsResetPw")}
                     </button>
                     <button
                       className="btn-danger"
                       onClick={() => openModal({ kind: "remove", member: m })}
                       disabled={busy}
                     >
-                      Remove
+                      {t(locale, "accountsRemoveBtn")}
                     </button>
                   </td>
                 </tr>
@@ -268,14 +274,14 @@ function AccountsPage() {
         </table>
 
         <section className="instance-settings">
-          <h2 className="instance-settings-title">Instance settings</h2>
+          <h2 className="instance-settings-title">{t(locale, "instanceSettingsTitle")}</h2>
           <form onSubmit={handleSaveSettings} className="instance-settings-form">
             <label className="settings-label">
-              Week start
+              {t(locale, "settingsWeekStart")}
               {instanceSettings.has_plans ? (
                 <span className="settings-locked">
-                  {["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][instanceSettings.week_start_dow]}
-                  <span className="settings-locked-reason"> (locked — a plan already exists)</span>
+                  {getWeekdayName(intlLocale, instanceSettings.week_start_dow)}
+                  <span className="settings-locked-reason"> {t(locale, "settingsLockedReason")}</span>
                 </span>
               ) : (
                 <select
@@ -283,14 +289,14 @@ function AccountsPage() {
                   value={weekStartDow}
                   onChange={(e) => setWeekStartDow(parseInt(e.target.value, 10))}
                 >
-                  {["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].map((day, i) => (
-                    <option key={i} value={i}>{day}</option>
+                  {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                    <option key={i} value={i}>{getWeekdayName(intlLocale, i)}</option>
                   ))}
                 </select>
               )}
             </label>
             <label className="settings-label">
-              Timezone
+              {t(locale, "settingsTimezone")}
               <input
                 className="settings-input"
                 value={timezone}
@@ -300,7 +306,7 @@ function AccountsPage() {
               />
             </label>
             <label className="settings-label">
-              Display name
+              {t(locale, "settingsDisplayName")}
               <input
                 className="settings-input"
                 value={instanceDisplayName}
@@ -311,7 +317,7 @@ function AccountsPage() {
             {settingsError && <p className="form-error">{settingsError}</p>}
             <div className="instance-settings-actions">
               <button type="submit" className="btn-primary" disabled={settingsBusy}>
-                Save settings
+                {t(locale, "settingsSave")}
               </button>
             </div>
           </form>
@@ -377,13 +383,11 @@ function CreateModal({
   onCancel: () => void
 }) {
   const [username, setUsername] = useState("")
+  const locale = useContext(LocaleContext)
   return (
     <>
-      <h2 className="modal-title">Add member</h2>
-      <p className="modal-notice">
-        A temporary password will be generated for you to share with them. They
-        must change it on first login.
-      </p>
+      <h2 className="modal-title">{t(locale, "accountsCreateTitle")}</h2>
+      <p className="modal-notice">{t(locale, "accountsCreateNotice")}</p>
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -391,7 +395,7 @@ function CreateModal({
         }}
       >
         <label className="modal-label">
-          Username
+          {t(locale, "usernameLabel")}
           <input
             className="modal-input"
             value={username}
@@ -404,10 +408,10 @@ function CreateModal({
         {error && <p className="form-error">{error}</p>}
         <div className="modal-actions">
           <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
-            Cancel
+            {t(locale, "cancel")}
           </button>
           <button type="submit" className="btn-primary" disabled={busy || !username.trim()}>
-            Create
+            {t(locale, "createBtn")}
           </button>
         </div>
       </form>
@@ -426,19 +430,20 @@ function PasswordRevealModal({
   isNew: boolean
   onDone: () => void
 }) {
+  const locale = useContext(LocaleContext)
   return (
     <>
       <h2 className="modal-title">
-        {isNew ? `Member "${username}" created` : `Password reset for "${username}"`}
+        {interpolate(
+          t(locale, isNew ? "accountsCreatedTitle" : "accountsResetDoneTitle"),
+          { username }
+        )}
       </h2>
-      <p className="modal-notice">
-        Share this temporary password with them. It will not be shown again.
-        They must change it on first login.
-      </p>
+      <p className="modal-notice">{t(locale, "accountsPasswordNotice")}</p>
       <div className="temp-password">{tempPassword}</div>
       <div className="modal-actions">
         <button className="btn-primary" onClick={onDone}>
-          Done — I have noted the password
+          {t(locale, "accountsDoneBtn")}
         </button>
       </div>
     </>
@@ -458,20 +463,20 @@ function ResetModal({
   onConfirm: () => void
   onCancel: () => void
 }) {
+  const locale = useContext(LocaleContext)
   return (
     <>
-      <h2 className="modal-title">Reset password for "{member.username}"?</h2>
-      <p className="modal-notice">
-        A new temporary password will be generated. Their current sessions will
-        be signed out, and they must change the password on next login.
-      </p>
+      <h2 className="modal-title">
+        {interpolate(t(locale, "accountsResetTitle"), { username: member.username })}
+      </h2>
+      <p className="modal-notice">{t(locale, "accountsResetNotice")}</p>
       {error && <p className="form-error">{error}</p>}
       <div className="modal-actions">
         <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
-          Cancel
+          {t(locale, "cancel")}
         </button>
         <button type="button" className="btn-primary" onClick={onConfirm} disabled={busy}>
-          Reset password
+          {t(locale, "accountsResetPw")}
         </button>
       </div>
     </>
@@ -491,20 +496,20 @@ function RemoveModal({
   onConfirm: () => void
   onCancel: () => void
 }) {
+  const locale = useContext(LocaleContext)
   return (
     <>
-      <h2 className="modal-title">Remove "{member.username}"?</h2>
-      <p className="modal-notice">
-        Their sessions will be signed out. Their dishes stay in the catalogue,
-        and the weeks they generated remain in history.
-      </p>
+      <h2 className="modal-title">
+        {interpolate(t(locale, "accountsRemoveTitle"), { username: member.username })}
+      </h2>
+      <p className="modal-notice">{t(locale, "accountsRemoveNotice")}</p>
       {error && <p className="form-error">{error}</p>}
       <div className="modal-actions">
         <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
-          Cancel
+          {t(locale, "cancel")}
         </button>
         <button type="button" className="btn-danger" onClick={onConfirm} disabled={busy}>
-          Remove member
+          {t(locale, "accountsRemoveMemberBtn")}
         </button>
       </div>
     </>

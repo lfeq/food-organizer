@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
-import { useState } from "react"
+import { useState, useContext } from "react"
 import { doLogin } from "#/auth-fns"
+import { LocaleContext, t } from "#/i18n"
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -8,6 +9,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const router = useRouter()
+  const locale = useContext(LocaleContext)
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -23,9 +25,9 @@ function LoginPage() {
         await router.navigate({ to: "/" })
       } else {
         const messages: Record<string, string> = {
-          AUTH_INVALID_CREDENTIALS: "Incorrect username or password.",
-          AUTH_THROTTLED: "Too many attempts. Please wait and try again.",
-          DB_UNREACHABLE: "Database error. Please try again.",
+          AUTH_INVALID_CREDENTIALS: t(locale, "loginErrInvalidCreds"),
+          AUTH_THROTTLED: t(locale, "loginErrThrottled"),
+          DB_UNREACHABLE: t(locale, "loginErrDb"),
         }
         setError(messages[result.code] ?? result.code)
       }
@@ -40,7 +42,7 @@ function LoginPage() {
         <h1>Food Organizer</h1>
         <form onSubmit={handleSubmit}>
           <label>
-            Username
+            {t(locale, "usernameLabel")}
             <input
               type="text"
               value={username}
@@ -50,7 +52,7 @@ function LoginPage() {
             />
           </label>
           <label>
-            Password
+            {t(locale, "passwordLabel")}
             <input
               type="password"
               value={password}
@@ -61,7 +63,7 @@ function LoginPage() {
           </label>
           {error && <p className="form-error">{error}</p>}
           <button type="submit" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? t(locale, "loginSigningIn") : t(locale, "loginSignIn")}
           </button>
         </form>
       </div>

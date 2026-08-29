@@ -5,6 +5,7 @@ import {
   createRootRoute,
   redirect,
 } from "@tanstack/react-router"
+import { useEffect } from "react"
 import { getAuthState } from "#/auth-fns"
 import { getLocale } from "#/locale-fns"
 import { getInstanceSettings } from "#/accounts-fns"
@@ -52,6 +53,9 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   const { locale } = Route.useRouteContext()
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
   return (
     <LocaleContext.Provider value={locale}>
       <Outlet />
