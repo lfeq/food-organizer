@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE — web-first screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+  THROWAWAY PROTOTYPE. Not production code. Answers issue #6, second round.
+
+  First round (prototypes/screens/) was phone-first and is superseded: the
+  household wants the web version first. This one is desktop-width and built on
+  the design system from the "Planificador semanal de comidas" canvas — IBM Plex
+  Sans/Mono, warm paper, one green accent, amber only for the short-catalogue
+  notice; English chrome with an EN/ES toggle, Spanish dish names.
+
+  The canvas already picked a direction (1b) and drew one desktop take (1d), so
+  the open question here is what the week does with a WIDE screen. Three answers:
+
+  W1 — Sidebar + list   : the canvas's own 1d, made clickable
+  W2 — Week board       : seven day columns across, three course rows down
+  W3 — Printed ticket   : 1c's mono ticket, centred, one page, print-shaped
+
+  Stub data, in memory, nothing persists. Generating and rerolling really run
+  the rules settled in #5.
+-->
+<style>
+  :root{
+    --paper:#eae7e0; --card:#fffefb; --ink:#191817; --ink-60:rgba(25,24,23,.6);
+    --ink-45:rgba(25,24,23,.45); --line:rgba(25,24,23,.1); --line-strong:rgba(25,24,23,.22);
+    --green:#2d6a4d; --green-dark:#1f4d38; --green-soft:#e7efea;
+    --amber-bg:#f7ecd2; --amber-line:#e3cd9c; --amber-ink:#7a5511;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font:400 14px/1.5 'IBM Plex Sans',Helvetica,sans-serif;
+    padding-bottom:80px;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace}
+  h1,h2,h3{margin:0;font-weight:600}
+  button{font:inherit;color:inherit;cursor:pointer}
+  a{color:var(--green)}
+  .muted{color:var(--ink-60)}
+  .dim{color:var(--ink-45)}
+  .tiny{font-size:11.5px}
+  .sm{font-size:13px}
+  .row{display:flex;align-items:center;gap:10px}
+  .between{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .btn{border:1px solid var(--line-strong);background:var(--card);border-radius:7px;padding:7px 13px;font-size:13px;font-weight:500}
+  .btn:hover{border-color:var(--ink)}
+  .btn.primary{background:var(--green);border-color:var(--green);color:#fff}
+  .btn.primary:hover{background:var(--green-dark)}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--ink-60);padding:6px 9px}
+  .btn.ghost:hover{color:var(--ink);background:rgba(25,24,23,.05)}
+  .btn.sm{padding:4px 9px;font-size:12px}
+  .label{
+    font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-45);
+  }
+  .today-tag{
+    font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--green);background:var(--green-soft);border-radius:4px;padding:3px 7px;
+  }
+  .notice{
+    background:var(--amber-bg);border:1px solid var(--amber-line);color:var(--amber-ink);
+    border-radius:9px;padding:12px 14px;font-size:13px;
+  }
+  input,select{
+    font:inherit;padding:8px 10px;border:1px solid var(--line-strong);
+    border-radius:7px;background:var(--card);color:inherit;
+  }
+
+  /* ---------- app chrome ---------- */
+  #app{min-height:100vh}
+  .shell{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+  .sidebar{
+    background:#e2ded5;border-right:1px solid var(--line);padding:22px 0;
+    display:flex;flex-direction:column;justify-content:space-between;
+  }
+  .side-link{
+    display:block;width:100%;text-align:left;background:none;border:none;
+    padding:9px 22px;font-size:13.5px;color:var(--ink-60);
+  }
+  .side-link:hover{color:var(--ink)}
+  .side-link.on{color:var(--ink);font-weight:600;box-shadow:inset 3px 0 0 var(--green);background:rgba(255,255,255,.5)}
+  .main{padding:34px 40px 60px;max-width:1180px}
+  .topbar{
+    background:var(--card);border-bottom:1px solid var(--line);
+    padding:0 34px;display:flex;align-items:center;justify-content:space-between;height:58px;
+  }
+  .topnav button{background:none;border:none;padding:19px 2px;margin-right:22px;font-size:13.5px;color:var(--ink-60);border-bottom:2px solid transparent}
+  .topnav button.on{color:var(--ink);font-weight:600;border-bottom-color:var(--green)}
+
+  /* ---------- switcher ---------- */
+  #switcher{
+    position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:99;
+    display:flex;align-items:center;gap:5px;background:#191817;color:#fff;
+    border-radius:999px;padding:6px;box-shadow:0 8px 26px rgba(0,0,0,.35);
+    font:500 12.5px 'IBM Plex Mono',monospace;
+  }
+  #switcher button{background:#3a3835;border:none;color:#fff;border-radius:999px;width:28px;height:28px}
+  #switcher .lbl{padding:0 12px;white-space:nowrap}
+  #toast{
+    position:fixed;bottom:64px;left:50%;transform:translateX(-50%);z-index:98;
+    background:#191817;color:#fff;padding:9px 16px;border-radius:7px;font-size:13px;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="switcher"></div>
+
+<script>
+/* =====================================================================
+   STUB DATA — dish names, members and dates taken from the canvas
+   ===================================================================== */
+const COURSES = [
+  {key:'soup', en:'Soup', es:'Sopa',         plural_en:'soups', plural_es:'sopas'},
+  {key:'side', en:'Side', es:'Guarnición',   plural_en:'sides', plural_es:'guarniciones'},
+  {key:'main', en:'Main', es:'Plato fuerte', plural_en:'mains', plural_es:'platos fuertes'},
+];
+const MEMBERS = [
+  {id:1, name:'javier',  role:'admin',  note_en:'deployed this instance · you', note_es:'desplegó esta instancia · tú'},
+  {id:2, name:'mariana', role:'member', note_en:'last seen today',    note_es:'activa hoy'},
+  {id:3, name:'abuela',  role:'member', note_en:'last seen 3 d ago',  note_es:'activa hace 3 d'},
+  {id:4, name:'sofi',    role:'member', note_en:'temp password active', note_es:'contraseña temporal activa'},
+];
+let nextDishId = 100;
+const DISHES = [
+  ['Sopa de fideo','soup',2],['Caldo de pollo','soup',1],['Crema de elote','soup',1],
+  ['Sopa de tortilla','soup',3],['Caldo tlalpeño','soup',1],['Sopa de lentejas','soup',1],
+  ['Pozole rojo','soup',3],
+  ['Arroz rojo','side',2],['Frijoles de la olla','side',1],['Nopales asados','side',1],
+  ['Calabacitas con elote','side',3],['Frijoles refritos','side',1],['Ensalada de betabel','side',1],
+  ['Papas con chile','side',2],
+  ['Tinga de pollo','main',2],['Milanesa empanizada','main',1],['Chiles rellenos','main',1],
+  ['Albóndigas en chipotle','main',3],['Cochinita pibil','main',1],['Mole de olla','main',1],
+  ['Enchiladas verdes','main',2],
+].map((d,i)=>({id:i+1, name:d[0], course:d[1], author:d[2]}));
+
+const DAYS = [
+  {en:'Mon', es:'Lun', full_en:'Monday',    full_es:'Lunes',     n:24},
+  {en:'Tue', es:'Mar', full_en:'Tuesday',   full_es:'Martes',    n:25},
+  {en:'Wed', es:'Mié', full_en:'Wednesday', full_es:'Miércoles', n:26},
+  {en:'Thu', es:'Jue', full_en:'Thursday',  full_es:'Jueves',    n:27},
+  {en:'Fri', es:'Vie', full_en:'Friday',    full_es:'Viernes',   n:28},
+  {en:'Sat', es:'Sáb', full_en:'Saturday',  full_es:'Sábado',    n:29},
+  {en:'Sun', es:'Dom', full_en:'Sunday',    full_es:'Domingo',   n:30},
+];
+const TODAY = 2; // Wed 26
+
+const HISTORY = [
+  {week_en:'Aug 17 – 23',    week_es:'17 – 23 ago', note_en:'21 dishes · 0 repeats',         note_es:'21 platillos · 0 repeticiones'},
+  {week_en:'Aug 10 – 16',    week_es:'10 – 16 ago', note_en:'21 dishes · 0 repeats',         note_es:'21 platillos · 0 repeticiones'},
+  {week_en:'Aug 3 – 9',      week_es:'3 – 9 ago',   note_en:'21 dishes · soups repeated 2×', note_es:'21 platillos · sopas repetidas 2×'},
+  {week_en:'Jul 27 – Aug 2', week_es:'27 jul – 2 ago', note_en:'21 dishes · 0 repeats',      note_es:'21 platillos · 0 repeticiones'},
+];
+
+/* ---------- generating (rules from #5) ---------- */
+const byCourse = c => DISHES.filter(d=>d.course===c);
+const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(p=>p[1]);
+
+function generatePlan(){
+  const days = DAYS.map(()=>({}));
+  const short = [];
+  COURSES.forEach(c=>{
+    const pool = byCourse(c.key);
+    if(pool.length < 7) short.push({course:c, count:pool.length});
+    let bag = shuffle(pool);
+    for(let i=0;i<7;i++){
+      if(bag.length===0) bag = shuffle(pool);
+      days[i][c.key] = bag.pop();
+    }
+  });
+  return {days, short};
+}
+// Returns the courses where #5's fallback fired, i.e. where this reroll
+// knowingly introduced a repeat.
+function rerollDay(plan, dayIdx){
+  const repeated = [];
+  COURSES.forEach(c=>{
+    const used = plan.days.filter((_,i)=>i!==dayIdx).map(d=>d[c.key].id);
+    let cands = byCourse(c.key).filter(d=>!used.includes(d.id) && d.id!==plan.days[dayIdx][c.key].id);
+    if(cands.length===0){
+      cands = byCourse(c.key).filter(d=>d.id!==plan.days[dayIdx][c.key].id);
+      repeated.push(c);
+    }
+    plan.days[dayIdx][c.key] = shuffle(cands)[0];
+  });
+  return repeated;
+}
+// Which slots hold a dish that appears more than once this week.
+function repeatIds(plan){
+  const out = new Set();
+  COURSES.forEach(c=>{
+    const counts = {};
+    plan.days.forEach(d=>{ counts[d[c.key].id] = (counts[d[c.key].id]||0)+1; });
+    Object.keys(counts).forEach(id=>{ if(counts[id]>1) out.add(Number(id)); });
+  });
+  return out;
+}
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+const state = {
+  variant: new URLSearchParams(location.search).get('variant') || 'W1',
+  screen: 'plan',
+  plan: generatePlan(),
+  lang: 'en',           // canvas note: UI in English, dish names stay in Spanish
+  editing: null,        // dish sheet
+  toast: null,
+};
+const t  = (en,es) => state.lang==='en' ? en : es;
+const cn = c => t(c.en, c.es);
+const cp = c => t(c.plural_en, c.plural_es);
+const memberName = id => (MEMBERS.find(m=>m.id===id)||{}).name || 'setup';
+const esc = s => String(s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const weekLabel = () => t('August 24 – 30, 2026','24 – 30 de agosto de 2026');
+const dayName = (d,full) => full ? t(d.full_en,d.full_es) : t(d.en,d.es);
+
+function go(patch){ Object.assign(state, patch); render(); }
+let toastTimer = null;
+function toast(msg){
+  state.toast = msg; render();
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ state.toast = null; render(); }, 2600);
+}
+function doGenerate(){
+  if(!confirm(t('This week already has a plan. Generating replaces it entirely. Continue?',
+               'Esta semana ya tiene plan. Generar lo reemplaza por completo. ¿Continuar?'))) return;
+  state.plan = generatePlan();
+  toast(t('Week generated','Semana generada'));
+}
+function doReroll(i){
+  const rep = rerollDay(state.plan, i);
+  // OPEN QUESTION (issue #10): at exactly 7 dishes per course this fires on
+  // EVERY reroll, while the short-catalogue notice never does.
+  if(rep.length){
+    toast(t('Rerolled — ' + rep.map(cp).join(' and ') + ' now repeat this week',
+            'Resorteado — ahora se repiten ' + rep.map(cp).join(' y ') + ' esta semana'));
+  } else {
+    toast(t('Rerolled ' + dayName(DAYS[i],true), 'Resorteado: ' + dayName(DAYS[i],true)));
+  }
+}
+function saveDish(){
+  const name = document.getElementById('dish-name').value.trim();
+  const course = document.getElementById('dish-course').value;
+  if(!name) return;
+  if(state.editing && state.editing.id){
+    const d = DISHES.find(x=>x.id===state.editing.id);
+    d.name = name; d.course = course;
+    go({editing:null}); toast(t('Dish saved','Platillo guardado'));
+  } else {
+    DISHES.push({id:nextDishId++, name, course, author:1});
+    go({editing:null}); toast(t('Dish added','Platillo agregado'));
+  }
+}
+
+/* =====================================================================
+   SHARED PIECES
+   ===================================================================== */
+function shortNotice(){
+  if(!state.plan.short.length) return '';
+  const c = state.plan.short[0];
+  return `<div class="notice" style="margin-bottom:20px">
+    <strong>${t('Only ' + c.count + ' ' + c.course.plural_en + ' in the catalogue — ' + c.course.plural_en + ' repeat this week',
+                'Solo ' + c.count + ' ' + c.course.plural_es + ' en el catálogo — se repiten esta semana')}</strong>
+    <div class="tiny" style="margin-top:4px;opacity:.85">${t(
+      'Add ' + (7-c.count) + ' more to stop the repeats.',
+      'Agrega ' + (7-c.count) + ' más para que dejen de repetirse.')}</div>
+  </div>`;
+}
+function langToggle(){
+  return `<button class="btn ghost mono tiny" onclick="go({lang: state.lang==='en'?'es':'en'})">
+    <span style="${state.lang==='en'?'color:var(--ink);font-weight:600':''}">EN</span>
+    <span class="dim"> / </span>
+    <span style="${state.lang==='es'?'color:var(--ink);font-weight:600':''}">ES</span></button>`;
+}
+function toastEl(){ return state.toast ? `<div id="toast">${esc(state.toast)}</div>` : ''; }
+
+function dishSheet(){
+  if(!state.editing) return '';
+  const d = state.editing;
+  return `<div onclick="go({editing:null})" style="position:fixed;inset:0;background:rgba(25,24,23,.35);z-index:60;display:flex;align-items:center;justify-content:center">
+    <div class="card" onclick="event.stopPropagation()" style="width:420px;padding:24px">
+      <div class="between" style="margin-bottom:18px">
+        <h2 style="font-size:17px">${d.id ? t('Edit dish','Editar platillo') : t('Add dish','Agregar platillo')}</h2>
+        <button class="btn ghost sm" onclick="go({editing:null})">${t('Cancel','Cancelar')}</button>
+      </div>
+      <div class="label" style="margin-bottom:6px">${t('Name','Nombre')}</div>
+      <input id="dish-name" style="width:100%" value="${esc(d.name||'')}" placeholder="Sopa de fideo">
+      <div class="tiny dim" style="margin:6px 0 18px">${t('Names are never translated.','Los nombres nunca se traducen.')}</div>
+      <div class="label" style="margin-bottom:6px">${t('Course','Tiempo')}</div>
+      <select id="dish-course" style="width:100%">
+        ${COURSES.map(c=>`<option value="${c.key}" ${d.course===c.key?'selected':''}>${cn(c)}</option>`).join('')}
+      </select>
+      ${d.id?`<div class="tiny dim" style="margin-top:16px">${t('added by','agregado por')} ${memberName(d.author)}</div>`:''}
+      <div class="between" style="margin-top:22px">
+        ${d.id?`<button class="btn sm" onclick="toast('${t('Delete (prototype)','Eliminar (prototipo)')}')">${t('Delete','Eliminar')}</button>`:'<span></span>'}
+        <button class="btn primary" onclick="saveDish()">${t('Save dish','Guardar platillo')}</button>
+      </div>
+    </div></div>`;
+}
+
+/* shared content for the non-plan screens, so the variants can disagree
+   about the week without re-litigating the catalogue three times */
+const CONTENT = {
+  dishes(){
+    return `
+    <div class="between" style="margin-bottom:22px">
+      <div><h1 style="font-size:22px">${t('Dishes','Platillos')}</h1>
+        <div class="sm muted" style="margin-top:3px">${DISHES.length} ${t('total · shared catalogue','en total · catálogo compartido')}</div></div>
+      <button class="btn primary" onclick="go({editing:{course:'soup'}})">+ ${t('Add dish','Agregar platillo')}</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start">
+      ${COURSES.map(c=>{
+        const list = byCourse(c.key);
+        return `<section class="card" style="padding:6px 0">
+          <div class="between" style="padding:12px 16px 10px;border-bottom:1px solid var(--line)">
+            <strong style="font-size:14px">${t(c.plural_en.charAt(0).toUpperCase()+c.plural_en.slice(1), c.plural_es.charAt(0).toUpperCase()+c.plural_es.slice(1))}</strong>
+            <span class="mono tiny dim">${list.length}</span>
+          </div>
+          ${list.map(d=>`
+            <div class="between" style="padding:9px 16px">
+              <div><div>${esc(d.name)}</div>
+                <div class="tiny dim">${t('added by','agregado por')} ${memberName(d.author)}</div></div>
+              <button class="btn ghost sm" onclick='go({editing:${JSON.stringify(d)}})'>⋯</button>
+            </div>`).join('')}
+        </section>`;
+      }).join('')}
+    </div>`;
+  },
+  history(){
+    return `
+    <div style="margin-bottom:22px">
+      <h1 style="font-size:22px">${t('History','Historial')}</h1>
+      <div class="sm muted" style="margin-top:3px">${t('Past weeks are locked · 14 weeks stored','Las semanas pasadas están bloqueadas · 14 semanas guardadas')}</div>
+    </div>
+    <div class="card" style="max-width:720px">
+      ${HISTORY.map((h,i)=>`
+        <button style="width:100%;background:none;border:none;text-align:left;padding:15px 18px;${i?'border-top:1px solid var(--line)':''}"
+                class="between" onclick="toast('${t('Open week (read only)','Abrir semana (solo lectura)')}')">
+          <div><strong class="sm">${t(h.week_en,h.week_es)}</strong>
+            <div class="tiny dim" style="margin-top:2px">${t(h.note_en,h.note_es)}</div></div>
+          <span class="dim">→</span>
+        </button>`).join('')}
+    </div>
+    <div class="tiny dim" style="margin-top:12px">${t('How long history is kept has not been decided.','Cuánto tiempo se guarda el historial no está decidido.')}</div>`;
+  },
+  accounts(){
+    return `
+    <div class="between" style="margin-bottom:8px">
+      <div><h1 style="font-size:22px">${t('Accounts','Cuentas')}</h1>
+        <div class="sm muted" style="margin-top:3px">${t('admin only · ' + MEMBERS.length + ' members','solo admin · ' + MEMBERS.length + ' integrantes')}</div></div>
+      <button class="btn primary" onclick="toast('${t('Add member (prototype)','Agregar integrante (prototipo)')}')">+ ${t('Add','Agregar')}</button>
+    </div>
+    <p class="sm muted" style="max-width:560px;margin:0 0 20px">${t(
+      'The admin only creates accounts and resets passwords. Dishes and plans: everyone has the same rights.',
+      'El administrador solo crea cuentas y restablece contraseñas. Platillos y planes: todos tienen los mismos derechos.')}</p>
+    <div class="card" style="max-width:720px">
+      ${MEMBERS.map((m,i)=>`
+        <div class="between" style="padding:14px 18px;${i?'border-top:1px solid var(--line)':''}">
+          <div><strong class="sm">${m.name}</strong>
+            ${m.role==='admin'?`<span class="today-tag" style="margin-left:8px">admin</span>`:''}
+            <div class="tiny dim" style="margin-top:2px">${t(m.note_en,m.note_es)}</div></div>
+          ${m.role==='admin'?'':`<button class="btn sm" onclick="toast('${t('One-time password: k7fq2m','Contraseña de un solo uso: k7fq2m')}')">${t('Reset password','Restablecer contraseña')}</button>`}
+        </div>`).join('')}
+    </div>
+    <div class="tiny dim" style="margin-top:12px">${t(
+      'Reset shows a one-time password on screen. Nothing is emailed.',
+      'Restablecer muestra una contraseña de un solo uso en pantalla. No se envía ningún correo.')}</div>`;
+  },
+};
+
+/* =====================================================================
+   W1 — Sidebar + week as a two-column list (the canvas's 1d, clickable)
+   ===================================================================== */
+const W1 = {
+  render(){
+    const nav = [['plan',t('This week','Esta semana')],['next',t('Next week','Próxima semana')],
+                 ['dishes',t('Dishes','Platillos')+' · '+DISHES.length],['history',t('History','Historial')],
+                 ['accounts',t('Accounts','Cuentas')]];
+    return `<div class="shell">
+      <aside class="sidebar">
+        <div>
+          <div style="padding:0 22px 22px">
+            <div style="font-weight:600;font-size:15px">Comida</div>
+            <div class="tiny dim mono">casa hernández</div>
+          </div>
+          ${nav.map(([k,l])=>`<button class="side-link ${state.screen===k?'on':''}"
+            onclick="go({screen:'${k==='next'?'plan':k}'})">${l}</button>`).join('')}
+        </div>
+        <div style="padding:0 22px">
+          <div class="tiny dim">${t('signed in as','sesión de')}</div>
+          <div class="sm">mariana <span class="dim">· member</span></div>
+          <div style="margin-top:10px">${langToggle()}</div>
+        </div>
+      </aside>
+      <main class="main">${this.screens[state.screen] ? this.screens[state.screen]() : this.screens.plan()}</main>
+    </div>${dishSheet()}${toastEl()}`;
+  },
+  screens: {
+    plan(){
+      const p = state.plan, reps = repeatIds(p);
+      const dayCard = (i, hero) => {
+        const d = DAYS[i], day = p.days[i], past = i < TODAY;
+        return `<section class="card" style="padding:${hero?'22px 24px':'15px 18px'};${past?'opacity:.55':''};${hero?'border-color:var(--green);border-width:1.5px':''}">
+          <div class="between" style="margin-bottom:${hero?'14px':'9px'}">
+            <div class="row">
+              <strong style="font-size:${hero?'19px':'14.5px'}">${dayName(d, hero)} ${d.n}</strong>
+              ${i===TODAY?`<span class="today-tag">${t('today','hoy')}</span>`:''}
+            </div>
+            ${past ? `<span class="tiny dim">${t('locked','bloqueado')}</span>`
+                   : `<button class="btn ${hero?'':'ghost'} sm" onclick="doReroll(${i})">↻ ${hero?t('Reroll','Resortear'):''}</button>`}
+          </div>
+          ${COURSES.map(c=>`
+            <div style="display:flex;gap:14px;align-items:baseline;padding:${hero?'7px':'3px'} 0">
+              <div class="label" style="flex:0 0 64px">${cn(c)}</div>
+              <div style="font-size:${hero?'17px':'14px'};${hero?'font-weight:500':''}">${esc(day[c.key].name)}
+                ${reps.has(day[c.key].id)?`<span class="mono tiny dim" title="${t('repeats this week','se repite esta semana')}">↻2×</span>`:''}</div>
+            </div>`).join('')}
+        </section>`;
+      };
+      return `
+      <div class="between" style="margin-bottom:26px">
+        <div><div class="label">${t('Week of','Semana del')}</div>
+          <h1 style="font-size:24px;margin-top:4px">${weekLabel()}</h1></div>
+        <div class="row">
+          <button class="btn" onclick="toast('${t('Print (prototype)','Imprimir (prototipo)')}')">${t('Print','Imprimir')}</button>
+          <button class="btn primary" onclick="doGenerate()">${t('Generate week','Generar semana')}</button>
+        </div>
+      </div>
+      ${shortNotice()}
+      <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:20px;align-items:start">
+        <div>${dayCard(TODAY, true)}</div>
+        <div style="display:grid;gap:12px">
+          ${DAYS.map((_,i)=> i===TODAY ? '' : dayCard(i,false)).join('')}
+        </div>
+      </div>
+      <div class="tiny dim" style="margin-top:16px">${t(
+        'Past days stay visible but locked.','Los días pasados siguen visibles pero bloqueados.')}</div>`;
+    },
+    dishes: () => CONTENT.dishes(),
+    history: () => CONTENT.history(),
+    accounts: () => CONTENT.accounts(),
+  },
+};
+
+/* =====================================================================
+   W2 — Week board: seven day columns across, three course rows down
+   ===================================================================== */
+const W2 = {
+  render(){
+    const nav = [['plan',t('Plan','Plan')],['dishes',t('Dishes','Platillos')],
+                 ['history',t('History','Historial')],['accounts',t('Accounts','Cuentas')]];
+    return `
+    <header class="topbar">
+      <div class="row">
+        <strong style="font-size:15px;margin-right:26px">Comida</strong>
+        <nav class="topnav">${nav.map(([k,l])=>`<button class="${state.screen===k?'on':''}" onclick="go({screen:'${k}'})">${l}</button>`).join('')}</nav>
+      </div>
+      <div class="row">${langToggle()}<span class="sm dim">mariana</span></div>
+    </header>
+    <main class="main" style="max-width:1400px">${this.screens[state.screen]()}</main>
+    ${dishSheet()}${toastEl()}`;
+  },
+  screens: {
+    plan(){
+      const p = state.plan, reps = repeatIds(p);
+      return `
+      <div class="between" style="margin-bottom:24px">
+        <div><div class="label">${t('Week of','Semana del')}</div>
+          <h1 style="font-size:22px;margin-top:4px">${weekLabel()}</h1></div>
+        <div class="row">
+          <button class="btn">‹</button><button class="btn">${t('Next week','Próxima semana')} ›</button>
+          <button class="btn primary" onclick="doGenerate()">${t('Generate week','Generar semana')}</button>
+        </div>
+      </div>
+      ${shortNotice()}
+      <div style="display:grid;grid-template-columns:74px repeat(7,1fr);gap:10px;align-items:stretch">
+        <div></div>
+        ${DAYS.map((d,i)=>`
+          <div style="text-align:center;padding-bottom:8px">
+            <div class="label" style="color:${i===TODAY?'var(--green)':'var(--ink-45)'}">${dayName(d,false)}</div>
+            <div style="font-size:19px;font-weight:${i===TODAY?600:400};${i<TODAY?'opacity:.5':''}">${d.n}</div>
+            ${i===TODAY?`<div class="today-tag" style="display:inline-block;margin-top:3px">${t('today','hoy')}</div>`:''}
+          </div>`).join('')}
+
+        ${COURSES.map(c=>`
+          <div class="label" style="display:flex;align-items:center;justify-content:flex-end;padding-right:4px">${cn(c)}</div>
+          ${DAYS.map((d,i)=>{
+            const dish = state.plan.days[i][c.key];
+            return `<div class="card" style="padding:12px 11px;min-height:82px;display:flex;align-items:center;
+                  ${i===TODAY?'border-color:var(--green);border-width:1.5px;':''}${i<TODAY?'opacity:.55;':''}">
+              <div style="font-size:13.5px;line-height:1.35">${esc(dish.name)}
+                ${reps.has(dish.id)?`<div class="mono tiny dim" style="margin-top:3px">↻ ${t('repeats','se repite')}</div>`:''}</div>
+            </div>`;
+          }).join('')}`).join('')}
+
+        <div></div>
+        ${DAYS.map((_,i)=> i<TODAY
+          ? `<div class="tiny dim" style="text-align:center;padding-top:8px">${t('locked','bloqueado')}</div>`
+          : `<div style="text-align:center;padding-top:8px"><button class="btn ghost sm" onclick="doReroll(${i})">↻ ${t('Reroll','Resortear')}</button></div>`).join('')}
+      </div>
+      <div class="tiny dim" style="margin-top:18px">${t(
+        'Reroll redraws all three courses for that day.','Resortear vuelve a sortear los tres tiempos de ese día.')}</div>`;
+    },
+    dishes: () => CONTENT.dishes(),
+    history: () => CONTENT.history(),
+    accounts: () => CONTENT.accounts(),
+  },
+};
+
+/* =====================================================================
+   W3 — Printed ticket: 1c's mono ticket, centred, the whole week on one page
+   ===================================================================== */
+const W3 = {
+  render(){
+    const nav = [['plan',t('Plan','Plan')],['dishes',t('Dishes','Platillos')],
+                 ['history',t('History','Historial')],['accounts',t('Accounts','Cuentas')]];
+    return `
+    <div style="max-width:860px;margin:0 auto;padding:26px 24px 60px">
+      <div class="between" style="margin-bottom:26px">
+        <strong style="font-size:15px">Comida</strong>
+        <div class="row">
+          ${nav.map(([k,l])=>`<button class="btn ghost sm ${state.screen===k?'':'dim'}"
+            style="${state.screen===k?'color:var(--ink);font-weight:600':''}" onclick="go({screen:'${k}'})">${l}</button>`).join('')}
+          ${langToggle()}
+        </div>
+      </div>
+      ${this.screens[state.screen]()}
+    </div>${dishSheet()}${toastEl()}`;
+  },
+  screens: {
+    plan(){
+      const p = state.plan, reps = repeatIds(p);
+      return `
+      ${shortNotice()}
+      <div class="card" style="padding:34px 38px">
+        <div style="text-align:center;padding-bottom:18px;border-bottom:1.5px dashed var(--line-strong)">
+          <h1 style="font-size:20px">${t('Meals this week','Comida de la semana')}</h1>
+          <div class="mono label" style="margin-top:7px">${t('AUG 24 – 30 · 7 DAYS · 3 COURSES','24 – 30 AGO · 7 DÍAS · 3 TIEMPOS')}</div>
+        </div>
+        ${DAYS.map((d,i)=>{
+          const day = p.days[i], past = i<TODAY;
+          return `<div style="padding:15px 0;border-bottom:1px dashed var(--line);${past?'opacity:.5':''}">
+            <div class="between" style="margin-bottom:7px">
+              <div class="mono" style="font-size:12px;font-weight:600;letter-spacing:.1em">
+                ${dayName(d,false).toUpperCase()} ${d.n}${i===TODAY?` <span style="color:var(--green)">← ${t('TODAY','HOY')}</span>`:''}</div>
+              ${past?'':`<button class="btn ghost sm" onclick="doReroll(${i})">↻</button>`}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+              ${COURSES.map(c=>`<div>
+                <div class="label" style="margin-bottom:2px">${cn(c)}</div>
+                <div class="mono" style="font-size:13px">${esc(day[c.key].name.toLowerCase())}
+                  ${reps.has(day[c.key].id)?'<span class="dim"> ↻2×</span>':''}</div>
+              </div>`).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+        <div class="row" style="justify-content:center;gap:12px;padding-top:22px">
+          <button class="btn primary" onclick="doGenerate()">${t('Generate week','Generar semana')}</button>
+          <button class="btn" onclick="toast('${t('Print (prototype)','Imprimir (prototipo)')}')">${t('Print','Imprimir')}</button>
+          <button class="btn" onclick="toast('${t('Next week','Próxima semana')}')">${t('Next wk','Próx. sem')}</button>
+        </div>
+      </div>`;
+    },
+    dishes: () => CONTENT.dishes(),
+    history: () => CONTENT.history(),
+    accounts: () => CONTENT.accounts(),
+  },
+};
+
+/* =====================================================================
+   SWITCHER + RENDER
+   ===================================================================== */
+const VARIANTS = {
+  W1:{impl:W1, label:'Sidebar + list (canvas 1d)'},
+  W2:{impl:W2, label:'Week board'},
+  W3:{impl:W3, label:'Printed ticket (canvas 1c)'},
+};
+const KEYS = Object.keys(VARIANTS);
+
+function setVariant(k){
+  const url = new URL(location); url.searchParams.set('variant', k);
+  history.replaceState({}, '', url);
+  state.variant = k; state.screen = 'plan'; state.editing = null;
+  render();
+}
+document.addEventListener('keydown', e=>{
+  const el = document.activeElement;
+  if(el && (/input|textarea|select/i.test(el.tagName) || el.isContentEditable)) return;
+  const i = KEYS.indexOf(state.variant);
+  if(e.key==='ArrowLeft')  setVariant(KEYS[(i+KEYS.length-1)%KEYS.length]);
+  if(e.key==='ArrowRight') setVariant(KEYS[(i+1)%KEYS.length]);
+});
+
+function render(){
+  const v = VARIANTS[state.variant] || VARIANTS.W1;
+  document.getElementById('app').innerHTML = v.impl.render();
+  const i = KEYS.indexOf(state.variant);
+  document.getElementById('switcher').innerHTML =
+    `<button onclick="setVariant('${KEYS[(i+KEYS.length-1)%KEYS.length]}')">‹</button>
+     <span class="lbl">${state.variant} · ${v.label}</span>
+     <button onclick="setVariant('${KEYS[(i+1)%KEYS.length]}')">›</button>`;
+}
+render();
+</script>
+</body>
+</html>
