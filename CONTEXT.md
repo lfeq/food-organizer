@@ -185,3 +185,20 @@ setup.
 Seed dish names are Spanish only. A dish name is a name the household would say
 out loud, not UI wording, and it is not translated: the bilingual UI covers the
 app's own chrome, never the catalogue's contents.
+
+## Locale
+
+_(Spanish UI: "idioma")_
+
+Which language the interface is rendered in for one viewer: Spanish (`es-MX`)
+or English (`en-US`). A locale is a property of a viewing session, not of a
+[member](#member) and not of anything the household owns.
+
+Locale applies to **UI copy only** — the words the app itself supplies. It never
+applies to household data: a [dish](#dish) name is typed by a member and is
+shown exactly as typed in either locale, and a [weekly plan](#weekly-plan) holds
+no localised text. Nothing stored is ever localised.
+
+The distinction the term exists to make is **UI copy versus household data**. If
+a string was written by whoever built the app, it has a locale; if it was typed
+by a member, it does not.
