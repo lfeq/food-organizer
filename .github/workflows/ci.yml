@@ -1,4 +1,19 @@
 name: CI
+
+# INVARIANT: this workflow must never expose secrets to fork pull requests.
+# The repo is public, so anyone can open a PR from a fork and the code in that
+# PR runs here. Two things keep that safe, and both are easy to undo by accident:
+#
+#   1. The trigger is `pull_request`, NOT `pull_request_target`. Fork code runs
+#      with a read-only GITHUB_TOKEN and no access to repository secrets.
+#      `pull_request_target` runs in the base repo's context with secrets in
+#      reach - do not switch to it, even to get a token that can post comments.
+#   2. No step references `secrets.*` or reaches a database. `npm run migrate`
+#      lives only in the Vercel build command, never here (see issue #28).
+#
+# Adding a deploy step, a secret, or a `pull_request_target` trigger breaks the
+# invariant silently - nothing will fail to tell you. See issue #40.
+
 on:
   push:
     branches: [main]
