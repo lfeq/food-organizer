@@ -1,5 +1,10 @@
-import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
-
+import {
+  HeadContent,
+  Scripts,
+  createRootRoute,
+  redirect,
+} from "@tanstack/react-router"
+import { getAuthState } from "#/auth-fns"
 import appCss from "../styles.css?url"
 
 export const Route = createRootRoute({
@@ -11,6 +16,22 @@ export const Route = createRootRoute({
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
+  beforeLoad: async ({ location }) => {
+    const authState = await getAuthState()
+    const path = location.pathname
+
+    if (authState.setupNeeded && path !== "/setup") {
+      throw redirect({ to: "/setup" })
+    }
+    if (!authState.setupNeeded && !authState.member) {
+      if (path !== "/login") throw redirect({ to: "/login" })
+    }
+    if (authState.member && (path === "/setup" || path === "/login")) {
+      throw redirect({ to: "/" })
+    }
+
+    return { authState }
+  },
   shellComponent: RootDocument,
 })
 

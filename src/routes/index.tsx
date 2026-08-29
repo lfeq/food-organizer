@@ -1,36 +1,46 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { createServerFn } from "@tanstack/react-start"
-import { Effect, Exit, Cause } from "effect"
-import { PgClient } from "@effect/sql-pg"
-import { Runtime } from "#/runtime.server"
-import { ok, err, type Result } from "#/result-codes"
-
-const healthCheck = createServerFn({ method: "GET" }).handler(
-  async (): Promise<Result<{ pg: string }>> => {
-    const result = await Runtime.runPromiseExit(
-      Effect.flatMap(PgClient.PgClient, (sql) =>
-        Effect.map(sql`SELECT 1 AS n`, () => "connected" as const)
-      )
-    )
-    if (Exit.isSuccess(result)) return ok({ pg: result.value })
-    return err("DB_UNREACHABLE", Cause.pretty(result.cause))
-  }
-)
+import { createFileRoute, useRouter } from "@tanstack/react-router"
+import { doLogout } from "#/auth-fns"
 
 export const Route = createFileRoute("/")({
-  loader: () => healthCheck(),
-  component: Home,
+  component: PlanPage,
 })
 
-function Home() {
-  const status = Route.useLoaderData()
+function PlanPage() {
+  const { authState } = Route.useRouteContext()
+  const member = authState.member!
+  const router = useRouter()
+
+  async function handleLogout() {
+    await doLogout()
+    await router.navigate({ to: "/login" })
+  }
+
   return (
-    <main style={{ fontFamily: "sans-serif", padding: "2rem" }}>
-      <h1>Food Organizer</h1>
-      <p>
-        Database:{" "}
-        <strong>{status.ok ? status.data.pg : `error — ${status.code}`}</strong>
-      </p>
-    </main>
+    <div className="app-layout">
+      <nav className="sidebar">
+        <div className="sidebar-top">
+          <span className="sidebar-brand">Food Organizer</span>
+        </div>
+        <ul className="sidebar-nav">
+          <li className="sidebar-nav-item sidebar-nav-item--active">This week</li>
+          <li className="sidebar-nav-item sidebar-nav-item--disabled">Next week</li>
+          <li className="sidebar-nav-item sidebar-nav-item--disabled">Dishes</li>
+          <li className="sidebar-nav-item sidebar-nav-item--disabled">History</li>
+          {member.role === "admin" && (
+            <li className="sidebar-nav-item sidebar-nav-item--disabled">Accounts</li>
+          )}
+        </ul>
+        <div className="sidebar-bottom">
+          <span className="sidebar-member">{member.username}</span>
+          <button className="sidebar-logout" onClick={handleLogout}>
+            Sign out
+          </button>
+        </div>
+      </nav>
+      <main className="main-content">
+        <h1>This week</h1>
+        <p>Meal plan coming soon.</p>
+      </main>
+    </div>
   )
 }

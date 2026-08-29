@@ -50,8 +50,79 @@ added all the required seams the spec calls load-bearing conditions:
 
 **What to pick up next:**
 
-Issue #15 — Auth and first run (setup screen, login, sessions, forced password
-change, seed catalogue). Blocked by #14, which is now closed.
+Issue #16 — The catalogue and the seed dishes. Unblocked now that #15 is closed.
+
+---
+
+## 2026-08-28 — Auth and first run (issue #15)
+
+**What was done:**
+
+Full auth seam: migration, password hashing, sessions, setup page, login page,
+and a persistent sidebar on the authenticated plan stub.
+
+- **migrations/0002_auth.sql** — all remaining tables from §5.5: `settings`
+  (with `display_name text` nullable, resolving the §17 gap), `member`,
+  `session`, `dish`, `weekly_plan`, `plan_day`, `slot`. `set_updated_at()`
+  triggers on all six mutable tables. Constraint trigger for
+  at-least-one-admin (§5.6 #1, deferrable). Trigger for week-start-frozen
+  (§5.6 #4). Plan-completeness and plan-alignment triggers deferred to
+  tickets #18-19 when they can be integration-tested with real data.
+
+- **src/auth.server.ts** — `hashPassword` / `verifyPassword` with scrypt from
+  `node:crypto`. Cost parameters encoded in the hash string so raising them
+  later is a rehash on next login. `generateToken` (32 random bytes),
+  `hashToken` (SHA-256). All server-only, never bundled to the client.
+
+- **src/auth-fns.ts** — four `createServerFn` exports:
+  - `getAuthState()` — called from root route `beforeLoad`; checks if any
+    member exists (setupNeeded), reads the session cookie, looks up via
+    SHA-256 hash, refreshes the 30-day sliding expiry on each hit.
+  - `doSetup()` — one transaction: settings row, first admin (role=admin,
+    must_change_password=false), 27 seed dishes authored by that admin,
+    session insert; then sets the httpOnly cookie.
+  - `doLogin()` — scrypt verify, session insert, cookie set.
+  - `doLogout()` — session delete, cookie cleared.
+  - Cookies via `getCookie`/`setCookie`/`deleteCookie` from
+    `@tanstack/react-start/server`; Secure flag gated on NODE_ENV=production
+    so local HTTP dev works.
+
+- **src/routes/__root.tsx** — `beforeLoad` implements the three redirect rules:
+  no member → /setup; member exists + no session → /login; authenticated +
+  on /setup or /login → /. Auth state returned as route context so child
+  routes can access it without an extra round-trip.
+
+- **src/routes/setup.tsx** — one-time setup form (username, password, week
+  start, timezone). Can only ever run once (doSetup re-checks in the
+  transaction).
+
+- **src/routes/login.tsx** — standard login form.
+
+- **src/routes/index.tsx** — plan stub with the persistent left sidebar:
+  instance name at top, nav items (This week active, others disabled until
+  built), signed-in member + sign-out button at bottom. Sidebar is admin-aware
+  (Accounts item only for admins).
+
+- **src/styles.css** — app layout (sidebar + main-content flex), and
+  setup/login card styles. IBM Plex Sans named as primary font per §11.6.
+
+**What to pick up next:**
+
+Issue #16 — The catalogue and seed dishes. Seed dishes already exist in the DB
+after setup; this ticket builds the Dishes screen that lets the household
+view and edit them.
+
+**Known gaps from this ticket:**
+
+Login throttling (§7.7 per-account backoff) is not implemented. It is listed
+in `result-codes.ts` (AUTH_THROTTLED) but no failure counter is written to the
+DB yet. Add a `login_failures` column to `member` or a separate table when
+ticket #17 (accounts screen) is built.
+
+The forced-password-change flow (must_change_password=true, §7.5) is not yet
+implemented. The session and login work, but a member with must_change_password
+is not redirected to a change-password screen. Add this when ticket #17 builds
+the member management flow.
 
 **Known gap:**
 
