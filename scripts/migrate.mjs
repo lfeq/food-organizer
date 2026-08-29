@@ -23,13 +23,39 @@
  * copy of production rows handed to a stranger's build.
  * See https://github.com/lfeq/food-organizer/issues/56
  *
- * That scope lives in the Neon integration's Deployments Configuration in the
- * Vercel dashboard -- not in `vercel.json` (JSON, which cannot carry this
- * comment) and not in the variable editor (the integration is Vercel-Managed,
- * so the scope is locked there). Nothing asserts it: a check would need a
- * VERCEL_TOKEN, and `ci.yml` may never hold a secret. It is prose because it is
- * unassertable, which is also why it drifts -- if you are here because it
- * drifted, see https://github.com/lfeq/food-organizer/issues/57
+ * That scope lives in the Vercel dashboard, in TWO places that must agree --
+ * not in `vercel.json`, which is JSON and cannot carry this comment. Both were
+ * set by hand; if you are auditing, check both:
+ *
+ *   1. Storage -> neon-bronze-mirror -> Settings -> "Secure This Resource" ->
+ *      Allowed Environments = "Production environment only". (It is NOT under
+ *      "Advanced Options"; that name appears in older notes and does not
+ *      exist.) Reverting this needs owner permission, so it does not drift by
+ *      casual click.
+ *   2. Project Settings -> Environment Variables: `DATABASE_URL` and
+ *      `DATABASE_URL_UNPOOLED` must read "Production", not "Production and
+ *      Preview".
+ *
+ * Step 2 is NOT implied by step 1, and that is the trap. Restricting the store
+ * re-injects the integration's variables under a fresh `STORAGE_*` prefix as
+ * Sensitive/Production, and LEAVES THE PRE-EXISTING `DATABASE_URL` PAIR BEHIND,
+ * still scoped to Production and Preview, still holding live credentials. The
+ * click alone looks done and is not. Re-scoping those two by hand is what
+ * finished the job -- and they were editable, contrary to the older note that
+ * integration-managed variables are locked (they unlock once the store is
+ * Production-only).
+ *
+ * Consequently this script and the app read `DATABASE_URL*`, while the
+ * integration now maintains the parallel `STORAGE_*` set. Rotating secrets in
+ * the Neon store would refresh `STORAGE_*` and NOT the pair production
+ * actually reads -- so rotation is a production outage waiting to happen until
+ * that divergence is resolved. See
+ * https://github.com/lfeq/food-organizer/issues/66
+ *
+ * Nothing asserts any of this: a check would need a VERCEL_TOKEN, and `ci.yml`
+ * may never hold a secret. It is prose because it is unassertable, which is
+ * also why it drifts -- if you are here because it drifted, see
+ * https://github.com/lfeq/food-organizer/issues/57
  */
 import pg from "pg"
 import { readdir, readFile } from "fs/promises"
