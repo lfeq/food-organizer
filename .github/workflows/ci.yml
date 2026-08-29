@@ -8,8 +8,15 @@ name: CI
 #      with a read-only GITHUB_TOKEN and no access to repository secrets.
 #      `pull_request_target` runs in the base repo's context with secrets in
 #      reach - do not switch to it, even to get a token that can post comments.
-#   2. No step references `secrets.*` or reaches a database. `npm run migrate`
-#      lives only in the Vercel build command, never here (see issue #28).
+#   2. No step references `secrets.*`, and no step reaches a database that
+#      outlives its own job. The `migrations` job below DOES run
+#      `npm run migrate`, against a throwaway Postgres `services:` container
+#      created and destroyed inside the runner. Its password is a literal in
+#      this file, not a `secrets.*` reference, and nothing outside the runner
+#      can be reached with it. The rule is "no production database, no
+#      secrets", and that job satisfies it: point DATABASE_URL_UNPOOLED at
+#      anything but that container and it does not. `npm run build` still
+#      never migrates -- migrate and build stay separate (see issue #28).
 #
 # Adding a deploy step, a secret, or a `pull_request_target` trigger breaks the
 # invariant silently - nothing will fail to tell you. See issue #40.
@@ -49,8 +56,10 @@ jobs:
           cache: "npm"
       - run: npm i -g npm@11
       - run: npm ci
-      # No database in reach: `npm run build` is `vite build` alone, and the
-      # migration step lives in `npm run migrate`, which CI never invokes.
+      # No database in reach: `npm run build` is `vite build` alone. The
+      # migration step is `npm run migrate` and it belongs to the `migrations`
+      # job, never to this one -- re-welding them would cost CI its build
+      # check (see issue #28).
       - run: npm run build
       # `vite build` exits 0 even when the Nitro plugin is missing from
       # vite.config.ts -- it just emits a plain `dist/` SPA instead of the
@@ -68,3 +77,81 @@ jobs:
             fi
           done
           echo "Nitro server bundle present: $(cat .output/nitro.json)"
+
+  # No `migrations/*.sql` in this repo had ever run before production: until
+  # this job existed, `npm run migrate` lived only in `vercel.json`'s
+  # buildCommand, so the production deploy was the FIRST execution of every
+  # migration ever written. A typo in 0004_*.sql was discovered by a red
+  # production deploy. This job applies the whole set from scratch against a
+  # disposable database, so the SQL is proven before merge. See issue #58.
+  migrations:
+    runs-on: ubuntu-latest
+
+    services:
+      # Throwaway Postgres, born and destroyed with this job. The password is
+      # a literal here on purpose: `services:` credentials must not come from
+      # `secrets.*`, and fork code already runs arbitrary JavaScript in this
+      # runner, so an empty database inside that same runner adds no reach.
+      #
+      # Pin the major version to whatever Neon serves production. Drifting
+      # apart is the one way this job goes green while the deploy it is
+      # protecting fails: a migration that only 17 accepts would pass here and
+      # break there, and nothing would say so.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-throwaway-not-a-secret
+          POSTGRES_DB: food_organizer_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      # `scripts/migrate.mjs` connects on DATABASE_URL_UNPOOLED and, since
+      # issue #52, exits non-zero when it is unset -- so this job must set it.
+      DATABASE_URL_UNPOOLED: postgresql://postgres:ci-throwaway-not-a-secret@localhost:5432/food_organizer_ci
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12"
+          cache: "npm"
+      - run: npm i -g npm@11
+      - run: npm ci
+
+      # Run 1: an empty database, so every migration must apply. Asserting the
+      # count rather than just the exit code is what makes the check real --
+      # `migrate.mjs` exits 0 both when it applied everything and when it
+      # applied nothing, and the second of those is the failure being hunted.
+      - name: Apply every migration to an empty database
+        run: |
+          set -euo pipefail
+          expected=$(ls migrations/*.sql | wc -l | tr -d ' ')
+          output=$(npm run migrate)
+          echo "$output"
+          if ! grep -q "Migrations up to date: $expected applied," <<<"$output"; then
+            echo "::error::Expected all $expected migrations to apply to an empty database."
+            exit 1
+          fi
+
+      # Run 2: the same command against the database run 1 just built. This is
+      # the `_migrations` bookkeeping production relies on to not re-run DDL
+      # over live tables -- untested until now. A second run must be a no-op;
+      # if it re-applies anything, the CREATE statements themselves would
+      # error, and if it silently skipped files it would look identical to
+      # being up to date.
+      - name: Prove a second run applies nothing
+        run: |
+          set -euo pipefail
+          expected=$(ls migrations/*.sql | wc -l | tr -d ' ')
+          output=$(npm run migrate)
+          echo "$output"
+          if ! grep -q "Migrations up to date: 0 applied, $expected already present" <<<"$output"; then
+            echo "::error::Migrations are not idempotent -- a second run was not a no-op."
+            exit 1
+          fi
