@@ -131,3 +131,62 @@ use it, the repo must be public and the button must clone into their account —
 both are satisfied by Vercel's "clone" action. Verify on first real deploy that
 the Neon integration injects both `DATABASE_URL` and `DATABASE_URL_UNPOOLED`
 before the `node scripts/migrate.mjs` build step runs.
+
+---
+
+## 2026-08-28 — Dishes catalogue (issue #16)
+
+**What was done:**
+
+Built the catalogue screen and wired the "Dishes" sidebar link to it.
+
+- **src/dishes-fns.ts** — four `createServerFn` exports:
+  - `listDishes()` — SELECT all dishes with LEFT JOIN to member for authorship.
+    Returns `Dish[]` sorted by course then name. Empty array on DB failure.
+  - `addDish()` — checks uniqueness within course before INSERT; returns
+    `DISH_NAME_TAKEN` if a same-course duplicate exists.
+  - `editDish()` — looks up the dish's course, checks for a same-course
+    duplicate with a different id, then UPDATEs the name.
+  - `deleteDish()` — plain DELETE. Slots keep `dish_name` (§5.3 snapshot
+    semantics), so no cascade behaviour is needed here.
+
+- **src/routes/dishes.tsx** — three-column catalogue layout (soup / side /
+  main), each column with count. Add/edit/delete actions open inline modals
+  that keep the catalogue visible behind them. Edit modal states the
+  rename-changes-future-plans asymmetry (§11.3 / ADR-0002). Delete modal
+  states that past weeks keep the dish. Authorship is shown per row; `null`
+  author_id renders as "removed member".
+
+- **src/routes/index.tsx** — "Dishes" sidebar item changed from disabled text
+  to a `<Link to="/dishes">`.
+
+- **src/styles.css** — catalogue grid, dish list, dish actions (hover-reveal
+  Edit/Delete buttons), add-dish dashed button, modal backdrop + sheet,
+  btn-primary / btn-secondary / btn-danger utilities, sidebar nav link.
+
+- **Route tree** regenerated to include `/dishes`.
+
+**Acceptance criteria check:**
+
+- ✅ `dish` table DDL was added in migration 0002 (§5.5): citext name, unique
+  (course, name), author_id ON DELETE SET NULL, set_updated_at() trigger.
+- ✅ Three course columns with counts; modals, not separate routes.
+- ✅ Any member can add, edit, delete.
+- ✅ Authorship shown; null author → "removed member".
+- ✅ Delete modal: "Past weeks keep this dish — only future plans are affected."
+- ✅ Edit modal: rename notice about future plans / past unchanged.
+- ✅ Same name in two courses allowed (uniqueness is per course); duplicate
+  within a course returns DISH_NAME_TAKEN.
+- ✅ 27 seed dishes inserted in doSetup transaction (auth-fns.ts, #15 work).
+- ✅ Seed names from SPEC §10, Spanish only.
+- ✅ Seeds are ordinary rows — no flag, no separate handling.
+
+**What to pick up next:**
+
+Issue #17 — Accounts: members, roles, password resets, and instance settings.
+
+**Known gaps:**
+
+The route tree (`routeTree.gen.ts`) is auto-generated — running
+`npm run generate-routes` regenerates it. CI already runs typecheck which
+catches stale route trees at build time.

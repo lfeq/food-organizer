@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router"
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router"
 import { doLogout } from "#/auth-fns"
 
 export const Route = createFileRoute("/")({
@@ -24,7 +24,9 @@ function PlanPage() {
         <ul className="sidebar-nav">
           <li className="sidebar-nav-item sidebar-nav-item--active">This week</li>
           <li className="sidebar-nav-item sidebar-nav-item--disabled">Next week</li>
-          <li className="sidebar-nav-item sidebar-nav-item--disabled">Dishes</li>
+          <li className="sidebar-nav-item">
+              <Link to="/dishes" className="sidebar-nav-link">Dishes</Link>
+            </li>
           <li className="sidebar-nav-item sidebar-nav-item--disabled">History</li>
           {member.role === "admin" && (
             <li className="sidebar-nav-item sidebar-nav-item--disabled">Accounts</li>
