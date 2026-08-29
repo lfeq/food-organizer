@@ -11,6 +11,7 @@ import {
   setMemberRole,
   getInstanceSettings,
   updateInstanceSettings,
+  exportData,
   type Member,
 } from "#/accounts-fns"
 
@@ -48,6 +49,8 @@ function AccountsPage() {
   const [busy, setBusy] = useState(false)
   const [settingsError, setSettingsError] = useState<string | null>(null)
   const [settingsBusy, setSettingsBusy] = useState(false)
+  const [exportBusy, setExportBusy] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
   const [weekStartDow, setWeekStartDow] = useState(instanceSettings.week_start_dow)
   const [timezone, setTimezone] = useState(instanceSettings.timezone)
   const [instanceDisplayName, setInstanceDisplayName] = useState(instanceSettings.display_name ?? "")
@@ -129,6 +132,25 @@ function AccountsPage() {
     setBusy(false)
     if (!res.ok) return
     await router.invalidate()
+  }
+
+  async function handleExport() {
+    setExportBusy(true)
+    setExportError(null)
+    const data = await exportData()
+    setExportBusy(false)
+    if (!data) {
+      setExportError(t(locale, "exportErrFailed"))
+      return
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    const datePart = new Date().toISOString().slice(0, 10)
+    a.download = `food-organizer-export-${datePart}.json`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   async function handleSaveSettings(e: React.FormEvent) {
@@ -321,6 +343,22 @@ function AccountsPage() {
               </button>
             </div>
           </form>
+        </section>
+
+        <section className="instance-settings">
+          <h2 className="instance-settings-title">{t(locale, "exportTitle")}</h2>
+          <p className="export-desc">{t(locale, "exportDesc")}</p>
+          {exportError && <p className="form-error">{exportError}</p>}
+          <div className="instance-settings-actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={handleExport}
+              disabled={exportBusy}
+            >
+              {t(locale, "exportBtn")}
+            </button>
+          </div>
         </section>
       </main>
 

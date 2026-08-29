@@ -241,6 +241,126 @@ export const updateInstanceSettings = createServerFn({ method: "POST" })
     return err("DB_UNREACHABLE")
   })
 
+export type ExportData = {
+  exported_at: string
+  format_version: 1
+  settings: {
+    week_start_dow: number
+    timezone: string
+    display_name: string | null
+  }
+  members: Array<{
+    username: string
+    role: "admin" | "member"
+    must_change_password: boolean
+  }>
+  catalogue: Array<{
+    id: string
+    name: string
+    course: "soup" | "side" | "main"
+  }>
+  weekly_plans: Array<{
+    week_start: string
+    days: Array<{
+      day_date: string
+      slots: Array<{
+        course: "soup" | "side" | "main"
+        dish_name: string
+        dish_id: string | null
+      }>
+    }>
+  }>
+}
+
+export const exportData = createServerFn({ method: "GET" }).handler(
+  async (): Promise<ExportData | null> => {
+    const callerId = await getCallerAdminId()
+    if (!callerId) return null
+
+    const result = await Runtime.runPromiseExit(
+      Effect.flatMap(PgClient.PgClient, (sql) =>
+        Effect.gen(function* () {
+          const settingsRows = yield* sql<{
+            week_start_dow: number
+            timezone: string
+            display_name: string | null
+          }>`SELECT week_start_dow, timezone, display_name FROM settings LIMIT 1`
+
+          const memberRows = yield* sql<{
+            username: string
+            role: "admin" | "member"
+            must_change_password: boolean
+          }>`SELECT username, role, must_change_password FROM member ORDER BY username`
+
+          const catalogueRows = yield* sql<{
+            id: string
+            name: string
+            course: "soup" | "side" | "main"
+          }>`SELECT id, name, course FROM dish ORDER BY course, name`
+
+          const planRows = yield* sql<{ id: string; week_start: string }>`
+            SELECT id, week_start::text AS week_start
+            FROM weekly_plan
+            ORDER BY week_start
+          `
+
+          const dayRows =
+            planRows.length > 0
+              ? yield* sql<{ id: string; weekly_plan_id: string; day_date: string }>`
+                  SELECT id, weekly_plan_id, day_date::text AS day_date
+                  FROM plan_day
+                  ORDER BY day_date
+                `
+              : []
+
+          const dayIds = dayRows.map((d) => d.id)
+          const slotRows =
+            dayIds.length > 0
+              ? yield* sql<{
+                  plan_day_id: string
+                  course: "soup" | "side" | "main"
+                  dish_name: string
+                  dish_id: string | null
+                }>`
+                  SELECT plan_day_id, course, dish_name, dish_id
+                  FROM slot
+                  WHERE plan_day_id IN ${sql.in(dayIds)}
+                  ORDER BY plan_day_id, course
+                `
+              : []
+
+          const weekly_plans = planRows.map((plan) => {
+            const days = dayRows
+              .filter((d) => d.weekly_plan_id === plan.id)
+              .map((d) => ({
+                day_date: d.day_date,
+                slots: slotRows
+                  .filter((s) => s.plan_day_id === d.id)
+                  .map((s) => ({
+                    course: s.course,
+                    dish_name: s.dish_name,
+                    dish_id: s.dish_id,
+                  })),
+              }))
+            return { week_start: plan.week_start, days }
+          })
+
+          return {
+            exported_at: new Date().toISOString(),
+            format_version: 1 as const,
+            settings: settingsRows[0] ?? { week_start_dow: 0, timezone: "UTC", display_name: null },
+            members: memberRows as ExportData["members"],
+            catalogue: catalogueRows as ExportData["catalogue"],
+            weekly_plans,
+          } satisfies ExportData
+        })
+      )
+    )
+    if (Exit.isSuccess(result)) return result.value
+    return null
+  }
+)
+
 export const setMemberRole = createServerFn({ method: "POST" })
   .validator((data: { memberId: string; role: "admin" | "member" }) => data)
   .handler(async ({ data }): Promise<Result<void>> => {

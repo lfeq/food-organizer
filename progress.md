@@ -486,3 +486,52 @@ active locale by default; English (`en`) via cookie.
 - All 14 tests pass; `tsc --noEmit` is clean.
 
 **Next ticket:** #24 — Download my data (export).
+
+---
+
+## #24 — Download my data: export (2026-08-29)
+
+**What was done:**
+
+Implemented the export feature described in SPEC §16 and tracked as issue #24.
+
+- **`src/accounts-fns.ts`** — Added `exportData` server fn (GET, admin-only via
+  `getCallerAdminId()`). Queries all seven tables in a single Effect pipeline:
+  `settings`, `member` (username/role/must_change_password — no password hashes,
+  no sessions), `dish`, `weekly_plan`, `plan_day`, `slot`. Assembles into
+  `ExportData` (format_version 1, ISO timestamp, settings, members, catalogue,
+  weekly_plans with nested days/slots). Returns `null` if caller is not an admin.
+  Also exported the `ExportData` type for use in the UI.
+
+- **`src/i18n.ts`** — Added four bilingual keys: `exportTitle`, `exportDesc`,
+  `exportBtn`, `exportErrFailed`.
+
+- **`src/routes/accounts.tsx`** — Added export section below instance settings.
+  `handleExport()` calls `exportData()`, serialises the result to a JSON `Blob`,
+  and triggers a `<a download="food-organizer-export-YYYY-MM-DD.json">` anchor
+  click. Error state shown inline if the fn returns null.
+
+- **`src/styles.css`** — Added `.export-desc` (secondary-color, small font).
+
+- **`SPEC.md` §16** — Updated to mark the feature as implemented with a summary
+  of the approach.
+
+**Acceptance criteria check:**
+- ✅ One control (button) produces one downloadable file.
+- ✅ No password hashes, no session rows ever included.
+- ✅ File is JSON with `format_version`, `exported_at`, and clearly named keys —
+  a household can read it by hand.
+- ✅ Nothing is localised — file content is the raw DB values (English field names,
+  raw enum values).
+- ✅ Export reflects stored data including dish-name snapshots on past plan slots.
+- ✅ README already pointed at this feature (was added in §13 step 1 from SPEC §4.2).
+
+**Key notes for next agent:**
+
+- All open issues are now closed. The spec (SPEC.md) is fully implemented.
+- The `exportData` server fn is admin-only. Non-admins never see the export
+  section (the whole `/accounts` route redirects them away in `beforeLoad`).
+- If the export grows beyond one page scroll it may warrant a loading spinner —
+  currently the button just disables while the fetch is in flight.
+- `format_version: 1` is a literal `1 as const` in the type. Bump it if the
+  shape changes in a breaking way.

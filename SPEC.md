@@ -1085,7 +1085,7 @@ guessing at them in code is worse than leaving them out.
 
 ---
 
-## 16. One thing worth building that nobody has ticketed
+## 16. One thing worth building that nobody has ticketed — IMPLEMENTED (#24)
 
 Backups are the household's problem on Neon Free, and the app holds the only
 copy of a catalogue that took an afternoon to write. **A "download my data"
@@ -1093,6 +1093,14 @@ export is worth more here than any provider feature** — this came out of the
 hosting research and never became a ticket. It is not required to ship, and it
 is cheap: the whole database is seven small tables and nothing in it is
 localised.
+
+**Implementation:** Admin-only "Export data" section on the Accounts screen.
+One button triggers `exportData()` (server fn, admin-only) which queries all
+tables — settings, members (no passwords/sessions), catalogue, and all weekly
+plans with their days and slots — and returns them as a self-describing JSON
+object. The client side serialises to a `Blob` and triggers a `<a download>`
+for `food-organizer-export-YYYY-MM-DD.json`. Format version 1; nothing is
+localised; dish-name snapshots on past weeks are preserved verbatim.
 
 ---
 

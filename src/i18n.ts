@@ -101,6 +101,10 @@ export const strings = {
   accountsErrUsernameTaken:   { en: "That username is already taken.", es: "Ese nombre de usuario ya está en uso." },
   accountsErrUsernameInvalid: { en: "Username may only contain letters, digits, - and _.", es: "El nombre de usuario solo puede contener letras, dígitos, - y _." },
   settingsErrFrozen: { en: "Week start cannot change once a plan exists.", es: "El inicio de semana no puede cambiar una vez que existe un plan." },
+  exportTitle:       { en: "Export data",         es: "Exportar datos" },
+  exportDesc:        { en: "Download a machine-readable backup of the catalogue, all weekly plans, members, and settings. Password hashes are never included.", es: "Descarga una copia de seguridad legible por máquina del catálogo, todos los planes semanales, integrantes y configuración. Las contraseñas nunca se incluyen." },
+  exportBtn:         { en: "Download my data",     es: "Descargar mis datos" },
+  exportErrFailed:   { en: "Export failed. Try again.", es: "No se pudo exportar. Inténtalo de nuevo." },
 
   // --- Login screen ---
   loginSignIn:         { en: "Sign in",          es: "Iniciar sesión" },
