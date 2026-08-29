@@ -84,9 +84,9 @@ Wednesday's soup. Holds the [dish](#dish) that was drawn for it.
 
 Filling a [weekly plan](#weekly-plan)'s [slots](#slot) by drawing at random
 from the catalogue. Each [course](#course) is drawn independently and without
-replacement, so a dish does not recur within the week — unless that course's
-list holds fewer than seven dishes, in which case dishes repeat as needed and
-the UI says so.
+replacement, so **generating never repeats a dish within the week**, as long as
+that course holds at least seven dishes — one per day. Below seven there are
+not enough dishes to go round, so dishes repeat as needed.
 
 Generating has no memory: what came out last week does not influence this week.
 
@@ -104,12 +104,31 @@ not a second one: the one-plan-per-week rule holds.
 Redrawing a single [plan day](#plan-day) — "I don't feel like Wednesday, give
 me another". Distinct from generating, which produces the whole week.
 
-Regenerating draws from the dishes the week is **not already using**, and never
-returns the dish it is replacing, so it neither introduces a repeat nor leaves
-the day unchanged. Each regeneration looks at the week as it currently stands,
-so regenerating over and over cannot drift into repeats. Where a course is
-short enough that no alternative exists, it repeats, exactly as
-[generating](#generating) does.
+Regenerating prefers the dishes the week is **not already using**, and never
+returns the dish it is replacing, so the day always visibly changes. Each
+regeneration looks at the week as it currently stands, so it cannot drift into
+repeats while alternatives remain. When no unused dish is left, it draws from
+the whole course anyway rather than refusing: **regenerating may repeat**, and
+the plan says so when it does.
+
+Regenerating changes the day it was asked about and nothing else. It never
+moves a dish between days to make room.
+
+## Repeating week
+
+A [weekly plan](#weekly-plan) that holds the same [dish](#dish) in two
+[slots](#slot) of the same [course](#course). This is a property of the plan,
+not of the catalogue: it is answered by looking at the week itself, so it holds
+whatever caused the repeat — a course below seven dishes,
+[generating](#generating) or [regenerating](#regenerating) alike.
+
+A repeating week is always said out loud, once per repeating course, and the
+household is pointed at the fix: add more dishes. It is stated about the course,
+never about the offending slot — a repeat is an expected consequence of a small
+catalogue, not a mistake in a particular day.
+
+Because it is a property of the plan, a week can *become* repeating after it was
+generated, which is what regenerating into a repeat does.
 
 ## Seed catalogue
 
@@ -117,8 +136,13 @@ _(Spanish UI: "catálogo inicial")_
 
 The [dishes](#dish) a freshly deployed instance starts with, so that the
 [household](#household) can generate a first [weekly plan](#weekly-plan) before
-adding anything of its own: seven per [course](#course), which is the point at
-which a week comes out with no repeats.
+adding anything of its own: **nine per [course](#course)**, twenty-seven in all.
+
+Seven would be enough for [generating](#generating) alone — it is exactly the
+number of days in a week — but it leaves [regenerating](#regenerating) nothing
+to draw, so every reroll would produce a [repeating week](#repeating-week) on a
+brand-new instance. Nine is the smallest catalogue where both operations behave
+the way the household expects on day one.
 
 Seeding happens once, at setup. Afterwards a seeded dish is an ordinary
 catalogue entry in every respect — editable, deletable, and not marked as
