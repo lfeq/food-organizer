@@ -29,6 +29,12 @@ export const Route = createRootRoute({
     if (authState.member && (path === "/setup" || path === "/login")) {
       throw redirect({ to: "/" })
     }
+    if (
+      authState.member?.must_change_password &&
+      path !== "/change-password"
+    ) {
+      throw redirect({ to: "/change-password" })
+    }
 
     return { authState }
   },

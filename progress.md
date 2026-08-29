@@ -183,10 +183,85 @@ Built the catalogue screen and wired the "Dishes" sidebar link to it.
 
 **What to pick up next:**
 
-Issue #17 — Accounts: members, roles, password resets, and instance settings.
+Issue #18 — Generating a week, and the plan screen.
 
 **Known gaps:**
 
 The route tree (`routeTree.gen.ts`) is auto-generated — running
 `npm run generate-routes` regenerates it. CI already runs typecheck which
 catches stale route trees at build time.
+
+---
+
+## 2026-08-28 — Accounts: members, roles and password resets (issue #17)
+
+**What was done:**
+
+Full member management: create, reset, remove, promote/demote, login throttling,
+and the forced-password-change gate.
+
+- **migrations/0003_accounts.sql** — adds `login_failures int` and
+  `login_locked_until timestamptz` to `member` for §7.7 per-account backoff.
+
+- **src/auth.server.ts** — `generateTempPassword()`: 3 CVC syllables joined by
+  hyphens (e.g. "bak-fon-rit"). Uses `randomBytes` for entropy. Consonant set
+  excludes l (looks like 1), c/j/q/x/y (ambiguous sound). Resolves §17 gap 2.
+
+- **src/auth-fns.ts** — login throttling in `doLogin`: checks `login_locked_until`,
+  increments `login_failures` on failure (locks for 5 min after 5 consecutive
+  failures, resets effective failures if lock has expired), resets on success.
+  New `doChangePassword` server fn: verifies session, updates password_hash, clears
+  `must_change_password`, `login_failures`, `login_locked_until`.
+
+- **src/accounts-fns.ts** — five admin-only server fns, each verified against the
+  session cookie before acting:
+  - `listMembers()` — all members sorted by username.
+  - `createMember()` — validates username, generates temp password, inserts with
+    `must_change_password=true` and role=member.
+  - `resetMemberPassword()` — new temp password, `must_change_password=true`,
+    deletes all sessions for that member.
+  - `removeMember()` — deletes member (sessions cascade, dishes ON DELETE SET NULL).
+  - `setMemberRole()` — app-layer last-admin guard before DB update; DB constraint
+    trigger (§5.6 #1, deferrable) is the safety net.
+
+- **src/routes/__root.tsx** — added redirect: members with `must_change_password`
+  are sent to `/change-password` for any path except that route itself.
+
+- **src/routes/change-password.tsx** — forced change form with new+confirm
+  password fields; sign-out escape hatch.
+
+- **src/routes/accounts.tsx** — admin-only (beforeLoad guard + server-side check).
+  Member table with role badge, must-change-password status, and per-row actions:
+  promote/demote (disabled with "Last admin" label when only one admin remains),
+  reset password (shows temp password once in a monospace reveal modal), remove
+  (warns dishes/history are kept). "Add member" shows temp password once after
+  creation; modal cannot be dismissed via backdrop until done.
+
+- **src/routes/index.tsx / dishes.tsx** — "Accounts" sidebar item linked to
+  `/accounts` for admins.
+
+- **src/__tests__/auth.server.test.ts** — 3 tests: CVC-CVC-CVC shape, unambiguous
+  chars only, uniqueness across 20 calls.
+
+- **src/styles.css** — accounts header, members table, role-badge, status-badge,
+  temp-password display (monospace, selectable, dashed border), auth-actions row.
+
+**Acceptance criteria check:**
+
+- ✅ Admin-only accounts screen; non-admins redirected away by beforeLoad.
+- ✅ Creating a member shows password once — modal cannot be closed until "Done".
+- ✅ `must_change_password` gates: root beforeLoad redirects to /change-password.
+- ✅ Admin reset: new generated password, must_change_password=true, sessions deleted.
+- ✅ Removing a member: sessions deleted via ON DELETE CASCADE; dishes null author.
+- ✅ Any admin can promote/demote any member including themselves.
+- ✅ At-least-one-admin: app-layer guard returns LAST_ADMIN; DB trigger (§5.6 #1)
+  is the enforcement safety net.
+- ✅ Last-admin control disabled with "Last admin" label, never hidden.
+- ✅ Login throttling: per-account, 5-failure backoff, self-expiring 5-min window.
+- ✅ No permanent lockout (window expires automatically).
+- ✅ Generated temp password: CVC-CVC-CVC, unambiguous consonants, pronounceable.
+- ✅ Both roles have equal rights to catalogue and plans (no change needed).
+
+**What to pick up next:**
+
+Issue #18 — Generating a week, and the plan screen.

@@ -67,3 +67,15 @@ export function tokenToHex(token: Buffer): string {
 export function hexToToken(hex: string): Buffer {
   return Buffer.from(hex, "hex")
 }
+
+// §7.5 / §17 gap: short, unambiguous, pronounceable — read aloud across a kitchen
+export function generateTempPassword(): string {
+  // CVC-CVC-CVC; avoids l (looks like 1), c (ambiguous sound), j/y/q/x
+  const C = "bdfghkmnprstvwz" // 15 unambiguous consonants
+  const V = "aeiou"
+  const buf = randomBytes(9)
+  const c = (b: number) => C[b % C.length]
+  const v = (b: number) => V[b % V.length]
+  const syl = (i: number) => c(buf[i]) + v(buf[i + 1]) + c(buf[i + 2])
+  return `${syl(0)}-${syl(3)}-${syl(6)}`
+}

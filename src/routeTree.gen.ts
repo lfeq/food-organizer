@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountsRouteImport } from './routes/accounts'
+import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as DishesRouteImport } from './routes/dishes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SetupRouteImport } from './routes/setup'
@@ -17,6 +19,16 @@ import { Route as SetupRouteImport } from './routes/setup'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountsRoute = AccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangePasswordRoute = ChangePasswordRouteImport.update({
+  id: '/change-password',
+  path: '/change-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DishesRoute = DishesRouteImport.update({
@@ -37,12 +49,16 @@ const SetupRoute = SetupRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/accounts': typeof AccountsRoute
+  '/change-password': typeof ChangePasswordRoute
   '/dishes': typeof DishesRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/accounts': typeof AccountsRoute
+  '/change-password': typeof ChangePasswordRoute
   '/dishes': typeof DishesRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
@@ -50,20 +66,32 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/accounts': typeof AccountsRoute
+  '/change-password': typeof ChangePasswordRoute
   '/dishes': typeof DishesRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dishes' | '/login' | '/setup'
+  fullPaths:
+    '/' | '/accounts' | '/change-password' | '/dishes' | '/login' | '/setup'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dishes' | '/login' | '/setup'
-  id: '__root__' | '/' | '/dishes' | '/login' | '/setup'
+  to: '/' | '/accounts' | '/change-password' | '/dishes' | '/login' | '/setup'
+  id:
+    | '__root__'
+    | '/'
+    | '/accounts'
+    | '/change-password'
+    | '/dishes'
+    | '/login'
+    | '/setup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountsRoute: typeof AccountsRoute
+  ChangePasswordRoute: typeof ChangePasswordRoute
   DishesRoute: typeof DishesRoute
   LoginRoute: typeof LoginRoute
   SetupRoute: typeof SetupRoute
@@ -76,6 +104,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/accounts': {
+      id: '/accounts'
+      path: '/accounts'
+      fullPath: '/accounts'
+      preLoaderRoute: typeof AccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/change-password': {
+      id: '/change-password'
+      path: '/change-password'
+      fullPath: '/change-password'
+      preLoaderRoute: typeof ChangePasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dishes': {
@@ -104,6 +146,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountsRoute: AccountsRoute,
+  ChangePasswordRoute: ChangePasswordRoute,
   DishesRoute: DishesRoute,
   LoginRoute: LoginRoute,
   SetupRoute: SetupRoute,

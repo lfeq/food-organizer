@@ -12,6 +12,9 @@ import {
   tokenToHex,
   hexToToken,
 } from "#/auth.server"
+
+const LOGIN_FAILURE_THRESHOLD = 5
+const LOGIN_LOCK_MS = 5 * 60 * 1000
 import { ok, err, type Result } from "#/result-codes"
 
 const USERNAME_RE = /^[a-zA-Z0-9_-]+$/
@@ -202,13 +205,18 @@ export const doLogin = createServerFn({ method: "POST" })
     const username = data.username.trim().toLowerCase()
     const session = makeSession()
 
-    type MemberWithHash = MemberRow & { password_hash: string }
+    type MemberWithHash = MemberRow & {
+      password_hash: string
+      login_failures: number
+      login_locked_until: Date | null
+    }
 
     const result = await Runtime.runPromiseExit(
       Effect.flatMap(PgClient.PgClient, (sql) =>
         Effect.gen(function* () {
           const rows = yield* sql<MemberWithHash>`
-            SELECT id, username, role, must_change_password, password_hash
+            SELECT id, username, role, must_change_password, password_hash,
+                   login_failures, login_locked_until
             FROM member WHERE username = ${username}
           `
           if (rows.length === 0) {
@@ -216,13 +224,39 @@ export const doLogin = createServerFn({ method: "POST" })
           }
 
           const member = rows[0]
+          const now = new Date()
+
+          if (member.login_locked_until && new Date(member.login_locked_until) > now) {
+            return err("AUTH_THROTTLED") as Result<{ username: string }>
+          }
+
+          // If a previous lock has expired, treat failures as reset
+          const lockExpired =
+            member.login_locked_until !== null &&
+            new Date(member.login_locked_until) <= now
+          const effectiveFailures = lockExpired ? 0 : member.login_failures
+
           const valid = yield* Effect.promise(() =>
             verifyPassword(data.password, member.password_hash)
           )
           if (!valid) {
+            const newFailures = effectiveFailures + 1
+            const newLock =
+              newFailures >= LOGIN_FAILURE_THRESHOLD
+                ? new Date(Date.now() + LOGIN_LOCK_MS)
+                : null
+            yield* sql`
+              UPDATE member
+              SET login_failures = ${newFailures}, login_locked_until = ${newLock}
+              WHERE id = ${member.id}
+            `
             return err("AUTH_INVALID_CREDENTIALS") as Result<{ username: string }>
           }
 
+          yield* sql`
+            UPDATE member SET login_failures = 0, login_locked_until = NULL
+            WHERE id = ${member.id}
+          `
           yield* sql`
             INSERT INTO session (token_hash, member_id, expires_at)
             VALUES (${session.hash}, ${member.id}, ${session.expiresAt})
@@ -254,3 +288,41 @@ export const doLogout = createServerFn({ method: "POST" }).handler(
     clearSessionCookie()
   }
 )
+
+export const doChangePassword = createServerFn({ method: "POST" })
+  .validator((data: { newPassword: string }) => data)
+  .handler(async ({ data }): Promise<Result<void>> => {
+    if (data.newPassword.length < 8) return err("AUTH_PASSWORD_TOO_SHORT")
+
+    const tokenHex = readSessionToken()
+    if (!tokenHex) return err("AUTH_INVALID_CREDENTIALS")
+
+    const tokenHash = hashToken(hexToToken(tokenHex))
+    const passwordHash = await hashPassword(data.newPassword)
+
+    const result = await Runtime.runPromiseExit(
+      Effect.flatMap(PgClient.PgClient, (sql) =>
+        Effect.gen(function* () {
+          const rows = yield* sql<{ id: string }>`
+            SELECT m.id FROM session s
+            JOIN member m ON m.id = s.member_id
+            WHERE s.token_hash = ${tokenHash} AND s.expires_at > NOW()
+          `
+          if (rows.length === 0) return err("AUTH_INVALID_CREDENTIALS") as Result<void>
+
+          yield* sql`
+            UPDATE member
+            SET password_hash = ${passwordHash},
+                must_change_password = false,
+                login_failures = 0,
+                login_locked_until = NULL
+            WHERE id = ${rows[0].id}
+          `
+          return ok(undefined) as Result<void>
+        })
+      )
+    )
+
+    if (Exit.isSuccess(result)) return result.value
+    return err("DB_UNREACHABLE")
+  })
