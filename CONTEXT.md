@@ -63,6 +63,9 @@ A weekly plan is a record of what was decided, not a live view of the
 catalogue: once generated it holds its own copy of what came out, so deleting a
 [dish](#dish) later never alters a plan that already used it.
 
+Only the current and the next calendar week can be changed. Earlier weeks are
+history: a record of what the household ate, which nothing can rewrite.
+
 ## Plan day
 
 _(Spanish UI: "día del plan")_
@@ -87,7 +90,41 @@ the UI says so.
 
 Generating has no memory: what came out last week does not influence this week.
 
+A course with **no** dishes at all is different from a short one: there is
+nothing to draw, so generating does not happen and says which course is empty.
+A slot therefore always holds a dish — an empty slot is not a state a weekly
+plan can be in.
+
+Generating a week that already has a plan replaces it, and the household is
+told so before it happens. The replacement is the same plan for the same week,
+not a second one: the one-plan-per-week rule holds.
+
 ## Regenerating
 
 Redrawing a single [plan day](#plan-day) — "I don't feel like Wednesday, give
 me another". Distinct from generating, which produces the whole week.
+
+Regenerating draws from the dishes the week is **not already using**, and never
+returns the dish it is replacing, so it neither introduces a repeat nor leaves
+the day unchanged. Each regeneration looks at the week as it currently stands,
+so regenerating over and over cannot drift into repeats. Where a course is
+short enough that no alternative exists, it repeats, exactly as
+[generating](#generating) does.
+
+## Seed catalogue
+
+_(Spanish UI: "catálogo inicial")_
+
+The [dishes](#dish) a freshly deployed instance starts with, so that the
+[household](#household) can generate a first [weekly plan](#weekly-plan) before
+adding anything of its own: seven per [course](#course), which is the point at
+which a week comes out with no repeats.
+
+Seeding happens once, at setup. Afterwards a seeded dish is an ordinary
+catalogue entry in every respect — editable, deletable, and not marked as
+seeded. Their author is the `admin`, the only [member](#member) that exists at
+setup.
+
+Seed dish names are Spanish only. A dish name is a name the household would say
+out loud, not UI wording, and it is not translated: the bilingual UI covers the
+app's own chrome, never the catalogue's contents.
