@@ -1,9 +1,23 @@
 # Implementation spec — self-hostable weekly meal planner
 
-**Status:** complete and ready to build. Every decision below was settled on the
-wayfinder map [Map: self-hostable weekly meal planner](https://github.com/lfeq/food-organizer/issues/1)
+**Status:** in progress. Walking skeleton (§13 steps 1–3) is complete as of
+2026-08-28. Every decision below was settled on the wayfinder map
+[Map: self-hostable weekly meal planner](https://github.com/lfeq/food-organizer/issues/1)
 and its seven tickets. This document is the handoff: an agent should be able to
 build the app from it without reopening the tickets.
+
+**Build progress:**
+- [x] §13 step 1 — Walking skeleton: TanStack Start app, SSR, Deploy Button
+- [x] §13 step 2 — Effect runtime seam: ManagedRuntime, PgClient with retry
+- [x] §13 step 3 — Migrations: runner + first migration (citext, enums, trigger)
+- [ ] §13 step 4 — Auth and first run
+- [ ] §13 step 5 — Catalogue
+- [ ] §13 step 6 — Generating
+- [ ] §13 step 7 — Plan screen
+- [ ] §13 step 8 — Regenerating and repeating-week
+- [ ] §13 step 9 — History
+- [ ] §13 step 10 — Accounts
+- [ ] §13 step 11 — Bilingual pass
 
 **How to read it.** Sections state decisions, not options. Where a heading is
 marked **Derived**, the content is mechanical fill-in written while assembling
