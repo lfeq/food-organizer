@@ -39,6 +39,11 @@ const DishesRoute = DishesRouteImport.update({
   path: '/dishes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -52,11 +57,6 @@ const SetupRoute = SetupRouteImport.update({
 const PlanWeekStartRoute = PlanWeekStartRouteImport.update({
   id: '/plan/$weekStart',
   path: '/plan/$weekStart',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HistoryRoute = HistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlanNextRoute = PlanNextRouteImport.update({
@@ -177,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DishesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -196,13 +203,6 @@ declare module '@tanstack/react-router' {
       path: '/plan/$weekStart'
       fullPath: '/plan/$weekStart'
       preLoaderRoute: typeof PlanWeekStartRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/history': {
-      id: '/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/plan/next': {
