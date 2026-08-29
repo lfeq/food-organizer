@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE — screens &amp; navigation</title>
+<!--
+  THROWAWAY PROTOTYPE. Not production code. Answers issue #6:
+  "Three variants of the whole app (plan / catalogue / history / accounts),
+   switchable via ?variant=, phone-first, stub data, no persistence."
+
+  A — Today first        : bottom tab bar, plan = big TODAY card + compact rest of week
+  B — Whole week         : top segmented nav, plan = seven day cards, today highlighted
+  C — One day at a time  : drawer nav, plan = day pager (one day fills the screen)
+
+  Everything is in memory. Generating and regenerating really run the rules from #5.
+-->
+<style>
+  :root{
+    --bg:#f6f4f0; --card:#fff; --ink:#1d1b18; --muted:#6f6a62;
+    --line:#e3ded5; --accent:#b4531f; --accent-soft:#fdf0e7;
+    --warn-bg:#fff6e0; --warn-ink:#7a5a12;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:#2a2724; color:var(--ink);
+    font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex; justify-content:center; padding:0 0 92px;
+  }
+  /* phone frame, so this is judged at kitchen-phone size */
+  #phone{
+    width:100%; max-width:420px; min-height:100vh; background:var(--bg);
+    position:relative; overflow-x:hidden; box-shadow:0 0 40px rgba(0,0,0,.4);
+  }
+  h1,h2,h3{margin:0}
+  button{font:inherit;color:inherit;cursor:pointer}
+  .muted{color:var(--muted)}
+  .tiny{font-size:12px}
+  .sm{font-size:13px}
+  .row{display:flex;align-items:center;gap:10px}
+  .between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px}
+  .btn{
+    border:1px solid var(--line);background:var(--card);border-radius:999px;
+    padding:9px 14px;font-size:13px;font-weight:600;
+  }
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.block{width:100%;border-radius:12px;padding:13px;font-size:15px}
+  .pill{
+    font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:3px 9px;
+  }
+  .banner{
+    background:var(--warn-bg);color:var(--warn-ink);border:1px solid #f0dfae;
+    border-radius:12px;padding:10px 12px;font-size:13px;
+  }
+  .course-label{
+    font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+  }
+  .appbar{
+    position:sticky;top:0;z-index:5;background:var(--bg);
+    padding:14px 16px 10px;border-bottom:1px solid var(--line);
+  }
+  .pad{padding:16px}
+  .stack>*+*{margin-top:12px}
+  .lang{border:1px solid var(--line);border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;background:var(--card)}
+  .fab{
+    position:fixed;right:calc(50% - 210px + 16px);bottom:150px;width:52px;height:52px;border-radius:50%;
+    background:var(--accent);color:#fff;border:none;font-size:26px;line-height:1;box-shadow:0 6px 18px rgba(0,0,0,.25);
+  }
+  @media (max-width:440px){.fab{right:16px}}
+
+  /* ---------- switcher (deliberately not part of the design) ---------- */
+  #switcher{
+    position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:99;
+    display:flex;align-items:center;gap:4px;background:#111;color:#fff;
+    border-radius:999px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:13px;
+  }
+  #switcher button{background:#333;border:none;color:#fff;border-radius:999px;width:30px;height:30px}
+  #switcher .label{padding:0 12px;font-weight:600;white-space:nowrap}
+</style>
+</head>
+<body>
+<div id="phone"></div>
+<div id="switcher"></div>
+
+<script>
+/* =====================================================================
+   STUB DATA — the seed catalogue from #5 (21 dishes, 7 per course)
+   ===================================================================== */
+const COURSES = [
+  {key:'soup', es:'Sopa',         en:'Soup', plural_es:'Sopas',            plural_en:'soups'},
+  {key:'side', es:'Guarnición',   en:'Side', plural_es:'Guarniciones',     plural_en:'sides'},
+  {key:'main', es:'Plato fuerte', en:'Main', plural_es:'Platos fuertes',   plural_en:'mains'},
+];
+const MEMBERS = [
+  {id:1, name:'lorenz', role:'admin'},
+  {id:2, name:'ana',    role:'member'},
+  {id:3, name:'diego',  role:'member'},
+];
+let nextDishId = 100;
+const DISHES = [
+  ['Sopa de fideo','soup',1],['Caldo de pollo','soup',1],['Sopa de lentejas','soup',2],
+  ['Crema de calabaza','soup',2],['Sopa de tortilla','soup',1],['Caldo de res','soup',3],
+  ['Sopa de verduras','soup',1],
+  ['Arroz rojo','side',1],['Frijoles de la olla','side',1],['Ensalada de nopales','side',2],
+  ['Papas con chorizo','side',3],['Arroz blanco','side',1],['Calabacitas con elote','side',2],
+  ['Frijoles refritos','side',1],
+  ['Tinga de pollo','main',2],['Milanesa empanizada','main',1],['Chiles rellenos','main',3],
+  ['Albóndigas en chipotle','main',2],['Pollo en mole','main',1],['Bistec a la mexicana','main',3],
+  ['Enchiladas verdes','main',2],
+].map((d,i)=>({id:i+1, name:d[0], course:d[1], author:d[2]}));
+
+const DAYS = [
+  {key:'mon', es:'Lunes',     en:'Monday',    initial:'L', date:'9 mar'},
+  {key:'tue', es:'Martes',    en:'Tuesday',   initial:'M', date:'10 mar'},
+  {key:'wed', es:'Miércoles', en:'Wednesday', initial:'M', date:'11 mar'},
+  {key:'thu', es:'Jueves',    en:'Thursday',  initial:'J', date:'12 mar'},
+  {key:'fri', es:'Viernes',   en:'Friday',    initial:'V', date:'13 mar'},
+  {key:'sat', es:'Sábado',    en:'Saturday',  initial:'S', date:'14 mar'},
+  {key:'sun', es:'Domingo',   en:'Sunday',    initial:'D', date:'15 mar'},
+];
+const TODAY = 2; // Wednesday, so "today" is neither first nor last
+
+/* ---------- generating (rules from #5, honestly implemented) ---------- */
+const byCourse = c => DISHES.filter(d=>d.course===c);
+const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(p=>p[1]);
+
+function generatePlan(){
+  const days = DAYS.map(()=>({}));
+  const short = [];
+  COURSES.forEach(c=>{
+    const pool = byCourse(c.key);
+    if(pool.length < 7) short.push({course:c, count:pool.length});
+    let bag = shuffle(pool);
+    for(let i=0;i<7;i++){
+      if(bag.length===0) bag = shuffle(pool);
+      days[i][c.key] = bag.pop();
+    }
+  });
+  return {week:'9 – 15 de marzo de 2026', days, short};
+}
+// Returns the courses where the exclusion left no candidate and #5's fallback
+// kicked in, i.e. where this regeneration knowingly introduced a repeat.
+function regenerateDay(plan, dayIdx){
+  const repeated = [];
+  COURSES.forEach(c=>{
+    const used = plan.days.filter((_,i)=>i!==dayIdx).map(d=>d[c.key].id);
+    let cands = byCourse(c.key).filter(d=>!used.includes(d.id) && d.id!==plan.days[dayIdx][c.key].id);
+    if(cands.length===0){
+      cands = byCourse(c.key).filter(d=>d.id!==plan.days[dayIdx][c.key].id);
+      repeated.push(c);
+    }
+    plan.days[dayIdx][c.key] = shuffle(cands)[0];
+  });
+  return repeated;
+}
+
+const HISTORY = [
+  {week:'2 – 8 de marzo de 2026'},
+  {week:'23 feb – 1 mar de 2026'},
+  {week:'16 – 22 de febrero de 2026'},
+  {week:'9 – 15 de febrero de 2026'},
+];
+
+/* =====================================================================
+   APP STATE
+   ===================================================================== */
+const state = {
+  variant: new URLSearchParams(location.search).get('variant') || 'A',
+  screen: 'plan',
+  plan: generatePlan(),
+  lang: 'es',
+  openDay: null,        // A: expanded day sheet
+  openSection: 'soup',  // B: accordion
+  pagerDay: TODAY,      // C: which day the pager shows
+  courseScreen: null,   // C: which course list is open
+  drawer: false,        // C
+  weekOverview: false,  // C
+  toast: null,
+};
+const t = (es,en) => state.lang==='es' ? es : en;
+const courseName = c => t(c.es, c.en);
+const coursePlural = c => t(c.plural_es.toLowerCase(), c.plural_en);
+const memberName = id => (MEMBERS.find(m=>m.id===id)||{}).name;
+const esc = s => String(s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+function go(patch){ Object.assign(state, patch); render(); }
+function toast(msg){ state.toast = msg; render(); setTimeout(()=>{ state.toast=null; render(); }, 2200); }
+
+function doGenerate(){
+  if(!confirm(t('Ya existe un plan para esta semana. Se reemplaza por completo. ¿Continuar?',
+               'A plan already exists for this week. It will be replaced entirely. Continue?'))) return;
+  state.plan = generatePlan();
+  toast(t('Semana generada','Week generated'));
+}
+function doRegen(i){
+  const repeated = regenerateDay(state.plan, i);
+  // OPEN QUESTION for #6: with a 7-per-course catalogue this fires on EVERY
+  // regeneration, and the plan's short-course banner never does (it only checks
+  // pool < 7). Is a toast the right place to say it, or does it belong on the day?
+  if(repeated.length){
+    toast(t('Regenerado — se repite ' + repeated.map(c=>c.es.toLowerCase()).join(' y ') + ' esta semana',
+            'Regenerated — ' + repeated.map(c=>c.en.toLowerCase()).join(' and ') + ' repeats this week'));
+  } else {
+    toast(t('Día regenerado','Day regenerated'));
+  }
+}
+
+function addDish(name, course){
+  if(!name || !name.trim()) return;
+  DISHES.push({id:nextDishId++, name:name.trim(), course, author:1});
+  toast(t('Platillo agregado','Dish added'));
+}
+
+/* ---------- shared fragments ---------- */
+function shortBanner(){
+  return state.plan.short.map(x=>`<div class="banner">${t(
+      'Solo ' + x.count + ' ' + x.course.plural_es.toLowerCase() + ' en el catálogo — se repiten esta semana',
+      'Only ' + x.count + ' ' + x.course.plural_en + ' in the catalogue — ' + x.course.plural_en + ' repeat this week')}</div>`).join('');
+}
+function langToggle(){
+  return `<button class="lang" onclick="go({lang: state.lang==='es'?'en':'es'})">${state.lang==='es'?'ES':'EN'}</button>`;
+}
+function courseLines(day, big){
+  return COURSES.map(c=>`
+    <div style="display:flex;gap:10px;align-items:baseline;${big?'padding:9px 0;border-top:1px solid var(--line)':''}">
+      <div class="course-label" style="flex:0 0 ${big?'96px':'78px'}">${courseName(c)}</div>
+      <div style="font-size:${big?'17px':'14px'};font-weight:${big?600:400}">${esc(day[c.key].name)}</div>
+    </div>`).join('');
+}
+function toastEl(){
+  return state.toast ? `<div style="position:fixed;bottom:78px;left:50%;transform:translateX(-50%);
+    background:#1d1b18;color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;z-index:50">${esc(state.toast)}</div>` : '';
+}
+
+/* =====================================================================
+   VARIANT A — "Today first". Bottom tab bar. Plan = today hero + rest.
+   ===================================================================== */
+const A = {
+  render(){ return `${this.screens[state.screen]()}${this.tabs()}${toastEl()}${this.daySheet()}`; },
+  tabs(){
+    const tabs = [['plan','🍽',t('Plan','Plan')],['dishes','📖',t('Platillos','Dishes')],
+                  ['history','🗓',t('Historial','History')],['admin','👥',t('Cuentas','Accounts')]];
+    return `<nav style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;
+        background:var(--card);border-top:1px solid var(--line);display:flex;padding:6px 0 10px;z-index:20">
+      ${tabs.map(([k,icon,label])=>`
+        <button onclick="go({screen:'${k}'})" style="flex:1;background:none;border:none;padding:6px 0;
+          color:${state.screen===k?'var(--accent)':'var(--muted)'};font-weight:${state.screen===k?700:500}">
+          <div style="font-size:19px">${icon}</div><div class="tiny">${label}</div>
+        </button>`).join('')}
+    </nav><div style="height:74px"></div>`;
+  },
+  screens: {
+    plan(){
+      const p = state.plan, today = p.days[TODAY];
+      return `
+      <header class="appbar"><div class="between">
+        <div><div class="tiny muted">${t('Semana','Week')}</div><h1 style="font-size:17px">${p.week}</h1></div>
+        ${langToggle()}
+      </div></header>
+      <div class="pad stack">
+        ${shortBanner()}
+        <section class="card" style="padding:16px;border-color:var(--accent);box-shadow:0 4px 16px rgba(180,83,31,.10)">
+          <div class="between" style="margin-bottom:6px">
+            <span class="pill">${t('Hoy','Today')}</span>
+            <span class="sm muted">${DAYS[TODAY][state.lang]} ${DAYS[TODAY].date}</span>
+          </div>
+          ${courseLines(today, true)}
+          <button class="btn block" style="margin-top:14px" onclick="doRegen(${TODAY})">
+            ↻ ${t('Regenerar hoy','Regenerate today')}</button>
+        </section>
+
+        <div class="between" style="margin-top:18px">
+          <h2 style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">
+            ${t('Resto de la semana','Rest of the week')}</h2>
+          <button class="btn" onclick="doGenerate()">↻ ${t('Generar semana','Generate week')}</button>
+        </div>
+        ${DAYS.map((d,i)=> i===TODAY ? '' : `
+          <button class="card" style="width:100%;text-align:left;padding:12px 14px;display:block"
+                  onclick="go({openDay:${i}})">
+            <div class="between">
+              <strong style="font-size:14px;${i<TODAY?'color:var(--muted)':''}">${d[state.lang]}</strong>
+              <span class="tiny muted">${d.date} ›</span>
+            </div>
+            <div class="sm muted" style="margin-top:4px">
+              ${COURSES.map(c=>esc(p.days[i][c.key].name)).join(' · ')}
+            </div>
+          </button>`).join('')}
+      </div>`;
+    },
+    dishes(){
+      return `
+      <header class="appbar"><div class="between">
+        <h1 style="font-size:19px">${t('Platillos','Dishes')}</h1>${langToggle()}
+      </div>
+      <div class="sm muted" style="margin-top:2px">${DISHES.length} ${t('en el catálogo','in the catalogue')}</div>
+      </header>
+      <div class="pad">
+        ${COURSES.map(c=>{
+          const list = byCourse(c.key);
+          return `
+          <div style="position:sticky;top:76px;background:var(--bg);padding:14px 0 6px;z-index:2">
+            <div class="between">
+              <h2 style="font-size:15px">${courseName(c)}</h2>
+              <span class="tiny muted">${list.length}</span>
+            </div>
+          </div>
+          <div class="card">
+            ${list.map((d,i)=>`
+              <div style="padding:11px 14px;${i?'border-top:1px solid var(--line)':''}" class="between">
+                <div>${esc(d.name)}<div class="tiny muted">${t('agregado por','added by')} ${memberName(d.author)}</div></div>
+                <button class="btn tiny" style="padding:5px 10px" onclick="toast('${t('Eliminar (prototipo)','Delete (prototype)')}')">🗑</button>
+              </div>`).join('')}
+          </div>`;
+        }).join('')}
+      </div>
+      <button class="fab" onclick="A.addPrompt()">＋</button>`;
+    },
+    history(){
+      return `
+      <header class="appbar"><div class="between"><h1 style="font-size:19px">${t('Historial','History')}</h1>${langToggle()}</div></header>
+      <div class="pad stack">
+        <div class="card" style="padding:14px;border-color:var(--accent)">
+          <span class="pill">${t('Esta semana','This week')}</span>
+          <div style="margin-top:6px;font-weight:600">${state.plan.week}</div>
+        </div>
+        <div class="card" style="padding:14px">
+          <div class="between"><div style="font-weight:600">${t('Próxima semana','Next week')}</div>
+          <button class="btn" onclick="toast('${t('Generar próxima semana','Generate next week')}')">${t('Generar','Generate')}</button></div>
+          <div class="tiny muted" style="margin-top:4px">${t('Aún sin plan','No plan yet')}</div>
+        </div>
+        ${HISTORY.map(h=>`
+          <button class="card" style="width:100%;text-align:left;padding:14px;display:block"
+                  onclick="toast('${t('Semana pasada (solo lectura)','Past week (read-only)')}')">
+            <div class="between"><span>${h.week}</span><span class="tiny muted">›</span></div>
+          </button>`).join('')}
+      </div>`;
+    },
+    admin(){
+      return `
+      <header class="appbar"><div class="between"><h1 style="font-size:19px">${t('Cuentas','Accounts')}</h1>${langToggle()}</div></header>
+      <div class="pad stack">
+        <div class="banner">${t('Solo el administrador ve esta pestaña.','Only the admin sees this tab.')}</div>
+        <div class="card">
+          ${MEMBERS.map((m,i)=>`
+            <div class="between" style="padding:13px 14px;${i?'border-top:1px solid var(--line)':''}">
+              <div><strong>${m.name}</strong> ${m.role==='admin'?`<span class="pill">admin</span>`:''}
+                <div class="tiny muted">${DISHES.filter(d=>d.author===m.id).length} ${t('platillos','dishes')}</div></div>
+              <button class="btn tiny" onclick="toast('${t('Contraseña temporal: k7fq2m','Temporary password: k7fq2m')}')">${t('Restablecer','Reset')}</button>
+            </div>`).join('')}
+        </div>
+        <button class="btn block primary" onclick="toast('${t('Crear integrante (prototipo)','Create member (prototype)')}')">
+          ＋ ${t('Agregar integrante','Add member')}</button>
+      </div>`;
+    },
+  },
+  addPrompt(){
+    const name = prompt(t('Nombre del platillo','Dish name'));
+    if(name===null) return;
+    const c = prompt(t('Tiempo: soup / side / main','Course: soup / side / main'),'main');
+    if(!COURSES.some(x=>x.key===c)) return;
+    addDish(name, c);
+  },
+  daySheet(){
+    if(state.openDay===null) return '';
+    const i = state.openDay, d = DAYS[i], day = state.plan.days[i];
+    return `<div onclick="go({openDay:null})" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40">
+      <div onclick="event.stopPropagation()" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+        width:100%;max-width:420px;background:var(--card);border-radius:18px 18px 0 0;padding:18px 16px 26px">
+        <div class="between" style="margin-bottom:8px">
+          <h2 style="font-size:18px">${d[state.lang]}<span class="sm muted"> · ${d.date}</span></h2>
+          <button class="btn tiny" onclick="go({openDay:null})">✕</button>
+        </div>
+        ${courseLines(day, true)}
+        <button class="btn block primary" style="margin-top:14px" onclick="doRegen(${i})">
+          ↻ ${t('Regenerar este día','Regenerate this day')}</button>
+      </div></div>`;
+  },
+};
+
+/* =====================================================================
+   VARIANT B — "Whole week". Top segmented nav. Plan = seven day cards.
+   ===================================================================== */
+const B = {
+  render(){ return `${this.nav()}${this.screens[state.screen]()}${toastEl()}`; },
+  nav(){
+    const items = [['plan',t('Plan','Plan')],['dishes',t('Platillos','Dishes')],
+                   ['history',t('Historial','History')],['admin',t('Cuentas','Accounts')]];
+    return `<header class="appbar" style="padding-bottom:8px">
+      <div class="between" style="margin-bottom:10px">
+        <h1 style="font-size:16px">🍲 ${t('Comida de la semana','Meals this week')}</h1>${langToggle()}
+      </div>
+      <div style="display:flex;background:#eae5dc;border-radius:10px;padding:3px">
+        ${items.map(([k,l])=>`<button onclick="go({screen:'${k}'})" style="flex:1;border:none;border-radius:8px;padding:7px 0;
+          font-size:12px;font-weight:600;background:${state.screen===k?'var(--card)':'transparent'};
+          color:${state.screen===k?'var(--ink)':'var(--muted)'};box-shadow:${state.screen===k?'0 1px 3px rgba(0,0,0,.12)':'none'}">${l}</button>`).join('')}
+      </div>
+    </header>`;
+  },
+  screens: {
+    plan(){
+      const p = state.plan;
+      return `
+      <div class="pad stack" style="padding-bottom:24px">
+        <div class="between">
+          <div><div class="tiny muted">${t('Semana','Week')}</div><strong>${p.week}</strong></div>
+          <button class="btn" onclick="toast('${t('Cambiar de semana','Switch week')}')">${t('Semana ▾','Week ▾')}</button>
+        </div>
+        ${shortBanner()}
+        ${DAYS.map((d,i)=>{
+          const isToday = i===TODAY, past = i<TODAY;
+          return `<section class="card" style="padding:13px 14px;${isToday?'border-color:var(--accent);border-width:2px;background:#fffdfb;':''}${past?'opacity:.62':''}">
+            <div class="between" style="margin-bottom:6px">
+              <div class="row">
+                <strong style="font-size:15px">${d[state.lang]}</strong>
+                ${isToday?`<span class="pill">${t('hoy','today')}</span>`:''}
+              </div>
+              <div class="row">
+                <span class="tiny muted">${d.date}</span>
+                <button class="btn" style="padding:5px 10px" title="${t('Regenerar','Regenerate')}" onclick="doRegen(${i})">↻</button>
+              </div>
+            </div>
+            ${courseLines(p.days[i], false)}
+          </section>`;
+        }).join('')}
+        <button class="btn block primary" onclick="doGenerate()">↻ ${t('Generar toda la semana','Generate the whole week')}</button>
+      </div>`;
+    },
+    dishes(){
+      return `
+      <div class="pad stack">
+        <div class="card" style="padding:12px">
+          <div class="sm" style="font-weight:600;margin-bottom:8px">${t('Agregar platillo','Add a dish')}</div>
+          <input id="nd" placeholder="${t('Nombre','Name')}" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit">
+          <div class="row" style="margin-top:8px">
+            <select id="nc" style="flex:1;padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit">
+              ${COURSES.map(c=>`<option value="${c.key}">${courseName(c)}</option>`).join('')}
+            </select>
+            <button class="btn primary" onclick="addDish(document.getElementById('nd').value, document.getElementById('nc').value)">
+              ${t('Agregar','Add')}</button>
+          </div>
+        </div>
+        ${COURSES.map(c=>{
+          const list = byCourse(c.key), open = state.openSection===c.key;
+          return `<div class="card">
+            <button style="width:100%;background:none;border:none;padding:14px;text-align:left" class="between"
+                    onclick="go({openSection:'${open?'':c.key}'})">
+              <span style="font-weight:600">${courseName(c)}</span>
+              <span class="sm muted">${list.length} ${open?'▾':'▸'}</span>
+            </button>
+            ${open ? list.map(d=>`
+              <div class="between" style="padding:10px 14px;border-top:1px solid var(--line)">
+                <div class="sm">${esc(d.name)} <span class="tiny muted">· ${memberName(d.author)}</span></div>
+                <button class="btn tiny" style="padding:4px 9px" onclick="toast('${t('Eliminar (prototipo)','Delete (prototype)')}')">🗑</button>
+              </div>`).join('') : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    },
+    history(){
+      const rows = [{week:t('Próxima semana · 16 – 22 mar','Next week · 16 – 22 Mar'), tag:t('sin plan','no plan')},
+                    {week:state.plan.week, tag:t('esta semana','this week')}]
+                    .concat(HISTORY.map(h=>({week:h.week, tag:''})));
+      return `<div class="pad stack">
+        <div class="sm muted">${t('Toca una semana para verla. Las semanas pasadas son solo lectura.',
+                                  'Tap a week to view it. Past weeks are read-only.')}</div>
+        <div class="card">
+          ${rows.map((h,i)=>`<button style="width:100%;background:none;border:none;padding:14px;text-align:left;
+              ${i?'border-top:1px solid var(--line)':''}" class="between" onclick="toast('${t('Abrir semana','Open week')}')">
+              <span class="sm">${h.week}</span><span class="tiny muted">${h.tag||'›'}</span></button>`).join('')}
+        </div>
+      </div>`;
+    },
+    admin(){
+      return `<div class="pad stack">
+        <div class="banner">${t('Solo el administrador ve esta sección.','Only the admin sees this section.')}</div>
+        <div class="card">
+          ${MEMBERS.map((m,i)=>`<div class="between" style="padding:12px 14px;${i?'border-top:1px solid var(--line)':''}">
+            <div><strong>${m.name}</strong><div class="tiny muted">${m.role}</div></div>
+            <div>
+              <button class="btn tiny" onclick="toast('${t('Contraseña temporal: k7fq2m','Temporary password: k7fq2m')}')">${t('Restablecer','Reset')}</button>
+              ${m.role!=='admin'?`<button class="btn tiny" style="margin-left:6px" onclick="toast('${t('Quitar (prototipo)','Remove (prototype)')}')">✕</button>`:''}
+            </div></div>`).join('')}
+        </div>
+        <button class="btn block primary" onclick="toast('${t('Crear integrante (prototipo)','Create member (prototype)')}')">
+          ＋ ${t('Agregar integrante','Add member')}</button>
+      </div>`;
+    },
+  },
+};
+
+/* =====================================================================
+   VARIANT C — "One day at a time". Drawer nav. Plan = day pager.
+   ===================================================================== */
+const C = {
+  render(){
+    return `${this.bar()}${state.weekOverview ? this.week() : this.screens[state.screen]()}${this.drawer()}${toastEl()}`;
+  },
+  bar(){
+    const titles = {plan:t('Comida','Meals'), dishes:t('Platillos','Dishes'),
+                    history:t('Historial','History'), admin:t('Cuentas','Accounts')};
+    return `<header class="appbar"><div class="between">
+      <button class="btn" style="padding:7px 11px" onclick="go({drawer:true})">☰</button>
+      <strong style="font-size:15px">${state.weekOverview ? t('La semana','The week') : titles[state.screen]}</strong>
+      ${langToggle()}
+    </div></header>`;
+  },
+  drawer(){
+    if(!state.drawer) return '';
+    const items = [['plan','🍽',t('Comida de hoy','Today\'s meal')],['dishes','📖',t('Platillos','Dishes')],
+                   ['history','🗓',t('Historial','History')],['admin','👥',t('Cuentas','Accounts')]];
+    return `<div onclick="go({drawer:false})" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40">
+      <nav onclick="event.stopPropagation()" style="position:absolute;top:0;left:max(0px,calc(50% - 210px));
+        width:250px;height:100%;background:var(--card);padding:22px 0">
+        <div class="pad" style="padding-top:0"><strong>🍲 ${t('Comida','Meals')}</strong>
+          <div class="tiny muted">${t('sesión: lorenz (admin)','signed in: lorenz (admin)')}</div></div>
+        ${items.map(([k,icon,l])=>`<button onclick="go({screen:'${k}',drawer:false,courseScreen:null,weekOverview:false})"
+          style="width:100%;text-align:left;background:${state.screen===k?'var(--accent-soft)':'none'};border:none;
+          padding:13px 18px;font-weight:${state.screen===k?700:500}">${icon}&nbsp;&nbsp;${l}</button>`).join('')}
+      </nav></div>`;
+  },
+  week(){
+    const p = state.plan;
+    return `<div class="pad stack">
+      ${shortBanner()}
+      ${DAYS.map((d,i)=>`<button class="card" style="width:100%;text-align:left;padding:12px 14px;display:block"
+          onclick="go({weekOverview:false,pagerDay:${i}})">
+        <div class="between"><strong class="sm">${d[state.lang]}${i===TODAY?` <span class="pill">${t('hoy','today')}</span>`:''}</strong>
+          <span class="tiny muted">${d.date} ›</span></div>
+        <div class="tiny muted" style="margin-top:3px">${COURSES.map(c=>esc(p.days[i][c.key].name)).join(' · ')}</div>
+      </button>`).join('')}
+      <button class="btn block" onclick="doGenerate()">↻ ${t('Generar toda la semana','Generate the whole week')}</button>
+    </div>`;
+  },
+  screens: {
+    plan(){
+      const i = state.pagerDay, d = DAYS[i], day = state.plan.days[i];
+      return `
+      <div style="padding:12px 16px 0">
+        <div style="display:flex;gap:6px">
+          ${DAYS.map((dd,j)=>`<button onclick="go({pagerDay:${j}})" style="flex:1;border-radius:9px;padding:8px 0;
+            font-size:12px;font-weight:700;background:${j===i?'var(--accent)':'var(--card)'};
+            color:${j===i?'#fff':(j===TODAY?'var(--accent)':'var(--muted)')};border:1px solid ${j===i?'var(--accent)':'var(--line)'}">
+            ${dd.initial}${j===TODAY?'<div style="font-size:8px;line-height:1">●</div>':''}</button>`).join('')}
+        </div>
+      </div>
+      <div class="pad stack">
+        ${shortBanner()}
+        <div class="between">
+          <div><h2 style="font-size:24px">${d[state.lang]}</h2>
+            <div class="sm muted">${d.date}${i===TODAY?` · ${t('hoy','today')}`:''}</div></div>
+          <div class="row">
+            <button class="btn" style="padding:7px 11px" onclick="go({pagerDay:${(i+6)%7}})">‹</button>
+            <button class="btn" style="padding:7px 11px" onclick="go({pagerDay:${(i+1)%7}})">›</button>
+          </div>
+        </div>
+        ${COURSES.map(c=>`
+          <div class="card" style="padding:14px">
+            <div class="course-label">${courseName(c)}</div>
+            <div style="font-size:19px;font-weight:600;margin-top:4px">${esc(day[c.key].name)}</div>
+          </div>`).join('')}
+        <button class="btn block primary" onclick="doRegen(${i})">↻ ${t('Regenerar este día','Regenerate this day')}</button>
+        <button class="btn block" onclick="go({weekOverview:true})">${t('Ver toda la semana','See the whole week')}</button>
+      </div>`;
+    },
+    dishes(){
+      if(state.courseScreen){
+        const c = COURSES.find(x=>x.key===state.courseScreen), list = byCourse(c.key);
+        return `<div class="pad stack">
+          <button class="btn" onclick="go({courseScreen:null})">‹ ${t('Platillos','Dishes')}</button>
+          <div class="between"><h2 style="font-size:20px">${courseName(c)}</h2><span class="sm muted">${list.length}</span></div>
+          <div class="card">
+            ${list.map((dd,j)=>`<div class="between" style="padding:12px 14px;${j?'border-top:1px solid var(--line)':''}">
+              <div>${esc(dd.name)}<div class="tiny muted">${memberName(dd.author)}</div></div>
+              <button class="btn tiny" style="padding:4px 9px" onclick="toast('${t('Eliminar (prototipo)','Delete (prototype)')}')">🗑</button>
+            </div>`).join('')}
+          </div>
+          <button class="btn block primary" onclick="C.add('${c.key}')">＋ ${t('Agregar a','Add to')} ${courseName(c)}</button>
+        </div>`;
+      }
+      return `<div class="pad stack">
+        <div class="sm muted">${t('El catálogo son tres listas separadas.','The catalogue is three separate lists.')}</div>
+        ${COURSES.map(c=>`<button class="card" style="width:100%;text-align:left;padding:20px 16px;display:block"
+              onclick="go({courseScreen:'${c.key}'})">
+            <div class="between"><strong style="font-size:18px">${courseName(c)}</strong>
+              <span class="sm muted">${byCourse(c.key).length} ›</span></div>
+            <div class="tiny muted" style="margin-top:4px">${byCourse(c.key).slice(0,3).map(d=>esc(d.name)).join(', ')}…</div>
+          </button>`).join('')}
+      </div>`;
+    },
+    history(){
+      return `<div class="pad stack">
+        ${HISTORY.map(h=>`<button class="card" style="width:100%;text-align:left;padding:16px;display:block"
+            onclick="toast('${t('Semana pasada (solo lectura)','Past week (read-only)')}')">
+          <div class="between"><span class="sm">${h.week}</span><span class="tiny muted">›</span></div></button>`).join('')}
+      </div>`;
+    },
+    admin(){
+      return `<div class="pad stack">
+        ${MEMBERS.map(m=>`<div class="card between" style="padding:14px">
+          <div><strong>${m.name}</strong><div class="tiny muted">${m.role}</div></div>
+          <button class="btn tiny" onclick="toast('${t('Contraseña temporal: k7fq2m','Temporary password: k7fq2m')}')">${t('Restablecer','Reset')}</button>
+        </div>`).join('')}
+        <button class="btn block primary" onclick="toast('${t('Crear integrante (prototipo)','Create member (prototype)')}')">
+          ＋ ${t('Agregar integrante','Add member')}</button>
+      </div>`;
+    },
+  },
+  add(course){
+    const name = prompt(t('Nombre del platillo','Dish name'));
+    if(name===null) return;
+    addDish(name, course);
+  },
+};
+
+/* =====================================================================
+   SWITCHER + RENDER
+   ===================================================================== */
+const VARIANTS = {
+  A:{impl:A, label:'Today first'},
+  B:{impl:B, label:'Whole week'},
+  C:{impl:C, label:'One day at a time'},
+};
+const KEYS = Object.keys(VARIANTS);
+
+function setVariant(k){
+  const url = new URL(location); url.searchParams.set('variant', k);
+  history.replaceState({}, '', url);
+  state.variant = k; state.screen = 'plan'; state.openDay = null;
+  state.courseScreen = null; state.drawer = false; state.weekOverview = false;
+  render();
+}
+document.addEventListener('keydown', e=>{
+  const el = document.activeElement;
+  if(el && (/input|textarea|select/i.test(el.tagName) || el.isContentEditable)) return;
+  const i = KEYS.indexOf(state.variant);
+  if(e.key==='ArrowLeft')  setVariant(KEYS[(i+KEYS.length-1)%KEYS.length]);
+  if(e.key==='ArrowRight') setVariant(KEYS[(i+1)%KEYS.length]);
+});
+
+function render(){
+  const v = VARIANTS[state.variant] || VARIANTS.A;
+  document.getElementById('phone').innerHTML = v.impl.render();
+  const i = KEYS.indexOf(state.variant);
+  document.getElementById('switcher').innerHTML =
+    `<button onclick="setVariant('${KEYS[(i+KEYS.length-1)%KEYS.length]}')">‹</button>
+     <span class="label">${state.variant} · ${v.label}</span>
+     <button onclick="setVariant('${KEYS[(i+1)%KEYS.length]}')">›</button>`;
+}
+render();
+</script>
+</body>
+</html>
