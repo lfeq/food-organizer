@@ -382,3 +382,44 @@ Issue #20 — History: browsing past weeks.
   dev-server start. The manually added `/history` entry will be overwritten on the first `npm run dev`
   — the plugin will regenerate it correctly from the new `history.tsx` file. This is expected.
 - Bilingual pass (#22, #23) is next — all user-visible strings are currently English-only.
+
+---
+
+## #22 Bilingual infrastructure: string table, cookie, Intl (2026-08-28)
+
+- Created `src/i18n.ts`: `Record<StringKey, { en: string; es: string }>` string table `as const
+  satisfies` the entry type — missing a language in either direction is a `tsc` error, not a
+  runtime fallback. `LocaleContext` (React context, default `"es"`). `t(locale, key)` translation
+  helper. `interpolate(template, vars)` for `{name}` placeholders (~3 lines; flagged for revisit
+  if it grows past ~10 per ADR-0001).
+- Created `src/locale-fns.ts`: `getLocale` (GET server fn, reads `"locale"` cookie, defaults to
+  `"es"`) and `setLocale` (POST server fn with `.validator()`, writes cookie with a 10-year
+  max-age, secure in production, `sameSite: lax`).
+- Updated `src/routes/__root.tsx`: `beforeLoad` now resolves `getAuthState` and `getLocale` in
+  parallel, returning `{ authState, locale }` as route context. Added `component: RootLayout` that
+  reads `locale` from route context and wraps `<Outlet />` in `<LocaleContext.Provider>` — locale
+  is read once per request from the cookie and passed down through React context, never in module
+  state (§12, ADR-0001).
+- Updated all four sidebar routes (`plan.$weekStart.tsx`, `dishes.tsx`, `accounts.tsx`,
+  `history.tsx`): sidebar nav items and "Sign out" button now use `t(locale, key)`. Each route
+  adds an `EN / ES` toggle in `sidebar-bottom` via `handleSetLocale` (calls `setLocale` then
+  `router.invalidate()` to re-run `beforeLoad` with the new cookie).
+- Updated `src/styles.css`: `.sidebar-bottom` is now a flex column, new `.sidebar-user-row`
+  holds username + toggle side by side. `.locale-btn`, `.locale-btn--active`, `.locale-sep`
+  styles added.
+
+**Sidebar strings translated (§22 worked example):**
+`thisWeek`, `nextWeek`, `dishes`, `history`, `accounts`, `signOut` — Spanish (`es`) is the
+active locale by default; English (`en`) via cookie.
+
+**Key notes for next agent (#23 — translate every screen):**
+
+- Add new string keys to `src/i18n.ts` `strings` object; the `satisfies` constraint makes a
+  missing locale a build error.
+- All routes access locale via `useContext(LocaleContext)` — the context is already provided by
+  `RootLayout` in `__root.tsx`.
+- The `lang` attribute on `<html>` in `RootDocument` is currently hardcoded `"es"`. It should be
+  set dynamically from the locale read in `beforeLoad` when #23 lands.
+- Dates in `plan.$weekStart.tsx` (`formatDate`) and `history.tsx` (`formatWeekLabel`) still use
+  `"en-US"` locale for `Intl.DateTimeFormat` — update these to use the active locale tag
+  (`es-MX` / `en-US`) as part of #23.

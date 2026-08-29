@@ -1,10 +1,13 @@
 import {
   HeadContent,
+  Outlet,
   Scripts,
   createRootRoute,
   redirect,
 } from "@tanstack/react-router"
 import { getAuthState } from "#/auth-fns"
+import { getLocale } from "#/locale-fns"
+import { LocaleContext } from "#/i18n"
 import appCss from "../styles.css?url"
 
 export const Route = createRootRoute({
@@ -17,7 +20,7 @@ export const Route = createRootRoute({
     links: [{ rel: "stylesheet", href: appCss }],
   }),
   beforeLoad: async ({ location }) => {
-    const authState = await getAuthState()
+    const [authState, locale] = await Promise.all([getAuthState(), getLocale()])
     const path = location.pathname
 
     if (authState.setupNeeded && path !== "/setup") {
@@ -36,10 +39,20 @@ export const Route = createRootRoute({
       throw redirect({ to: "/change-password" })
     }
 
-    return { authState }
+    return { authState, locale }
   },
+  component: RootLayout,
   shellComponent: RootDocument,
 })
+
+function RootLayout() {
+  const { locale } = Route.useRouteContext()
+  return (
+    <LocaleContext.Provider value={locale}>
+      <Outlet />
+    </LocaleContext.Provider>
+  )
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (

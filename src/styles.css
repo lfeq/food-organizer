@@ -67,6 +67,12 @@ body {
   padding: 0.75rem 1.25rem 0;
   border-top: 1px solid #e8e3db;
   display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sidebar-user-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
@@ -80,6 +86,37 @@ body {
   white-space: nowrap;
 }
 
+.sidebar-locale {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.locale-btn {
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0 0.1rem;
+  line-height: 1;
+}
+
+.locale-btn:hover {
+  color: #1a1a1a;
+}
+
+.locale-btn--active {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.locale-sep {
+  font-size: 0.7rem;
+  color: #ccc;
+}
+
 .sidebar-logout {
   background: none;
   border: none;
@@ -88,6 +125,7 @@ body {
   cursor: pointer;
   padding: 0;
   white-space: nowrap;
+  text-align: left;
 }
 
 .sidebar-logout:hover {

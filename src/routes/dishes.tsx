@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router"
-import { useState } from "react"
+import { useState, useContext } from "react"
 import { doLogout } from "#/auth-fns"
+import { setLocale } from "#/locale-fns"
+import { LocaleContext, t } from "#/i18n"
 import { listDishes, addDish, editDish, deleteDish, type Dish } from "#/dishes-fns"
 
 export const Route = createFileRoute("/dishes")({
@@ -26,6 +28,7 @@ function DishesPage() {
   const dishes = Route.useLoaderData()
   const member = authState.member!
   const router = useRouter()
+  const locale = useContext(LocaleContext)
   const [modal, setModal] = useState<ModalState>({ kind: "none" })
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -33,6 +36,11 @@ function DishesPage() {
   async function handleLogout() {
     await doLogout()
     await router.navigate({ to: "/login" })
+  }
+
+  async function handleSetLocale(next: "en" | "es") {
+    await setLocale({ data: { locale: next } })
+    await router.invalidate()
   }
 
   function openModal(m: ModalState) {
@@ -100,25 +108,38 @@ function DishesPage() {
         </div>
         <ul className="sidebar-nav">
           <li className="sidebar-nav-item">
-            <Link to="/" className="sidebar-nav-link">This week</Link>
+            <Link to="/" className="sidebar-nav-link">{t(locale, "thisWeek")}</Link>
           </li>
           <li className="sidebar-nav-item">
-            <Link to="/plan/next" className="sidebar-nav-link">Next week</Link>
+            <Link to="/plan/next" className="sidebar-nav-link">{t(locale, "nextWeek")}</Link>
           </li>
-          <li className="sidebar-nav-item sidebar-nav-item--active">Dishes</li>
+          <li className="sidebar-nav-item sidebar-nav-item--active">{t(locale, "dishes")}</li>
           <li className="sidebar-nav-item">
-            <Link to="/history" className="sidebar-nav-link">History</Link>
+            <Link to="/history" className="sidebar-nav-link">{t(locale, "history")}</Link>
           </li>
           {member.role === "admin" && (
             <li className="sidebar-nav-item">
-              <Link to="/accounts" className="sidebar-nav-link">Accounts</Link>
+              <Link to="/accounts" className="sidebar-nav-link">{t(locale, "accounts")}</Link>
             </li>
           )}
         </ul>
         <div className="sidebar-bottom">
-          <span className="sidebar-member">{member.username}</span>
+          <div className="sidebar-user-row">
+            <span className="sidebar-member">{member.username}</span>
+            <div className="sidebar-locale">
+              <button
+                className={`locale-btn${locale === "en" ? " locale-btn--active" : ""}`}
+                onClick={() => void handleSetLocale("en")}
+              >EN</button>
+              <span className="locale-sep">/</span>
+              <button
+                className={`locale-btn${locale === "es" ? " locale-btn--active" : ""}`}
+                onClick={() => void handleSetLocale("es")}
+              >ES</button>
+            </div>
+          </div>
           <button className="sidebar-logout" onClick={handleLogout}>
-            Sign out
+            {t(locale, "signOut")}
           </button>
         </div>
       </nav>
