@@ -38,7 +38,7 @@ export const Route = createFileRoute("/history")({
 })
 
 function HistoryPage() {
-  const { authState } = Route.useRouteContext()
+  const { authState, displayName } = Route.useRouteContext()
   const { pastWeeks, currentWeekStr, nextWeekStr } = Route.useLoaderData()
   const member = authState.member!
   const router = useRouter()
@@ -63,7 +63,7 @@ function HistoryPage() {
     <div className="app-layout">
       <nav className="sidebar">
         <div className="sidebar-top">
-          <span className="sidebar-brand">Food Organizer</span>
+          <span className="sidebar-brand">{displayName ?? "Food Organizer"}</span>
         </div>
         <ul className="sidebar-nav">
           <li className="sidebar-nav-item">

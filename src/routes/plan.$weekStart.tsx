@@ -69,7 +69,7 @@ export const Route = createFileRoute("/plan/$weekStart")({
 })
 
 function PlanPage() {
-  const { authState } = Route.useRouteContext()
+  const { authState, displayName } = Route.useRouteContext()
   const loaderData = Route.useLoaderData()
   const { weekStart } = Route.useParams()
   const member = authState.member!
@@ -170,7 +170,7 @@ function PlanPage() {
     <div className="app-layout">
       <nav className="sidebar">
         <div className="sidebar-top">
-          <span className="sidebar-brand">Food Organizer</span>
+          <span className="sidebar-brand">{displayName ?? "Food Organizer"}</span>
         </div>
         <ul className="sidebar-nav">
           <li className={`sidebar-nav-item${isCurrentWeek ? " sidebar-nav-item--active" : ""}`}>

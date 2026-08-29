@@ -423,3 +423,43 @@ active locale by default; English (`en`) via cookie.
 - Dates in `plan.$weekStart.tsx` (`formatDate`) and `history.tsx` (`formatWeekLabel`) still use
   `"en-US"` locale for `Intl.DateTimeFormat` — update these to use the active locale tag
   (`es-MX` / `en-US`) as part of #23.
+
+---
+
+## #21 Instance settings: week start, timezone and display name (2026-08-28)
+
+- Added `InstanceSettings` type and two new server fns to `src/accounts-fns.ts`:
+  - `getInstanceSettings()` — reads `week_start_dow`, `timezone`, `display_name` from
+    settings plus `has_plans` (EXISTS query on `weekly_plan`) to drive the freeze UI.
+    No auth required; called from root `beforeLoad` for all users.
+  - `updateInstanceSettings({ week_start_dow?, timezone?, display_name? })` — admin-only.
+    App-layer freeze check for `week_start_dow` (returns `WEEK_START_FROZEN` if any plan
+    exists); timezone validated via `Intl.DateTimeFormat`; `display_name` stored as null
+    when blank. DB constraint trigger (migration 0004) is the safety net for week_start_dow.
+
+- Updated `src/routes/__root.tsx`: `beforeLoad` now calls `getInstanceSettings()` in parallel
+  with auth and locale, returning `displayName: string | null` in route context. Every child
+  route receives it without an extra round-trip.
+
+- Updated four sidebar routes (`accounts.tsx`, `dishes.tsx`, `history.tsx`,
+  `plan.$weekStart.tsx`): sidebar brand now renders `displayName ?? "Food Organizer"`.
+
+- Added instance settings section to `src/routes/accounts.tsx` (below the members table):
+  - Week start: `<select>` editable until first plan exists; read-only labeled value with
+    "(locked — a plan already exists)" reason once frozen (per §6.1).
+  - Timezone: free-text `<input>` with IANA placeholder; validated server-side.
+  - Display name: optional `<input>`; null when left blank, replaces sidebar brand everywhere.
+  - "Save settings" submits all three; shows inline error on failure.
+
+- Added `.instance-settings`, `.settings-label`, `.settings-input`, `.settings-select`,
+  `.settings-locked`, `.settings-locked-reason`, `.instance-settings-actions` CSS.
+
+**Key notes for next agent (#23 — translate every screen):**
+
+- All literal strings on the accounts screen (table headers, button labels, modal text,
+  and the new instance settings labels) are still English-only — they need string table
+  entries in `src/i18n.ts` and `t()` calls.
+- `getInstanceSettings` fetches from DB on every root `beforeLoad`. If the settings query
+  becomes a bottleneck, cache in a module-level variable with a short TTL.
+- The `display_name` column already exists in `settings` (migration 0002, added during #15).
+  No new migration was needed for #21.

@@ -24,7 +24,7 @@ const COURSE_LABELS: Record<string, string> = {
 }
 
 function DishesPage() {
-  const { authState } = Route.useRouteContext()
+  const { authState, displayName } = Route.useRouteContext()
   const dishes = Route.useLoaderData()
   const member = authState.member!
   const router = useRouter()
@@ -104,7 +104,7 @@ function DishesPage() {
     <div className="app-layout">
       <nav className="sidebar">
         <div className="sidebar-top">
-          <span className="sidebar-brand">Food Organizer</span>
+          <span className="sidebar-brand">{displayName ?? "Food Organizer"}</span>
         </div>
         <ul className="sidebar-nav">
           <li className="sidebar-nav-item">

@@ -9,6 +9,8 @@ import {
   resetMemberPassword,
   removeMember,
   setMemberRole,
+  getInstanceSettings,
+  updateInstanceSettings,
   type Member,
 } from "#/accounts-fns"
 
@@ -18,7 +20,7 @@ export const Route = createFileRoute("/accounts")({
       throw redirect({ to: "/" })
     }
   },
-  loader: () => listMembers(),
+  loader: () => Promise.all([listMembers(), getInstanceSettings()]),
   component: AccountsPage,
 })
 
@@ -31,13 +33,18 @@ type ModalState =
   | { kind: "remove"; member: Member }
 
 function AccountsPage() {
-  const { authState } = Route.useRouteContext()
-  const members = Route.useLoaderData()
+  const { authState, displayName } = Route.useRouteContext()
+  const [members, instanceSettings] = Route.useLoaderData()
   const router = useRouter()
   const locale = useContext(LocaleContext)
   const [modal, setModal] = useState<ModalState>({ kind: "none" })
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [settingsError, setSettingsError] = useState<string | null>(null)
+  const [settingsBusy, setSettingsBusy] = useState(false)
+  const [weekStartDow, setWeekStartDow] = useState(instanceSettings.week_start_dow)
+  const [timezone, setTimezone] = useState(instanceSettings.timezone)
+  const [instanceDisplayName, setInstanceDisplayName] = useState(instanceSettings.display_name ?? "")
 
   const adminCount = members.filter((m) => m.role === "admin").length
   const me = authState.member!
@@ -118,11 +125,36 @@ function AccountsPage() {
     await router.invalidate()
   }
 
+  async function handleSaveSettings(e: React.FormEvent) {
+    e.preventDefault()
+    setSettingsBusy(true)
+    setSettingsError(null)
+    const updates: { week_start_dow?: number; timezone?: string; display_name?: string | null } = {}
+    if (!instanceSettings.has_plans) {
+      updates.week_start_dow = weekStartDow
+    }
+    updates.timezone = timezone.trim()
+    updates.display_name = instanceDisplayName.trim() || null
+    const res = await updateInstanceSettings({ data: updates })
+    setSettingsBusy(false)
+    if (!res.ok) {
+      setSettingsError(
+        res.code === "WEEK_START_FROZEN"
+          ? "Week start cannot change once a plan exists."
+          : res.code === "AUTH_INVALID_CREDENTIALS"
+            ? "Not authorized."
+            : "Something went wrong."
+      )
+      return
+    }
+    await router.invalidate()
+  }
+
   return (
     <div className="app-layout">
       <nav className="sidebar">
         <div className="sidebar-top">
-          <span className="sidebar-brand">Food Organizer</span>
+          <span className="sidebar-brand">{displayName ?? "Food Organizer"}</span>
         </div>
         <ul className="sidebar-nav">
           <li className="sidebar-nav-item">
@@ -234,6 +266,56 @@ function AccountsPage() {
             })}
           </tbody>
         </table>
+
+        <section className="instance-settings">
+          <h2 className="instance-settings-title">Instance settings</h2>
+          <form onSubmit={handleSaveSettings} className="instance-settings-form">
+            <label className="settings-label">
+              Week start
+              {instanceSettings.has_plans ? (
+                <span className="settings-locked">
+                  {["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][instanceSettings.week_start_dow]}
+                  <span className="settings-locked-reason"> (locked — a plan already exists)</span>
+                </span>
+              ) : (
+                <select
+                  className="settings-select"
+                  value={weekStartDow}
+                  onChange={(e) => setWeekStartDow(parseInt(e.target.value, 10))}
+                >
+                  {["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].map((day, i) => (
+                    <option key={i} value={i}>{day}</option>
+                  ))}
+                </select>
+              )}
+            </label>
+            <label className="settings-label">
+              Timezone
+              <input
+                className="settings-input"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                placeholder="America/Mexico_City"
+                required
+              />
+            </label>
+            <label className="settings-label">
+              Display name
+              <input
+                className="settings-input"
+                value={instanceDisplayName}
+                onChange={(e) => setInstanceDisplayName(e.target.value)}
+                placeholder="e.g. Casa Hernández"
+              />
+            </label>
+            {settingsError && <p className="form-error">{settingsError}</p>}
+            <div className="instance-settings-actions">
+              <button type="submit" className="btn-primary" disabled={settingsBusy}>
+                Save settings
+              </button>
+            </div>
+          </form>
+        </section>
       </main>
 
       {modal.kind !== "none" && (

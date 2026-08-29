@@ -12,6 +12,13 @@ import {
 } from "#/auth.server"
 import { ok, err, type Result } from "#/result-codes"
 
+export type InstanceSettings = {
+  week_start_dow: number
+  timezone: string
+  display_name: string | null
+  has_plans: boolean
+}
+
 const SESSION_COOKIE = "session"
 
 export type Member = {
@@ -159,6 +166,77 @@ export const removeMember = createServerFn({ method: "POST" })
       )
     )
 
+    if (Exit.isSuccess(result)) return result.value
+    return err("DB_UNREACHABLE")
+  })
+
+export const getInstanceSettings = createServerFn({ method: "GET" }).handler(
+  async (): Promise<InstanceSettings> => {
+    const result = await Runtime.runPromiseExit(
+      Effect.flatMap(PgClient.PgClient, (sql) =>
+        Effect.gen(function* () {
+          const rows = yield* sql<{
+            week_start_dow: number
+            timezone: string
+            display_name: string | null
+          }>`SELECT week_start_dow, timezone, display_name FROM settings LIMIT 1`
+          const planRows = yield* sql<{ has_plans: boolean }>`
+            SELECT EXISTS (SELECT 1 FROM weekly_plan) AS has_plans
+          `
+          return {
+            ...rows[0],
+            has_plans: planRows[0].has_plans,
+          } as InstanceSettings
+        })
+      )
+    )
+    if (Exit.isSuccess(result)) return result.value
+    return { week_start_dow: 0, timezone: "America/Mexico_City", display_name: null, has_plans: false }
+  }
+)
+
+export const updateInstanceSettings = createServerFn({ method: "POST" })
+  .validator(
+    (data: {
+      week_start_dow?: number
+      timezone?: string
+      display_name?: string | null
+    }) => data
+  )
+  .handler(async ({ data }): Promise<Result<void>> => {
+    const callerId = await getCallerAdminId()
+    if (!callerId) return err("AUTH_INVALID_CREDENTIALS")
+
+    if (data.timezone !== undefined) {
+      try {
+        Intl.DateTimeFormat(undefined, { timeZone: data.timezone })
+      } catch {
+        return err("DB_UNREACHABLE")
+      }
+    }
+
+    const result = await Runtime.runPromiseExit(
+      Effect.flatMap(PgClient.PgClient, (sql) =>
+        Effect.gen(function* () {
+          if (data.week_start_dow !== undefined) {
+            const planRows = yield* sql<{ has_plans: boolean }>`
+              SELECT EXISTS (SELECT 1 FROM weekly_plan) AS has_plans
+            `
+            if (planRows[0].has_plans) {
+              return err("WEEK_START_FROZEN") as Result<void>
+            }
+            yield* sql`UPDATE settings SET week_start_dow = ${data.week_start_dow}`
+          }
+          if (data.timezone !== undefined) {
+            yield* sql`UPDATE settings SET timezone = ${data.timezone}`
+          }
+          if (data.display_name !== undefined) {
+            yield* sql`UPDATE settings SET display_name = ${data.display_name}`
+          }
+          return ok(undefined) as Result<void>
+        })
+      )
+    )
     if (Exit.isSuccess(result)) return result.value
     return err("DB_UNREACHABLE")
   })
