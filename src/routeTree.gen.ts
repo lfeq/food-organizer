@@ -15,6 +15,8 @@ import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as DishesRouteImport } from './routes/dishes'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SetupRouteImport } from './routes/setup'
+import { Route as PlanWeekStartRouteImport } from './routes/plan.$weekStart'
+import { Route as PlanNextRouteImport } from './routes/plan.next'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,6 +48,16 @@ const SetupRoute = SetupRouteImport.update({
   path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlanWeekStartRoute = PlanWeekStartRouteImport.update({
+  id: '/plan/$weekStart',
+  path: '/plan/$weekStart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanNextRoute = PlanNextRouteImport.update({
+  id: '/plan/next',
+  path: '/plan/next',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +66,8 @@ export interface FileRoutesByFullPath {
   '/dishes': typeof DishesRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
+  '/plan/$weekStart': typeof PlanWeekStartRoute
+  '/plan/next': typeof PlanNextRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +76,8 @@ export interface FileRoutesByTo {
   '/dishes': typeof DishesRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
+  '/plan/$weekStart': typeof PlanWeekStartRoute
+  '/plan/next': typeof PlanNextRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,13 +87,30 @@ export interface FileRoutesById {
   '/dishes': typeof DishesRoute
   '/login': typeof LoginRoute
   '/setup': typeof SetupRoute
+  '/plan/$weekStart': typeof PlanWeekStartRoute
+  '/plan/next': typeof PlanNextRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/accounts' | '/change-password' | '/dishes' | '/login' | '/setup'
+    | '/'
+    | '/accounts'
+    | '/change-password'
+    | '/dishes'
+    | '/login'
+    | '/setup'
+    | '/plan/$weekStart'
+    | '/plan/next'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/accounts' | '/change-password' | '/dishes' | '/login' | '/setup'
+  to:
+    | '/'
+    | '/accounts'
+    | '/change-password'
+    | '/dishes'
+    | '/login'
+    | '/setup'
+    | '/plan/$weekStart'
+    | '/plan/next'
   id:
     | '__root__'
     | '/'
@@ -86,6 +119,8 @@ export interface FileRouteTypes {
     | '/dishes'
     | '/login'
     | '/setup'
+    | '/plan/$weekStart'
+    | '/plan/next'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -95,6 +130,8 @@ export interface RootRouteChildren {
   DishesRoute: typeof DishesRoute
   LoginRoute: typeof LoginRoute
   SetupRoute: typeof SetupRoute
+  PlanWeekStartRoute: typeof PlanWeekStartRoute
+  PlanNextRoute: typeof PlanNextRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -141,6 +178,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/plan/$weekStart': {
+      id: '/plan/$weekStart'
+      path: '/plan/$weekStart'
+      fullPath: '/plan/$weekStart'
+      preLoaderRoute: typeof PlanWeekStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plan/next': {
+      id: '/plan/next'
+      path: '/plan/next'
+      fullPath: '/plan/next'
+      preLoaderRoute: typeof PlanNextRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -151,6 +202,8 @@ const rootRouteChildren: RootRouteChildren = {
   DishesRoute: DishesRoute,
   LoginRoute: LoginRoute,
   SetupRoute: SetupRoute,
+  PlanWeekStartRoute: PlanWeekStartRoute,
+  PlanNextRoute: PlanNextRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

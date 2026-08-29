@@ -102,7 +102,9 @@ function DishesPage() {
           <li className="sidebar-nav-item">
             <Link to="/" className="sidebar-nav-link">This week</Link>
           </li>
-          <li className="sidebar-nav-item sidebar-nav-item--disabled">Next week</li>
+          <li className="sidebar-nav-item">
+            <Link to="/plan/next" className="sidebar-nav-link">Next week</Link>
+          </li>
           <li className="sidebar-nav-item sidebar-nav-item--active">Dishes</li>
           <li className="sidebar-nav-item sidebar-nav-item--disabled">History</li>
           {member.role === "admin" && (

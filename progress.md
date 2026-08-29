@@ -265,3 +265,57 @@ and the forced-password-change gate.
 **What to pick up next:**
 
 Issue #18 — Generating a week, and the plan screen.
+
+## 2026-08-28 — Generating a week, and the plan screen (issue #18)
+
+**What was done:**
+
+- **migrations/0004_weekly_plan.sql** — `weekly_plan`, `plan_day`, `slot` tables per §5.5 schema; `set_updated_at` triggers on all three; all four §5.6 constraint triggers (deferrable initially deferred): plan week_start matches settings.week_start_dow, plan is complete-or-absent (7 days × 3 slots), week_start_dow freezes once a plan exists, and the existing at-least-one-admin trigger is untouched.
+
+- **src/plan-fns.ts** — four server functions:
+  - `getPlanSettings()` — returns `week_start_dow` and `timezone` from settings.
+  - `getWeekPlan({ weekStart })` — returns the full plan with days and slots, or null.
+  - `generateWeek({ weekStart })` — validates writability server-side (derived from `settings.timezone`), checks no empty course, draws 7 dishes per course without replacement (cycling if < 7), deletes any existing plan for the week, inserts plan + 7 days + 21 slots in one transaction (deferred triggers enforce completeness).
+  - `getRepeatingCourses({ weeklyPlanId })` — runs the §9.3 SQL to find courses where any dish_name appears more than once.
+
+- **src/routes/plan.$weekStart.tsx** — the plan screen (`/plan/YYYY-MM-DD`):
+  - Loader calls `getPlanSettings`, `getWeekPlan`, `getRepeatingCourses`; computes current/next week client-side from settings; marks writability.
+  - Today's card on the left (large, green outline, "today" tag); other 6 days compact on right.
+  - Elapsed days dimmed but not locked.
+  - Past weeks show "read only" badge, no generate button.
+  - Empty week shows Generate button.
+  - Existing week: "Regenerate" behind confirmation modal.
+  - Amber banner per repeating course (§9.3).
+  - Error handling: empty-course names the empty courses; WEEK_NOT_WRITABLE message.
+
+- **src/routes/plan.next.tsx** — redirect helper for "Next week" sidebar link.
+
+- **src/routes/index.tsx** — now redirects to `/plan/$weekStart` for the current week (derived from `settings.week_start_dow`).
+
+- **src/routes/dishes.tsx** / **accounts.tsx** — sidebar "Next week" now links to `/plan/next` instead of being disabled.
+
+- **src/styles.css** — plan screen styles: two-column layout, today card with green outline, today tag, compact day cards, repeat-banner (amber), readonly badge.
+
+**Acceptance criteria check:**
+
+- ✅ Migration adds `weekly_plan`, `plan_day`, `slot` per spec DDL. Week identity is `date`, never `timestamptz`.
+- ✅ `slot.dish_name` is `NOT NULL` copy; `dish_id` is nullable back-reference.
+- ✅ Deferred constraint trigger: plan's `week_start` matches `settings.week_start_dow`.
+- ✅ Deferred constraint trigger: every `weekly_plan` has exactly 7 `plan_day` rows and every `plan_day` exactly 3 `slot` rows.
+- ✅ Deferred constraint trigger: `settings.week_start_dow` cannot change once any `weekly_plan` exists.
+- ✅ Generating writes plan, 7 days, 21 slots in one transaction.
+- ✅ Each course drawn independently without replacement (cycling if < 7).
+- ✅ No cross-week memory.
+- ✅ Empty course refuses the whole operation and names every empty course.
+- ✅ Regenerating over existing plan behind explicit confirmation; overwrites in place.
+- ✅ Current week derived server-side from `settings.timezone`.
+- ✅ Only current and next week writable; earlier weeks refuse writes.
+- ✅ Sidebar: "This week" and "Next week" as navigation entries.
+- ✅ Today as large card on left; other 6 days compact on right.
+- ✅ Today distinguished three ways: own column, green outline, "today" tag.
+- ✅ Elapsed days dimmed but not locked.
+- ✅ Week with no plan offers Generate.
+
+**What to pick up next:**
+
+Issue #19 — Regenerating a day, and the repeating-week notice.

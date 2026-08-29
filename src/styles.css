@@ -525,6 +525,180 @@ body {
   user-select: all;
 }
 
+/* ── Plan screen ── */
+
+.plan-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.plan-title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.plan-readonly-badge {
+  font-size: 0.8rem;
+  color: #888;
+  background: #f0ece5;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+.plan-error {
+  margin-bottom: 1rem;
+}
+
+.plan-repeat-banner {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 6px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.plan-repeat-line {
+  margin: 0.15rem 0;
+  font-size: 0.875rem;
+  color: #856404;
+}
+
+.plan-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 2rem 0;
+  color: #666;
+}
+
+.plan-columns {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* Today / featured column */
+.plan-today-col {
+  background: #fff;
+  border: 1px solid #e8e3db;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.plan-day--today {
+  border-color: #3d7a3b;
+  box-shadow: 0 0 0 2px #3d7a3b22;
+}
+
+.plan-day--elapsed {
+  opacity: 0.55;
+}
+
+.plan-day-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.plan-day-date {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+.plan-today-tag {
+  display: inline-block;
+  background: #3d7a3b;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.plan-today-slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.plan-today-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.plan-slot-course {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+}
+
+.plan-slot-dish {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+/* Other days column */
+.plan-others-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.plan-day-card {
+  background: #fff;
+  border: 1px solid #e8e3db;
+  border-radius: 6px;
+  padding: 0.6rem 0.875rem;
+}
+
+.plan-compact-slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.plan-compact-slot {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+}
+
+.plan-slot-course--compact {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #aaa;
+  flex-shrink: 0;
+  width: 36px;
+}
+
+.plan-slot-dish--compact {
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Auth actions row (change-password page) */
 .auth-actions {
   display: flex;
