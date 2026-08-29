@@ -26,8 +26,45 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
+          # Node 22.12 matches package.json's `engines` and the runtime Vercel
+          # serves, so CI compiles against the version production runs.
           node-version: "22.12"
           cache: "npm"
+      # Node 22.12 ships npm 10, which rejects this lockfile: it demands an
+      # entry for `lru-cache@11.5.2`, an *optional peer* of nitro's unstorage
+      # that npm 11 legitimately declines to lock. The lockfile is written by
+      # npm 11; give CI the same npm rather than downgrade the lockfile.
+      - run: npm i -g npm@11
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12"
+          cache: "npm"
+      - run: npm i -g npm@11
+      - run: npm ci
+      # No database in reach: `npm run build` is `vite build` alone, and the
+      # migration step lives in `npm run migrate`, which CI never invokes.
+      - run: npm run build
+      # `vite build` exits 0 even when the Nitro plugin is missing from
+      # vite.config.ts -- it just emits a plain `dist/` SPA instead of the
+      # `.output/` server bundle Vercel needs. That is exactly how three
+      # broken deploys shipped green. The build alone does not catch it;
+      # asserting the output shape does.
+      - name: Verify the build produced a Nitro server bundle
+        run: |
+          for artifact in .output/nitro.json .output/server/index.mjs; do
+            if [ ! -f "$artifact" ]; then
+              echo "::error::Missing $artifact -- the build did not produce a Nitro server bundle."
+              echo "Check that vite.config.ts still registers the nitro() plugin."
+              ls -la dist .output 2>/dev/null || true
+              exit 1
+            fi
+          done
+          echo "Nitro server bundle present: $(cat .output/nitro.json)"
