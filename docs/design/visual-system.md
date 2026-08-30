@@ -161,9 +161,67 @@ IBM Plex Mono  400 500 600
 ```
 
 Fallback stacks: `'IBM Plex Sans', system-ui, sans-serif` and
-`'IBM Plex Mono', ui-monospace, monospace`. **Whether these are served from
-Google Fonts or self-hosted is a separate decision** and does not affect
-anything below.
+`'IBM Plex Mono', ui-monospace, monospace`. Both are used **plain**, with no
+metric tuning. Note that `src/styles.css` today writes bare `monospace`, which
+resolves to a slab serif on some platforms; the value above is the binding one.
+
+How they are served is settled in [Loading the fonts](#loading-the-fonts)
+below, and does not affect the scales.
+
+### Loading the fonts
+
+Self-hosted from Fontsource's pre-built subsets, **vendored** into
+`public/fonts/` under stable filenames with a hand-written `@font-face` block.
+Fontsource is the source of the bytes, not a runtime import: nothing resolves
+its CSS at build time, so no hashed filename ever has to be recovered from
+Vite's manifest.
+
+Because the `@font-face` blocks are hand-written, the app **chooses the family
+names**, and names them `IBM Plex Sans` and `IBM Plex Mono` — matching the
+stacks above. Importing Fontsource's own CSS would have registered the variable
+Sans as `IBM Plex Sans Variable` and forced that name into every stack.
+
+Four files, latin subset, 89 KB total:
+
+| File | Bytes | Weights | Preloaded |
+| --- | --- | --- | --- |
+| `ibm-plex-sans-latin-wght-normal.woff2` | 45,712 | variable, 400–700 | **yes** |
+| `ibm-plex-mono-latin-600-normal.woff2` | 15,620 | 600 | **yes** |
+| `ibm-plex-mono-latin-400-normal.woff2` | 14,708 | 400 | no |
+| `ibm-plex-mono-latin-500-normal.woff2` | 14,888 | 500 | no |
+
+Mono has no variable build on Fontsource, which is why it is three files where
+Sans is one.
+
+**`font-display: optional` on all four.** A cold visit that misses the ~100 ms
+window renders entirely in the fallback for that page load, and picks up Plex
+from cache on the next one. The alternative, `swap`, was declined: it reflows
+dish names — the densest and most-read text on the phone — and Plex Sans is
+appreciably wider than the `system-ui` faces it would replace.
+
+**Preload the two weights the design cannot do without**: the variable Sans,
+which carries every dish name, and Mono 600, which is the structural weight
+behind every eyebrow, day label, course label, badge, chip and tab. Without a
+preload a font is discovered a round-trip late, after `styles.css` parses, and
+under `optional` that reliably loses the window. Preloading only Sans would
+have shipped a first visit with Plex dish names beside system-mono labels —
+the Sans/Mono split rule half-applied, which reads worse than not applied.
+Mono 400 and 500 are left to arrive on their own; they carry metadata and the
+outlined tag, where the substitution barely reads.
+
+**Cache the directory as immutable.** `optional` only pays off if the second
+visit finds the fonts already in cache and inside the window, so a
+revalidation round-trip would quietly defeat it. Stable filenames carry no
+content hash, so the policy must be declared — in **Nitro `routeRules`**, not
+`vercel.json`, whose `headers` key is ignored under the Build Output API that
+Nitro emits:
+
+```
+'/fonts/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } }
+```
+
+The price of `immutable` on unhashed names: **upgrading IBM Plex means renaming
+the files by hand.**
 
 ### The Sans/Mono split rule
 
