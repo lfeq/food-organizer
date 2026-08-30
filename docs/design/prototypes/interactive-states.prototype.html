@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PROTOTYPE — Interactive states</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ------------------------------------------------------------------
+   THROWAWAY PROTOTYPE — issue #65 on map #31. Not production code.
+
+   Question: what do hover, active/pressed, disabled and focus-visible
+   look like, across every interactive component, in a design that has
+   NO shadows and treats phone and desktop as equally primary?
+
+   The variants are three *state languages* — three answers to "what
+   changes when you touch a control" — not three versions of a screen.
+   Each is applied to the same component set so they can be judged
+   together rather than component by component, as the ticket asks.
+
+   Base values come from docs/design/visual-system.md (the spec, which
+   wins over the mockup's inline styles). Copy is English placeholder
+   text standing in for i18n keys, per ADR-0001.
+
+   Hover cannot be screenshotted, so the FORCE STATE bar at the top
+   pins every control in one state at once. Real :hover / :active /
+   :focus-visible are wired too — mouse and Tab both work.
+   ------------------------------------------------------------------ */
+
+/* --- canvas chrome: the viewer's furniture, NOT the product --- */
+*{box-sizing:border-box}
+body{margin:0;background:#eae7e0;font-family:'IBM Plex Sans',system-ui,sans-serif;padding:0 24px 96px}
+.canvas-head{max-width:1400px;margin:0 auto;padding:32px 0 24px}
+.canvas-head h1{font:700 22px/1.2 'IBM Plex Sans',sans-serif;color:#191817;margin:0 0 8px}
+.canvas-head p{font:400 13px/1.6 'IBM Plex Sans',sans-serif;color:#6d6862;margin:0 0 8px;max-width:82ch}
+.canvas-head code{font:400 12px 'IBM Plex Mono',monospace;background:rgba(25,24,23,.07);padding:1px 5px;border-radius:3px}
+.row{max-width:1400px;margin:0 auto 44px}
+.row > h2{font:600 10px/1.2 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#6d6862;margin:0 0 6px}
+.row > .rowsub{font:400 12.5px/1.5 'IBM Plex Sans',sans-serif;color:#6d6862;margin:0 0 16px;max-width:82ch}
+.row > .rowsub code{font:400 11.5px 'IBM Plex Mono',monospace;background:rgba(25,24,23,.07);padding:1px 5px;border-radius:3px}
+.cols{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:8px;width:434px}
+.blabel{font:400 11.5px/1.55 'IBM Plex Mono',monospace;color:#6d6862}
+.blabel b{color:#191817;font-weight:600;font-size:12.5px}
+.blabel code{font-size:11px;background:rgba(25,24,23,.07);padding:0 4px;border-radius:3px}
+.blabel .verdict{color:#8a2323}
+.blabel .verdict.good{color:#1f4d38}
+.frame{background:var(--ground-page);border-radius:12px;padding:20px 16px;box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.group{margin-bottom:18px}
+.group:last-child{margin-bottom:0}
+.gtitle{font:600 9px/1.2 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#8b857d;margin:0 0 8px}
+.stack{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* force-state bar */
+.forcebar{position:sticky;top:0;z-index:50;background:#191817;margin:0 -24px 28px;padding:12px 24px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.forcebar .lbl{font:600 9px/1 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,254,251,.62);margin-right:4px}
+.forcebar button{font:500 12px 'IBM Plex Sans',sans-serif;background:transparent;color:rgba(255,254,251,.7);border:1px solid rgba(255,254,251,.25);border-radius:999px;padding:6px 14px;cursor:pointer}
+.forcebar button.on{background:#fffefb;color:#191817;border-color:#fffefb;font-weight:600}
+.forcebar .hint{font:400 11px 'IBM Plex Mono',monospace;color:rgba(255,254,251,.4);margin-left:auto}
+
+/* --- product tokens: docs/design/visual-system.md --- */
+:root{
+  --ground-page:#f6f4ef; --ground-surface:#fffefb; --ground-inverse:#191817;
+  --ground-sunken:rgba(25,24,23,.05); --ground-chip:rgba(25,24,23,.07);
+  --ground-accent-soft:rgba(45,106,77,.09);
+  --ink:#191817; --ink-secondary:#6d6862; --ink-muted:#8b857d;
+  --ink-faint:rgba(25,24,23,.3); --ink-on-inverse:#fffefb;
+  --ink-on-inverse-muted:rgba(255,254,251,.62);
+  --accent:#2d6a4d; --accent-hover:#1f4d38; --ink-on-accent:#fffefb;
+  --danger:#8a2323; --danger-rule:rgba(138,35,35,.3);
+  --rule:rgba(25,24,23,.1); --rule-inset:rgba(25,24,23,.07);
+  --rule-control:rgba(25,24,23,.18); --rule-strong:#191817;
+  --radius-tag:3px; --radius-control:8px; --radius-card:10px; --radius-pill:999px;
+  /* proposed new tokens, one per language — named so the discussion has something to name */
+  --state-wash:rgba(25,24,23,.04);      /* A: one ground step */
+  --state-wash-deep:rgba(25,24,23,.09); /* A: two ground steps */
+  --accent-pressed:#184029;             /* filled accent, pressed */
+  --inverse-hover:#2c2a28;              /* filled dark, hover */
+  --inverse-pressed:#0f0e0e;            /* filled dark, pressed */
+}
+
+/* type roles */
+.t-item{font:500 15px/1.3 'IBM Plex Sans',sans-serif;color:var(--ink)}
+.t-body-sm{font:400 13px/1.5 'IBM Plex Sans',sans-serif;color:var(--ink-secondary)}
+.t-eyebrow{font:600 9px/1.2 'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-muted)}
+.t-meta{font:400 11px/1.5 'IBM Plex Mono',monospace;color:var(--ink-muted)}
+.t-daylabel{font:500 11px/1.35 'IBM Plex Mono',monospace;color:var(--ink-muted);text-align:center}
+.t-courselabel{font:500 9px/1.2 'IBM Plex Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-muted)}
+
+/* ==================================================================
+   BASE COMPONENTS — identical in all three columns. Only the state
+   rules below differ, so any difference you see IS the state language.
+   ================================================================== */
+.btn{font:500 13px/1 'IBM Plex Sans',sans-serif;border:none;border-radius:var(--radius-control);padding:12px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background-color .12s,border-color .12s,color .12s}
+.btn-plan{background:var(--accent);color:var(--ink-on-accent);border-radius:var(--radius-pill)}
+.btn-cat{background:var(--ground-inverse);color:var(--ink-on-inverse);border-radius:var(--radius-pill)}
+.btn-cat-form{background:var(--ground-inverse);color:var(--ink-on-inverse);width:100%;justify-content:center;padding:16px 0;font-size:14px;font-weight:600}
+.btn-secondary{background:var(--ground-surface);color:var(--ink);border:1px solid var(--rule-control)}
+.btn-outline-sm{background:transparent;color:var(--ink);border:1px solid var(--rule-control);padding:6px 12px;font-size:12px}
+.btn-icon{background:transparent;color:var(--ink);border:1px solid var(--rule-control);width:32px;height:32px;padding:0;justify-content:center;font-size:14px}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger-rule);padding:16px;width:100%;justify-content:center;font-size:14px;font-weight:600}
+.link{font:500 13px/1 'IBM Plex Sans',sans-serif;color:var(--accent);background:none;border:none;padding:0;cursor:pointer;text-decoration:none;transition:color .12s}
+.reroll{font:400 12px/1 'IBM Plex Mono',monospace;color:var(--ink-faint);background:none;border:none;padding:4px;cursor:pointer;transition:color .12s,background-color .12s}
+
+.field{display:flex;flex-direction:column}
+.field .t-eyebrow{margin-bottom:6px}
+.input{background:var(--ground-surface);border:1px solid var(--rule-control);border-radius:var(--radius-control);padding:12px;font:400 14px 'IBM Plex Sans',sans-serif;color:var(--ink);caret-color:var(--accent);width:100%;transition:border-color .12s,background-color .12s}
+.input::placeholder{color:var(--ink-muted)}
+
+.daycard{background:var(--ground-surface);border:1px solid var(--rule);border-radius:var(--radius-card);padding:12px 16px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:background-color .12s,border-color .12s}
+.daycard .gutter{width:44px;flex:0 0 44px}
+.daycard .content{flex:1;min-width:0}
+.daycard .courses{display:grid;grid-template-columns:max-content 1fr;gap:2px 10px;align-items:baseline}
+
+.listblock{background:var(--ground-surface);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin:0 -16px}
+.listrow{padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;border-bottom:1px solid var(--rule-inset);transition:background-color .12s,box-shadow .12s}
+.listrow:last-child{border-bottom:none}
+.listrow .grow{flex:1;min-width:0}
+.listrow .chev{color:var(--ink-faint);font-size:14px;transition:color .12s}
+
+.chip{font:500 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;background:var(--ground-chip);color:var(--ink-secondary);border:1px solid transparent;border-radius:var(--radius-pill);padding:6px 12px;cursor:pointer;transition:background-color .12s,color .12s,border-color .12s}
+.chip.sel{background:var(--ground-inverse);color:var(--ink-on-inverse);font-weight:600}
+
+.tabbar{background:var(--ground-surface);border-top:1px solid var(--rule);display:flex;margin:0 -16px}
+.tab{flex:1;padding:12px 0;text-align:center;font:400 11px/1.2 'IBM Plex Mono',monospace;color:var(--ink-muted);border-top:2px solid transparent;margin-top:-1px;cursor:pointer;transition:color .12s,background-color .12s,border-color .12s}
+.tab.active{font-weight:600;color:var(--ink);border-top-color:var(--accent)}
+
+.sidebar{background:var(--ground-inverse);border-radius:var(--radius-control);padding:12px 8px;display:flex;flex-direction:column;gap:2px}
+.navitem{padding:8px 12px;border-radius:var(--radius-control);font:400 12px/1.2 'IBM Plex Sans',sans-serif;color:var(--ink-on-inverse-muted);cursor:pointer;transition:background-color .12s,color .12s}
+.navitem.active{background:rgba(255,254,251,.12);color:var(--ink-on-inverse);font-weight:600}
+
+/* ==================================================================
+   LANGUAGE A — GROUND STEPS
+   One rule: every control has a ground, and touching it steps that
+   ground one notch (hover) or two (press). Borders and ink never move.
+   Transparent controls acquire a ground they did not have.
+   ================================================================== */
+.A .btn-plan:hover,      body.f-hover .A .btn-plan      {background:var(--accent-hover)}
+.A .btn-plan:active,     body.f-active .A .btn-plan     {background:var(--accent-pressed)}
+.A .btn-cat:hover,       body.f-hover .A .btn-cat,
+.A .btn-cat-form:hover,  body.f-hover .A .btn-cat-form  {background:var(--inverse-hover)}
+.A .btn-cat:active,      body.f-active .A .btn-cat,
+.A .btn-cat-form:active, body.f-active .A .btn-cat-form {background:var(--inverse-pressed)}
+.A .btn-secondary:hover, body.f-hover .A .btn-secondary,
+.A .btn-outline-sm:hover,body.f-hover .A .btn-outline-sm,
+.A .btn-icon:hover,      body.f-hover .A .btn-icon      {background:var(--state-wash)}
+.A .btn-secondary:active,body.f-active .A .btn-secondary,
+.A .btn-outline-sm:active,body.f-active .A .btn-outline-sm,
+.A .btn-icon:active,     body.f-active .A .btn-icon     {background:var(--state-wash-deep)}
+.A .btn-danger:hover,    body.f-hover .A .btn-danger    {background:rgba(138,35,35,.06)}
+.A .btn-danger:active,   body.f-active .A .btn-danger   {background:rgba(138,35,35,.12)}
+.A .link:hover,          body.f-hover .A .link          {color:var(--accent-hover);text-decoration:underline}
+.A .reroll:hover,        body.f-hover .A .reroll        {color:var(--ink);background:var(--state-wash);border-radius:var(--radius-control)}
+.A .daycard:hover,       body.f-hover .A .daycard,
+.A .listrow:hover,       body.f-hover .A .listrow       {background:#faf8f4}
+.A .daycard:active,      body.f-active .A .daycard,
+.A .listrow:active,      body.f-active .A .listrow      {background:#f1eee8}
+.A .chip:hover,          body.f-hover .A .chip          {background:rgba(25,24,23,.12)}
+.A .chip.sel:hover,      body.f-hover .A .chip.sel      {background:var(--inverse-hover)}
+.A .tab:hover,           body.f-hover .A .tab           {background:var(--state-wash)}
+.A .navitem:hover,       body.f-hover .A .navitem       {background:rgba(255,254,251,.07);color:var(--ink-on-inverse)}
+.A .input:focus,         body.f-focus .A .input         {border-color:var(--rule-strong)}
+
+/* ==================================================================
+   LANGUAGE B — BORDER AND INK  (extends the spec's own focused-field rule)
+   The ground never moves. The border does the work: --rule-control is
+   promoted to --rule-strong, and supporting ink darkens to --ink.
+   Filled controls have no border to promote, so they use the spec's
+   own --accent-hover / a lightened inverse, and press sinks the ground.
+   ================================================================== */
+.B .btn-plan:hover,      body.f-hover .B .btn-plan      {background:var(--accent-hover)}
+.B .btn-plan:active,     body.f-active .B .btn-plan     {background:var(--accent-pressed)}
+.B .btn-cat:hover,       body.f-hover .B .btn-cat,
+.B .btn-cat-form:hover,  body.f-hover .B .btn-cat-form  {background:var(--inverse-hover)}
+.B .btn-cat:active,      body.f-active .B .btn-cat,
+.B .btn-cat-form:active, body.f-active .B .btn-cat-form {background:var(--inverse-pressed)}
+.B .btn-secondary:hover, body.f-hover .B .btn-secondary,
+.B .btn-outline-sm:hover,body.f-hover .B .btn-outline-sm,
+.B .btn-icon:hover,      body.f-hover .B .btn-icon      {border-color:var(--rule-strong)}
+.B .btn-secondary:active,body.f-active .B .btn-secondary,
+.B .btn-outline-sm:active,body.f-active .B .btn-outline-sm,
+.B .btn-icon:active,     body.f-active .B .btn-icon     {border-color:var(--rule-strong);background:var(--ground-sunken)}
+.B .btn-danger:hover,    body.f-hover .B .btn-danger    {border-color:var(--danger)}
+.B .btn-danger:active,   body.f-active .B .btn-danger   {border-color:var(--danger);background:rgba(138,35,35,.08)}
+.B .link:hover,          body.f-hover .B .link          {color:var(--accent-hover);text-decoration:underline}
+.B .reroll:hover,        body.f-hover .B .reroll        {color:var(--ink)}
+.B .daycard:hover,       body.f-hover .B .daycard       {border-color:var(--rule-strong)}
+.B .daycard:active,      body.f-active .B .daycard      {border-color:var(--rule-strong);background:var(--ground-sunken)}
+.B .listrow:hover,       body.f-hover .B .listrow       {box-shadow:inset 2px 0 0 var(--rule-strong)}
+.B .listrow:active,      body.f-active .B .listrow      {box-shadow:inset 2px 0 0 var(--rule-strong);background:var(--ground-sunken)}
+.B .listrow:hover .chev, body.f-hover .B .listrow .chev {color:var(--ink)}
+.B .chip:hover,          body.f-hover .B .chip          {border-color:var(--rule-strong);color:var(--ink)}
+.B .chip.sel:hover,      body.f-hover .B .chip.sel      {background:var(--inverse-hover)}
+.B .tab:hover,           body.f-hover .B .tab           {color:var(--ink)}
+.B .navitem:hover,       body.f-hover .B .navitem       {color:var(--ink-on-inverse)}
+.B .input:focus,         body.f-focus .B .input         {border-color:var(--rule-strong)}
+
+/* ==================================================================
+   LANGUAGE C — ACCENT TINT
+   The accent is the "live" colour: touching anything tints it green,
+   borrowing the segmented control's selected treatment (accent border
+   + --ground-accent-soft). Deliberately breaks the green/dark rule —
+   included as the honest foil, so that cost is seen rather than argued.
+   ================================================================== */
+.C .btn-plan:hover,      body.f-hover .C .btn-plan      {background:var(--accent-hover)}
+.C .btn-plan:active,     body.f-active .C .btn-plan     {background:var(--accent-pressed)}
+.C .btn-cat:hover,       body.f-hover .C .btn-cat,
+.C .btn-cat-form:hover,  body.f-hover .C .btn-cat-form  {background:var(--accent)}
+.C .btn-cat:active,      body.f-active .C .btn-cat,
+.C .btn-cat-form:active, body.f-active .C .btn-cat-form {background:var(--accent-hover)}
+.C .btn-secondary:hover, body.f-hover .C .btn-secondary,
+.C .btn-outline-sm:hover,body.f-hover .C .btn-outline-sm,
+.C .btn-icon:hover,      body.f-hover .C .btn-icon      {border-color:var(--accent);background:var(--ground-accent-soft);color:var(--accent)}
+.C .btn-secondary:active,body.f-active .C .btn-secondary,
+.C .btn-outline-sm:active,body.f-active .C .btn-outline-sm,
+.C .btn-icon:active,     body.f-active .C .btn-icon     {border-color:var(--accent-hover);background:rgba(45,106,77,.18);color:var(--accent-hover)}
+.C .btn-danger:hover,    body.f-hover .C .btn-danger    {border-color:var(--danger);background:rgba(138,35,35,.08)}
+.C .btn-danger:active,   body.f-active .C .btn-danger   {border-color:var(--danger);background:rgba(138,35,35,.16)}
+.C .link:hover,          body.f-hover .C .link          {color:var(--accent-hover);text-decoration:underline}
+.C .reroll:hover,        body.f-hover .C .reroll        {color:var(--accent)}
+.C .listrow:hover,       body.f-hover .C .listrow       {background:var(--ground-accent-soft)}
+.C .daycard:hover,       body.f-hover .C .daycard       {background:var(--ground-accent-soft);border-color:var(--accent)}
+.C .daycard:active,      body.f-active .C .daycard,
+.C .listrow:active,      body.f-active .C .listrow      {background:rgba(45,106,77,.16)}
+.C .listrow:hover .chev, body.f-hover .C .listrow .chev {color:var(--accent)}
+.C .chip:hover,          body.f-hover .C .chip          {background:var(--ground-accent-soft);color:var(--accent)}
+.C .chip.sel:hover,      body.f-hover .C .chip.sel      {background:var(--accent)}
+.C .tab:hover,           body.f-hover .C .tab           {color:var(--accent)}
+.C .navitem:hover,       body.f-hover .C .navitem       {background:rgba(45,106,77,.35);color:var(--ink-on-inverse)}
+.C .input:focus,         body.f-focus .C .input         {border-color:var(--accent)}
+
+/* ==================================================================
+   FOCUS-VISIBLE — the same in all three columns here, because it is
+   its own decision (see the FOCUS RING row lower down, which offers
+   three answers). This is candidate F1: 2px accent, 2px offset.
+   ================================================================== */
+.frame :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+body.f-focus .frame .btn,
+body.f-focus .frame .chip,
+body.f-focus .frame .listrow,
+body.f-focus .frame .daycard,
+body.f-focus .frame .tab,
+body.f-focus .frame .navitem,
+body.f-focus .frame .link,
+body.f-focus .frame .reroll,
+body.f-focus .frame .input{outline:2px solid var(--accent);outline-offset:2px}
+body.f-focus .frame .navitem{outline-color:#fffefb}
+
+/* DISABLED — candidate D1 (uniform opacity), shown in all columns */
+body.f-disabled .frame .btn,
+body.f-disabled .frame .chip,
+body.f-disabled .frame .link,
+body.f-disabled .frame .reroll,
+body.f-disabled .frame .input,
+body.f-disabled .frame .daycard,
+body.f-disabled .frame .listrow{opacity:.4;cursor:not-allowed;pointer-events:none}
+
+/* --- the focus-ring row's three candidates, shown permanently --- */
+.fr-1 .btn{outline:2px solid var(--accent);outline-offset:2px}
+.fr-2 .btn{outline:2px solid var(--rule-strong);outline-offset:2px}
+.fr-3 .btn{box-shadow:0 0 0 2px var(--ground-page),0 0 0 4px var(--rule-strong)}
+
+/* --- the disabled row's three candidates --- */
+.dz-1 .btn{opacity:.4;cursor:not-allowed}
+.dz-2 .btn{cursor:not-allowed}
+.dz-2 .btn-cat,.dz-2 .btn-plan{background:var(--ground-chip);color:var(--ink-muted)}
+.dz-2 .btn-secondary{background:var(--ground-page);color:var(--ink-muted);border-color:var(--rule-inset)}
+.dz-3 .btn{cursor:not-allowed}
+.dz-3 .btn-cat,.dz-3 .btn-plan{opacity:.55}
+.dz-3 .btn-secondary{color:var(--ink-muted);border-color:var(--rule-inset)}
+</style>
+</head>
+<body>
+
+<div class="forcebar">
+  <span class="lbl">Force state</span>
+  <button data-state="" class="on">Rest</button>
+  <button data-state="f-hover">Hover</button>
+  <button data-state="f-active">Pressed</button>
+  <button data-state="f-focus">Focus-visible</button>
+  <button data-state="f-disabled">Disabled</button>
+  <span class="hint">real :hover / :active work too — and Tab moves focus</span>
+</div>
+
+<div class="canvas-head">
+  <h1>PROTOTYPE — What do the interactive states look like?</h1>
+  <p>Issue <code>#65</code> on map <code>#31</code>. The mockup is eleven static artboards and shows <b>no</b> hover, pressed, disabled or focus-visible state anywhere. Three <b>state languages</b> below — three answers to "what changes when you touch a control" — each applied to the same component set, so the decision is made once for the system rather than seven times for seven buttons.</p>
+  <p>Two constraints shape all three. The design has <b>no shadows</b>, so the usual lift-on-hover is unavailable: state must live in ground, border, or ink. And <b>phone and desktop are both primary</b>, so hover can never be the only signal that something is a control — every language below must also answer with a pressed state that a thumb can feel.</p>
+  <p>Focus-visible and disabled are decided separately, in their own rows at the bottom: they are orthogonal to the hover language, and each has an accessibility floor the hover choice does not.</p>
+</div>
+
+<div class="row">
+  <h2>The three state languages</h2>
+  <p class="rowsub">Same components, same tokens, same markup in every column. Anything you see differ is the language itself. Use the Force state bar to pin all three columns in the same state at once.</p>
+  <div class="cols">
+
+    <!-- ============ A ============ -->
+    <div class="col">
+      <div class="blabel"><b>A — Ground steps</b><br>One rule for everything: touching a control steps its ground one notch, pressing steps it two. Borders and ink never move. Transparent controls acquire a ground they didn't have.<br><span class="verdict">Cost: on warm paper with no shadows, a 4% wash is nearly invisible — and on the green and dark fills the step is close to unreadable.</span></div>
+      <div class="frame A">
+
+        <div class="group">
+          <div class="gtitle">Buttons — seven variants</div>
+          <div class="stack">
+            <button class="btn btn-plan">↻ Generate week</button>
+            <button class="btn btn-cat">Add dish</button>
+          </div>
+          <div class="stack" style="margin-top:8px">
+            <button class="btn btn-secondary">Cancel</button>
+            <button class="btn btn-outline-sm">↻ Reroll</button>
+            <button class="btn btn-icon">⋯</button>
+            <button class="link">Sign out</button>
+          </div>
+          <div class="stack" style="margin-top:8px">
+            <button class="btn btn-cat-form">Save dish</button>
+          </div>
+          <div class="stack" style="margin-top:8px">
+            <button class="btn btn-danger">Delete dish</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">Day card — today, and a plain day</div>
+          <div class="daycard" style="border-color:var(--rule-strong);padding:16px;margin-bottom:8px">
+            <div class="gutter"><div class="t-daylabel">MON<br>12</div></div>
+            <div class="content">
+              <div class="courses">
+                <div class="t-courselabel">Sopa</div><div class="t-item" style="font-size:13px">Crema de calabaza</div>
+                <div class="t-courselabel">Guarnición</div><div class="t-item" style="font-size:13px">Arroz blanco</div>
+                <div class="t-courselabel">Fuerte</div><div class="t-item" style="font-size:13px">Pollo asado</div>
+              </div>
+            </div>
+            <button class="reroll">↻</button>
+          </div>
+          <div class="daycard">
+            <div class="gutter"><div class="t-daylabel">TUE<br>13</div></div>
+            <div class="content">
+              <div class="t-item">Milanesa de res</div>
+              <div class="t-body-sm">Sopa de fideo · Puré de papa</div>
+            </div>
+            <button class="reroll">↻</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">List rows — the catalogue block</div>
+          <div class="listblock">
+            <div class="listrow"><div class="grow"><div class="t-item">Enchiladas verdes</div><div class="t-meta">FUERTE</div></div><span class="chev">→</span></div>
+            <div class="listrow"><div class="grow"><div class="t-item">Sopa de tortilla</div><div class="t-meta">SOPA</div></div><span class="chev">→</span></div>
+            <div class="listrow"><div class="grow"><div class="t-item">Ensalada de nopales</div><div class="t-meta">GUARNICIÓN</div></div><span class="chev">→</span></div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">Field</div>
+          <div class="field"><div class="t-eyebrow">Dish name</div><input class="input" placeholder="Chiles en nogada"></div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">Chips · tabs · sidebar items</div>
+          <div class="stack"><span class="chip sel">FUERTES 12</span><span class="chip">SOPAS 7</span><span class="chip">GUARNICIONES 9</span></div>
+          <div class="tabbar" style="margin-top:12px"><div class="tab active">Plan</div><div class="tab">Dishes</div><div class="tab">History</div><div class="tab">More</div></div>
+          <div class="sidebar" style="margin-top:12px"><div class="navitem active">This week</div><div class="navitem">Dishes · 21</div><div class="navitem">History</div><div class="navitem">Accounts</div></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============ B ============ -->
+    <div class="col">
+      <div class="blabel"><b>B — Border and ink</b><br>The ground never moves; the border does the work. <code>--rule-control</code> is promoted to <code>--rule-strong</code>, faint ink darkens to <code>--ink</code>, and pressing sinks the ground to <code>--ground-sunken</code>. Filled buttons have no border to promote, so they use the spec's own <code>--accent-hover</code> and a lightened inverse.<br><span class="verdict good">This is the spec's own language already: <code>--rule-strong</code> means "emphasis, not decoration" on the today card and the focused field. It generalises that one rule.</span></div>
+      <div class="frame B">
+
+        <div class="group">
+          <div class="gtitle">Buttons — seven variants</div>
+          <div class="stack">
+            <button class="btn btn-plan">↻ Generate week</button>
+            <button class="btn btn-cat">Add dish</button>
+          </div>
+          <div class="stack" style="margin-top:8px">
+            <button class="btn btn-secondary">Cancel</button>
+            <button class="btn btn-outline-sm">↻ Reroll</button>
+            <button class="btn btn-icon">⋯</button>
+            <button class="link">Sign out</button>
+          </div>
+          <div class="stack" style="margin-top:8px">
+            <button class="btn btn-cat-form">Save dish</button>
+          </div>
+          <div class="stack" style="margin-top:8px">
+            <button class="btn btn-danger">Delete dish</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">Day card — today, and a plain day</div>
+          <div class="daycard" style="border-color:var(--rule-strong);padding:16px;margin-bottom:8px">
+            <div class="gutter"><div class="t-daylabel">MON<br>12</div></div>
+            <div class="content">
+              <div class="courses">
+                <div class="t-courselabel">Sopa</div><div class="t-item" style="font-size:13px">Crema de calabaza</div>
+                <div class="t-courselabel">Guarnición</div><div class="t-item" style="font-size:13px">Arroz blanco</div>
+                <div class="t-courselabel">Fuerte</div><div class="t-item" style="font-size:13px">Pollo asado</div>
+              </div>
+            </div>
+            <button class="reroll">↻</button>
+          </div>
+          <div class="daycard">
+            <div class="gutter"><div class="t-daylabel">TUE<br>13</div></div>
+            <div class="content">
+              <div class="t-item">Milanesa de res</div>
+              <div class="t-body-sm">Sopa de fideo · Puré de papa</div>
+            </div>
+            <button class="reroll">↻</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">List rows — the catalogue block</div>
+          <div class="listblock">
+            <div class="listrow"><div class="grow"><div class="t-item">Enchiladas verdes</div><div class="t-meta">FUERTE</div></div><span class="chev">→</span></div>
+            <div class="listrow"><div class="grow"><div class="t-item">Sopa de tortilla</div><div class="t-meta">SOPA</div></div><span class="chev">→</span></div>
+            <div class="listrow"><div class="grow"><div class="t-item">Ensalada de nopales</div><div class="t-meta">GUARNICIÓN</div></div><span class="chev">→</span></div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">Field</div>
+          <div class="field"><div class="t-eyebrow">Dish name</div><input class="input" placeholder="Chiles en nogada"></div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">Chips · tabs · sidebar items</div>
+          <div class="stack"><span class="chip sel">FUERTES 12</span><span class="chip">SOPAS 7</span><span class="chip">GUARNICIONES 9</span></div>
+          <div class="tabbar" style="margin-top:12px"><div class="tab active">Plan</div><div class="tab">Dishes</div><div class="tab">History</div><div class="tab">More</div></div>
+          <div class="sidebar" style="margin-top:12px"><div class="navitem active">This week</div><div class="navitem">Dishes · 21</div><div class="navitem">History</div><div class="navitem">Accounts</div></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============ C ============ -->
+    <div class="col">
+      <div class="blabel"><b>C — Accent tint</b><br>Green is the "live" colour: touching anything tints it, borrowing the segmented control's selected treatment (accent border over <code>--ground-accent-soft</code>).<br><span class="verdict">Cost, and the reason it is here: it breaks the spec's biggest decision — <b>green acts on the weekly plan, dark acts on the catalogue</b> — by turning Add dish and every catalogue row green on touch. It also sprays a colour the spec calls "a 2–5% colour" across the whole screen.</span></div>
+      <div class="frame C">
+
+        <div class="group">
+          <div class="gtitle">Buttons — seven variants</div>
+          <div class="stack">
+            <button class="btn btn-plan">↻ Generate week</button>
+            <button class="btn btn-cat">Add dish</button>
+          </div>
+          <div class="stack" style="margin-top:8px">
+            <button class="btn btn-secondary">Cancel</button>
+            <button class="btn btn-outline-sm">↻ Reroll</button>
+            <button class="btn btn-icon">⋯</button>
+            <button class="link">Sign out</button>
+          </div>
+          <div class="stack" style="margin-top:8px">
+            <button class="btn btn-cat-form">Save dish</button>
+          </div>
+          <div class="stack" style="margin-top:8px">
+            <button class="btn btn-danger">Delete dish</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">Day card — today, and a plain day</div>
+          <div class="daycard" style="border-color:var(--rule-strong);padding:16px;margin-bottom:8px">
+            <div class="gutter"><div class="t-daylabel">MON<br>12</div></div>
+            <div class="content">
+              <div class="courses">
+                <div class="t-courselabel">Sopa</div><div class="t-item" style="font-size:13px">Crema de calabaza</div>
+                <div class="t-courselabel">Guarnición</div><div class="t-item" style="font-size:13px">Arroz blanco</div>
+                <div class="t-courselabel">Fuerte</div><div class="t-item" style="font-size:13px">Pollo asado</div>
+              </div>
+            </div>
+            <button class="reroll">↻</button>
+          </div>
+          <div class="daycard">
+            <div class="gutter"><div class="t-daylabel">TUE<br>13</div></div>
+            <div class="content">
+              <div class="t-item">Milanesa de res</div>
+              <div class="t-body-sm">Sopa de fideo · Puré de papa</div>
+            </div>
+            <button class="reroll">↻</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">List rows — the catalogue block</div>
+          <div class="listblock">
+            <div class="listrow"><div class="grow"><div class="t-item">Enchiladas verdes</div><div class="t-meta">FUERTE</div></div><span class="chev">→</span></div>
+            <div class="listrow"><div class="grow"><div class="t-item">Sopa de tortilla</div><div class="t-meta">SOPA</div></div><span class="chev">→</span></div>
+            <div class="listrow"><div class="grow"><div class="t-item">Ensalada de nopales</div><div class="t-meta">GUARNICIÓN</div></div><span class="chev">→</span></div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">Field</div>
+          <div class="field"><div class="t-eyebrow">Dish name</div><input class="input" placeholder="Chiles en nogada"></div>
+        </div>
+
+        <div class="group">
+          <div class="gtitle">Chips · tabs · sidebar items</div>
+          <div class="stack"><span class="chip sel">FUERTES 12</span><span class="chip">SOPAS 7</span><span class="chip">GUARNICIONES 9</span></div>
+          <div class="tabbar" style="margin-top:12px"><div class="tab active">Plan</div><div class="tab">Dishes</div><div class="tab">History</div><div class="tab">More</div></div>
+          <div class="sidebar" style="margin-top:12px"><div class="navitem active">This week</div><div class="navitem">Dishes · 21</div><div class="navitem">History</div><div class="navitem">Accounts</div></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="row">
+  <h2>Focus ring — its own decision</h2>
+  <p class="rowsub">Orthogonal to the hover language, and the one state with a hard accessibility floor: WCAG 2.2 asks for a focus indicator at least 2px thick, contrasting 3:1 against what it replaces. Shown here permanently, not on focus, so all three are comparable at a glance. The design has <b>no shadows</b>, so F3's ring is a double outline, not a glow.</p>
+  <div class="cols">
+    <div class="col" style="width:300px">
+      <div class="blabel"><b>F1 — Accent ring, 2px, offset 2</b><br><code>--accent</code> on <code>--ground-page</code> is 5.8:1, well clear of the 3:1 floor. Reads as "the app is talking to you", and ties focus to the same green as the active tab indicator.</div>
+      <div class="frame fr-1"><div class="stack"><button class="btn btn-cat">Add dish</button><button class="btn btn-secondary">Cancel</button></div></div>
+    </div>
+    <div class="col" style="width:300px">
+      <div class="blabel"><b>F2 — Ink ring, 2px, offset 2</b><br>Full ink, the strongest mark in the system, and consistent with the focused field going to full ink — but against a dark button it is nearly invisible at the boundary.</div>
+      <div class="frame fr-2"><div class="stack"><button class="btn btn-cat">Add dish</button><button class="btn btn-secondary">Cancel</button></div></div>
+    </div>
+    <div class="col" style="width:300px">
+      <div class="blabel"><b>F3 — Ink ring with a paper gap</b><br>2px of page ground, then 2px of ink. Survives on any ground, dark fills included, at the cost of the heaviest mark of the three.</div>
+      <div class="frame fr-3"><div class="stack"><button class="btn btn-cat">Add dish</button><button class="btn btn-secondary">Cancel</button></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <h2>Disabled — its own decision</h2>
+  <p class="rowsub">Where this actually appears: <b>Generate week</b> with an empty catalogue, and <b>Save dish</b> with an empty name. Disabled controls are exempt from the WCAG contrast minimum, so this is a legibility and honesty judgement rather than a compliance one.</p>
+  <div class="cols">
+    <div class="col" style="width:300px">
+      <div class="blabel"><b>D1 — Uniform opacity .4</b><br>One rule, every control, no new tokens. Drops the green button to 1.8:1 against the page and the dark one to 2.5:1 — both faint enough that the two stop being distinguishable as actions.</div>
+      <div class="frame dz-1"><div class="stack"><button class="btn btn-plan">↻ Generate week</button><button class="btn btn-cat">Add dish</button><button class="btn btn-secondary">Cancel</button></div></div>
+    </div>
+    <div class="col" style="width:300px">
+      <div class="blabel"><b>D2 — Flatten to the chip greys</b><br>A disabled control loses its identity: <code>--ground-chip</code> under <code>--ink-muted</code>. No new tokens either — it reuses the idle chip. Green and dark become indistinguishable when off.</div>
+      <div class="frame dz-2"><div class="stack"><button class="btn btn-plan">↻ Generate week</button><button class="btn btn-cat">Add dish</button><button class="btn btn-secondary">Cancel</button></div></div>
+    </div>
+    <div class="col" style="width:300px">
+      <div class="blabel"><b>D3 — Fade fills, hollow the outlines</b><br>Filled buttons fade to .55 (green lands at 2.4:1, still legible as a shape); outlined ones keep full opacity and drop to muted ink over a lighter rule, so the border does not go mushy.</div>
+      <div class="frame dz-3"><div class="stack"><button class="btn btn-plan">↻ Generate week</button><button class="btn btn-cat">Add dish</button><button class="btn btn-secondary">Cancel</button></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <h2>The question none of the columns answers on its own</h2>
+  <p class="rowsub"><b>1. The phone has no hover at all.</b> Whatever wins, every control also needs a pressed state that survives without one — and the <code>↻</code> and <code>→</code> glyphs, which the spec's own contrast audit already flags at 1.9:1, are the sharpest case: on a phone they get no hover to rescue them, so their <i>rest</i> state has to carry the affordance by itself.</p>
+  <p class="rowsub"><b>2. Should a whole day card be tappable?</b> All three columns assume yes and give it a hover. If only the <code>↻</code> is interactive, the day card should have no state at all — and the three languages then differ far less than they look, because the day card is the largest hover surface on the week screen.</p>
+</div>
+
+<script>
+const bar = document.querySelector('.forcebar');
+bar.addEventListener('click', e => {
+  const b = e.target.closest('button[data-state]');
+  if (!b) return;
+  document.body.className = b.dataset.state;
+  bar.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+});
+</script>
+</body>
+</html>
