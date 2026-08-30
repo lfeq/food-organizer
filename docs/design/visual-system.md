@@ -186,8 +186,10 @@ Three consequences that resolve most real cases:
 - **A dish name is always Sans**, at every size, on every screen — including
   inside a mono-heavy block. Names are household data (CONTEXT.md, *Locale*);
   mono is the app's voice.
-- **A course label is always Mono**, uppercase: `SOUP` / `SIDE` / `MAIN` are
-  the app's taxonomy, not the family's words. So are day labels.
+- **A course label is always Mono**, uppercase: `SOUP` / `SIDE` / `MAIN` —
+  `SOPA` / `GUARNICIÓN` / `FUERTE` in Spanish — are the app's taxonomy, not the
+  family's words. So are day labels. The Spanish set is up to 2.5× wider; see
+  [Bilingual fit](#bilingual-fit).
 - **Anything uppercase with letter-spacing is Mono.** The reverse also holds:
   Sans is never letter-spaced and never uppercased.
 
@@ -248,6 +250,45 @@ not a decision. Every role above states one. The pattern behind them:
 - **`1`** — single-line controls (buttons, chips, badges, tabs).
 - **`1.1`–`1.25`** — headings and dish names, which are short and want to look set.
 - **`1.4`–`1.6`** — anything that wraps.
+
+## Bilingual fit
+
+The locale toggle switches **live**, so no measurement in this system may be
+derived from one language. Both are first-class, and Spanish is the wider one
+almost everywhere.
+
+The worst case is the course label, the most repeated text in the app. At
+`course-label` (`9px`, `.14em`, IBM Plex Mono's `0.6em` advance → `6.66px` per
+character):
+
+| | soup | side | main |
+| --- | --- | --- | --- |
+| English | `SOUP` 27px | `SIDE` 27px | `MAIN` 27px |
+| Spanish | `SOPA` 27px | `GUARNICIÓN` **67px** | `FUERTE` 40px |
+
+The mockup sizes that column at `46px`, which fits English and clips
+`GUARNICIÓN` by a third. Hence the rule:
+
+> **No mono label element is ever given a fixed width.** Course labels, chips,
+> badges, tags and tab labels size to their content. Where a row of them can
+> overflow, it scrolls; it never truncates and never wraps.
+
+Three consequences:
+
+- **Never abbreviate to fit.** `GUARN.` in a household app reading its own
+  menu is a worse outcome than a wider column. If a label will not fit, the
+  layout changes, not the word. (`Fuerte` is not an abbreviation — it is the
+  household's own short form for the course, fixed in `CONTEXT.md`, and it is
+  what both languages' layouts are sized against.)
+- **Never branch layout on locale.** There is no Spanish variant of a
+  component. One layout absorbs both, which is what makes a live toggle safe.
+- **Fixed widths are still allowed where the content is language-invariant.**
+  The day card's `44px` mono gutter is fixed on purpose: `MON 24` and `LUN 24`
+  are the same width, and fixing it is what aligns the days down the week.
+
+**Sans is unaffected in principle** — dish names, titles and button labels were
+already intrinsic — but Spanish copy still runs longer, so no Sans control may
+be sized to its English label either.
 
 ## Spacing
 
@@ -365,7 +406,20 @@ makes a long list read as a continuous sheet rather than a stack of cards.
 A **day card** is a three-part row: a fixed `44px` mono day gutter
 (`day-label`, day name over day number), the content column, and an optional
 trailing affordance. The gutter width is fixed so that day labels align down
-the whole week.
+the whole week, and it is safe to fix because day labels are the same width in
+both languages.
+
+Inside the content column, the **desktop** day card lays the three courses out
+as `grid-template-columns: max-content 1fr` — a `course-label` column and a
+dish-name column. `max-content` rather than a fixed width: every day card grids
+the same three labels, so the column resolves to the same width on every card
+and alignment is preserved for free, while the column re-measures itself when
+the locale toggles. See [Bilingual fit](#bilingual-fit).
+
+On the **phone**, the compact rows carry no course labels at all — the dish
+names alone, `main` with `soup · side` beneath it — so the column does not
+exist there. The today card stacks its label above each dish and is therefore
+unconstrained in either language.
 
 ### Chips
 
@@ -375,6 +429,11 @@ A horizontal filter row. `--radius-pill`, padding `6px 12px`, `chip` type.
 - **Idle:** `--ground-chip` / `--ink-secondary`, weight `500`.
 
 The count is part of the label (`SOUPS 7`), not a separate element.
+
+Chips carry the **plural** course names, which are the widest strings in the
+system (`GUARNICIONES 12`). They size to content and the row scrolls
+horizontally on a phone rather than truncating or wrapping — see
+[Bilingual fit](#bilingual-fit).
 
 ### Badges and tags
 

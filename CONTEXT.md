@@ -29,12 +29,18 @@ _(Spanish UI: "tiempo")_
 Which part of the midday meal a [dish](#dish) belongs to. Exactly three, fixed
 and not user-editable:
 
-- `soup` — Spanish UI: "sopa"
-- `side` — Spanish UI: "guarnición"
-- `main` — Spanish UI: "plato fuerte"
+- `soup` — Spanish UI: "Sopa"
+- `side` — Spanish UI: "Guarnición"
+- `main` — Spanish UI: "Fuerte", short for the full term "plato fuerte"
 
 Every dish has exactly one course. The catalogue is therefore three disjoint
 lists, and a [plan day](#plan-day) draws one dish from each.
+
+Only `main` has a short form: the household says "el fuerte" as readily as
+"el plato fuerte", so the label the UI shows is the short one. `soup` and
+`side` are already single words and are never abbreviated — a course label is
+written out in full in both languages, and the layout is sized to the word
+rather than the word cut to the layout.
 
 ## Member
 
