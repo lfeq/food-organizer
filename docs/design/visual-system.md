@@ -25,10 +25,11 @@ sidebar).
 - **Per-screen layout.** How the desktop grid reflows within a screen is a
   separate decision on the redesign map. The week-screen variant (`1b`) and
   what the sidebar becomes on a phone are now settled and written up above.
-- **How this gets implemented.** Whether `styles.css` stays one file, splits,
-  or becomes tokens plus components is an open question. This document names
-  tokens so that discussion has something to name; it does not mandate CSS
-  custom properties.
+- **How this gets implemented.** Settled separately, in
+  [CSS structure](./css-structure.md): the tokens named here *are* CSS custom
+  properties on `:root` under these exact names, `styles.css` splits into
+  `src/styles/`, and there is one literal `@media (min-width: 900px)`. That
+  document decides the shape of the code; this one decides the design.
 - **Copy.** Every visible string goes through `src/i18n.ts` (ADR-0001). The
   English words in the mockup are placeholders for keys, not content.
 - **Accessibility remediation.** The [contrast audit](#contrast-audit) below
