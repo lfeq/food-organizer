@@ -22,9 +22,9 @@ sidebar).
 
 **Does not cover:**
 
-- **Per-screen layout and responsive behaviour.** Which week-screen variant
-  wins, what the sidebar becomes on a phone, and how the desktop grid reflows
-  are separate decisions on the redesign map.
+- **Per-screen layout.** How the desktop grid reflows within a screen is a
+  separate decision on the redesign map. The week-screen variant (`1b`) and
+  what the sidebar becomes on a phone are now settled and written up above.
 - **How this gets implemented.** Whether `styles.css` stays one file, splits,
   or becomes tokens plus components is an open question. This document names
   tokens so that discussion has something to name; it does not mandate CSS
@@ -485,22 +485,53 @@ the notice colour appears outside a notice.
 
 `--scrim` over the dimmed screen; the sheet itself is `--ground-surface` at
 `--radius-sheet`, padding `20px 16px 24px`, `16px` between sections. Its header
-is `title-sheet` on the left and a `Cancel` text action on the right, in `meta`
+is `title-sheet` on the left and a dismiss text action on the right, in `meta`
 mono, `--ink-muted`.
+
+The dismiss word depends on what the sheet holds: **`Cancel`** where work would
+be abandoned (the add/edit dish sheet), **`Close`** where nothing is at stake
+(the `More` navigation sheet). Both go through `src/i18n.ts`.
+
+The **`More` sheet** is this same component used for navigation, rising from
+the bottom edge like any other. Its title is `More`; its contents, in order:
+`Accounts` (only when the signed-in member is an admin), a `1px --rule`, then
+the session block — username with role, the `EN / ES` toggle, and `Sign out`.
+For a non-admin the sheet holds the session block alone.
 
 ### Tab bar (phone)
 
-`--ground-surface`, top `1px --rule`, three equal cells, padding `12px 0`,
-centred `tab` type.
+`--ground-surface`, top `1px --rule`, **four** equal cells, padding `12px 0`,
+centred `tab` type. Full width; on a wide phone or a tablet below the
+breakpoint the cells simply grow rather than capping and centring.
 
 - **Active:** weight `600`, `--ink`, plus a `2px solid --accent` **top** border.
 - **Idle:** weight `400`, `--ink-muted`.
 
 The accent underline is on the top edge, not the bottom.
 
+The cells are `Plan · Dishes · History · More`. The mockup draws three in `1b`;
+the fourth exists because the sidebar carries destinations and a session block
+that three cells cannot hold. `More` opens the [Sheet](#sheet).
+
+The active marker is `--accent` on **every** cell, including `Dishes`,
+`History` and `More`. This is the one place the green/dark rule below does not
+apply: that rule governs what an action *acts on*, and a navigation indicator
+acts on nothing.
+
+The active cell follows the **URL**, not the route taken to it: any `/plan/*`
+lights `Plan` — including a past week opened from History — and `/accounts`
+lights `More`. Provenance-based highlighting would show the same URL with two
+different bars.
+
+The bar sits **under** `--scrim` whenever a sheet is open, so an edit in
+progress cannot be navigated away from by a stray tap.
+
 ### Sidebar (desktop)
 
 Width `184px`, `--ground-inverse`, padding `24px 16px`, `24px` between groups.
+Its items are `This week · Dishes · History · Accounts` — four, not the five
+`1d` draws. `Next week` is not a navigation destination at either width; see
+[Navigation across the breakpoint](#navigation-across-the-breakpoint).
 
 - Brand: Sans `600 13px` in `--ink-on-inverse`, with the instance name below in
   `meta` mono, `--ink-on-inverse-faint`.
@@ -512,6 +543,32 @@ Width `184px`, `--ground-inverse`, padding `24px 16px`, `24px` between groups.
   member's name lifted to `rgba(255,254,251,.75)`.
 
 Counts ride in the label (`Dishes · 21`), never in a separate badge.
+
+### Navigation across the breakpoint
+
+There is **one breakpoint, at `900px`**, and one navigation component with two
+forms. Below it: the four-cell [tab bar](#tab-bar-phone) plus the `More` sheet.
+At or above it: the [sidebar](#sidebar-desktop). The same threshold also
+expands a week-plan day row from the compact `main + soup · side` subtitle into
+`1d`'s labelled `SOUP / SIDE / MAIN` rows — one threshold, both consequences.
+
+A tablet in portrait (`768px`) is therefore on the **phone** side: `1d`'s
+two-column week grid needs the width, leaving roughly `716px` of content beside
+the `184px` sidebar at the threshold itself.
+
+Both forms carry the **same destination set**, so nothing is reachable at one
+width and not the other. `Accounts` remains admin-only in both.
+
+**`Next week` is not a destination.** The app writes to exactly two weeks, so
+stepping between them lives on the week screen as a single affordance in the
+header that flips by which week is shown: `Next week →` on this week,
+`← This week` on next week. Past weeks are reached only through History and
+stay read-only. This applies at **both** widths, which is why the sidebar
+carries four items rather than `1d`'s five.
+
+No navigation chrome appears on sign-in, first-run setup, or forced password
+change: there is either no session, or a session deliberately pinned to one
+screen.
 
 ## Motion
 
@@ -599,9 +656,9 @@ in hand.
 - **The contrast failures above.** They need a decision, not a default.
 - **Which week-screen variant is the direction.** `1b` is the designer's own
   pick; nothing in this document depends on the answer.
-- **What the sidebar becomes on a phone.** The sidebar is specified here for
-  desktop only; the phone artboards use a bottom tab bar, and no artboard shows
-  the transition.
+- **What the week-stepper affordance looks like.** `Next week →` / `← This
+  week` in the week header is settled as the *behaviour*, but no artboard draws
+  it, so its type, weight and placement within the header are unspecified.
 - **Two screens have no artboard:** first-run setup, and forced password
   change. They must be composed from the components above.
 - **Hover, active, disabled, and focus-visible states.** The mockup is static
