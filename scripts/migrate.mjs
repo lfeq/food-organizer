@@ -45,17 +45,30 @@
  * integration-managed variables are locked (they unlock once the store is
  * Production-only).
  *
- * Consequently this script and the app read `DATABASE_URL*`, while the
- * integration now maintains the parallel `STORAGE_*` set. Rotating secrets in
- * the Neon store would refresh `STORAGE_*` and NOT the pair production
- * actually reads -- so rotation is a production outage waiting to happen until
- * that divergence is resolved. See
+ * That prefix is NOT editable, so the project cannot be made to inject the
+ * plain names again. It does not need to be: this script and the app now read
+ * `STORAGE_DATABASE_URL*` first and fall back to `DATABASE_URL*`. Both
+ * spellings are legitimate and reach the same database by two different
+ * routes, so neither is a leftover to clean up:
+ *
+ *   - `STORAGE_*` is what a store connected through Vercel's marketplace flow
+ *     injects, and it is the set an integration MAINTAINS. Production is here.
+ *     Because the integration owns it, rotating secrets in the Neon store is a
+ *     safe click -- which it was not while the code read a hand-made pair the
+ *     rotation would not touch.
+ *   - The unprefixed pair is what a store provisioned fresh by the README's
+ *     Deploy button injects (verified in #55), and what `.env.local` and the
+ *     `migrations` CI job use. A forker never sees a prefix.
+ *
+ * Prefixed wins so that production runs on the maintained set. See
  * https://github.com/lfeq/food-organizer/issues/66
  *
- * Nothing asserts any of this: a check would need a VERCEL_TOKEN, and `ci.yml`
- * may never hold a secret. It is prose because it is unassertable, which is
- * also why it drifts -- if you are here because it drifted, see
- * https://github.com/lfeq/food-organizer/issues/57
+ * The scope facts above still assert nothing -- checking them needs a
+ * VERCEL_TOKEN and `ci.yml` may never hold a secret, so they are prose, which
+ * is also why they drift. If you are here because they drifted, see
+ * https://github.com/lfeq/food-organizer/issues/57. THIS fact is different:
+ * the variable names are visible from inside the build, so the log line below
+ * names the one it connected on. A deploy that quietly changes route says so.
  */
 import pg from "pg"
 import { readdir, readFile } from "fs/promises"
@@ -71,29 +84,44 @@ function fail(message) {
   process.exit(1)
 }
 
-// An empty string is a misconfiguration, not an absence -- a trailing `=` in a
-// dashboard field lands here, and treating it as "no database" would restore
-// the silent skip through the back door.
-const url = process.env.DATABASE_URL_UNPOOLED?.trim()
+// The same database answers to two spellings; see the header. Selection is by
+// which key is DEFINED, not by which holds a usable value, so that an empty
+// string stays a misconfiguration rather than falling through to the other
+// spelling: a trailing `=` in a dashboard field lands here, and treating it as
+// "no database" would restore the silent skip through the back door.
+function pick(name) {
+  for (const key of [`STORAGE_${name}`, name]) {
+    if (process.env[key] !== undefined) {
+      return { key, value: process.env[key].trim() }
+    }
+  }
+  return undefined
+}
+
+const unpooled = pick("DATABASE_URL_UNPOOLED")
+const url = unpooled?.value
 if (!url) {
-  if (process.env.DATABASE_URL?.trim()) {
+  if (pick("DATABASE_URL")?.value) {
     // The pooled URL is present and the direct one is not. Pointing pg at the
     // pooler instead would fail partway through some later DDL statement, so
     // stop here and name the likely cause.
     fail(
-      "DATABASE_URL is set but DATABASE_URL_UNPOOLED is not.\n" +
+      "A pooled database URL is set but the unpooled one is not.\n" +
         "  Migrations need the direct (unpooled) connection: the pooler cannot run DDL.\n" +
+        "  Looked for STORAGE_DATABASE_URL_UNPOOLED, then DATABASE_URL_UNPOOLED.\n" +
         "  On Vercel this usually means the variable is scoped to the wrong environment.\n" +
-        "  Check Settings -> Environment Variables and confirm DATABASE_URL_UNPOOLED\n" +
+        "  Check Settings -> Environment Variables and confirm the unpooled URL\n" +
         "  is available to Production builds."
     )
   }
   fail(
-    "DATABASE_URL_UNPOOLED is not set.\n" +
+    "No unpooled database URL is set.\n" +
+      "  Looked for STORAGE_DATABASE_URL_UNPOOLED, then DATABASE_URL_UNPOOLED.\n" +
       "  This app cannot run without a database, so the build stops here rather\n" +
       "  than deploying green with an unmigrated schema.\n" +
       "  On Vercel: add the Neon integration (Storage -> Neon), which injects\n" +
-      "  DATABASE_URL and DATABASE_URL_UNPOOLED for you.\n" +
+      "  one of those spellings for you -- which one depends on how the store\n" +
+      "  was connected, and either is fine.\n" +
       "  Locally: copy .env.example to .env.local and fill both in."
   )
 }
@@ -117,6 +145,11 @@ if (files.length === 0) {
       "  checkout is incomplete rather than that there is nothing to apply."
   )
 }
+
+// Name the source, not the value: this is the only part of the two-spelling
+// story that is observable from inside a build, so a silent change of route
+// shows up in the deploy log instead of being discovered by a rotation.
+console.log(`Connecting on ${unpooled.key}`)
 
 const client = new pg.Client({ connectionString: url })
 await client.connect()
