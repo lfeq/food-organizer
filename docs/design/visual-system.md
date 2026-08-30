@@ -18,7 +18,7 @@ awaiting a per-screen judgement call.
 **Covers:** colour roles, the type scale and the Sans/Mono split rule, the
 spacing scale, radii, borders, elevation, and the component variants
 (buttons, cards, chips, badges, fields, list rows, notice, sheet, tab bar,
-sidebar).
+sidebar), and the interactive states every one of them takes.
 
 **Does not cover:**
 
@@ -72,6 +72,8 @@ unknown one.
 | `--ground-page` | `#f6f4ef` | The screen itself: the warm paper everything sits on. Every phone screen and the desktop content column. |
 | `--ground-surface` | `#fffefb` | Anything that lifts off the page: cards, the sheet, list blocks, the tab bar. The lightest ground in the system. |
 | `--ground-inverse` | `#191817` | Ink used as a ground: the desktop sidebar, dark buttons, badges. |
+| `--inverse-hover` | `#2c2a28` | An inverse fill under the cursor. See [Interactive states](#interactive-states). |
+| `--inverse-pressed` | `#0f0e0e` | An inverse fill being pressed. |
 | `--ground-notice` | `#faf3e2` | The amber notice, and the inline highlight on a repeated dish name. **Reserved for the short-catalogue notice and nothing else.** |
 | `--ground-sunken` | `rgba(25,24,23,.05)` | An explanatory block recessed into the page (the admin-rights note in `1k`). No border. |
 | `--ground-chip` | `rgba(25,24,23,.07)` | An unselected chip in a filter row. |
@@ -97,7 +99,8 @@ One green, used sparingly.
 | Token | Value | What it is for |
 | --- | --- | --- |
 | `--accent` | `#2d6a4d` | The primary plan action, links, inline text actions, the selected segmented cell, the active tab's underline, the text caret. |
-| `--accent-hover` | `#1f4d38` | Hover on a link or an accent-coloured text action. |
+| `--accent-hover` | `#1f4d38` | Hover on a link, an accent-coloured text action, or an accent fill. |
+| `--accent-pressed` | `#184029` | An accent fill being pressed. See [Interactive states](#interactive-states). |
 | `--ink-on-accent` | `#fffefb` | Text on `--accent`. |
 
 The mockup never uses the accent as a large fill except on a button. It is a
@@ -570,6 +573,129 @@ No navigation chrome appears on sign-in, first-run setup, or forced password
 change: there is either no session, or a session deliberately pinned to one
 screen.
 
+## Interactive states
+
+The mockup is eleven static artboards: it draws a focused field, a selected
+segmented cell, an active tab and a selected chip, and **no other state at
+all**. This section fills that gap for every component above, decided once for
+the system rather than seven times for seven buttons.
+
+Two constraints shape all of it. The design has **no elevation**, so the usual
+lift-on-hover is unavailable — state has to live in ground, border, or ink.
+And the phone is a primary device, so **hover is never the only signal** that
+something is a control.
+
+### The rule: the ground holds still; the border and the ink move
+
+Touching a control **promotes its border**. An outlined or ghost control takes
+its `--rule-control` edge to `--rule-strong`, and any supporting ink darkens to
+`--ink`. Nothing else changes: the ground stays exactly where it was.
+
+This is not a new mechanism. `--rule-strong` already means *emphasis, not
+decoration* in this system — it is what marks the today card and what a focused
+field becomes. Hover generalises that one rule to every control instead of
+introducing a second language beside it.
+
+A **filled** control has no border to promote, so it moves its own fill
+instead, using values the palette already names where it has them:
+
+| | Hover | Pressed |
+| --- | --- | --- |
+| **Accent fill** | `--accent-hover` `#1f4d38` | `--accent-pressed` `#184029` |
+| **Inverse fill** | `--inverse-hover` `#2c2a28` | `--inverse-pressed` `#0f0e0e` |
+| **Outlined / ghost** | border → `--rule-strong` | border → `--rule-strong`, ground → `--ground-sunken` |
+
+`--ink-on-accent` and `--ink-on-inverse` stay put on both; every pairing above
+clears `9.5:1`.
+
+**Pressed is not optional.** On a phone it is the *only* feedback a control
+ever gives, so every interactive component defines one — including those whose
+hover is the more visible half on the desktop. A control that has a hover and
+no pressed state is a bug.
+
+### A surface that contains a control is not itself a control
+
+The **day card takes no state at all**: no hover, no pressed, no focus ring,
+and `cursor: default`. What is interactive inside it is the reroll button, and
+that button carries the whole affordance. The card is the largest surface on
+the week screen, so giving it a hover would make the desktop look as though the
+whole week were clickable when only seven small buttons are.
+
+This generalises. Where a row or card merely *holds* controls, the surface is
+inert and only the controls inside it take state — the catalogue row, whose
+control is the `⋯`, works the same way. Where the whole row **is** the control
+— the history card, which opens its week — it takes the row treatment below.
+
+### Per component
+
+| Component | Hover | Pressed | Notes |
+| --- | --- | --- | --- |
+| **Primary — plan** | `--accent-hover` | `--accent-pressed` | |
+| **Primary — catalogue** | `--inverse-hover` | `--inverse-pressed` | Same for the full-width form button. |
+| **Secondary** | border → `--rule-strong` | + `--ground-sunken` | |
+| **Small outline** | border → `--rule-strong` | + `--ground-sunken` | |
+| **Icon** | border → `--rule-strong` | + `--ground-sunken` | |
+| **Destructive** | border → `--danger` (from `--danger-rule`) | + `rgba(138,35,35,.08)` | The one control whose border promotes to its *own* colour rather than to ink: a destructive action must not look like an ordinary one at the moment of pressing it. |
+| **Text action** | `--accent-hover`, underlined | — | The mockup's own link hover, and the only place an underline appears on hover. |
+| **Field** | no hover | — | Focus is its state; the spec's existing rule (border → `--rule-strong`) is unchanged. |
+| **List row** *(when the row is the control)* | `inset 2px 0 0 --rule-strong` on the leading edge | + `--ground-sunken` | Drawn as an inset border, not a shadow: it is a rule, and rules are how this design marks emphasis. A ground wash would fight the list block's own surface. |
+| **Day card** | none | none | See above — the card is not a control. |
+| **Chip, idle** | border → `--rule-strong`, ink → `--ink` | + `--ground-sunken` | |
+| **Chip, selected** | `--inverse-hover` | `--inverse-pressed` | It is an inverse fill; it behaves like one. |
+| **Tab (phone)** | ink → `--ink` | ink → `--ink` | No ground change: the bar is a fixed surface and a washed cell reads as a modal state. The active cell's `2px --accent` top border is unaffected by hover. |
+| **Sidebar item** | ink → `--ink-on-inverse` | ink → `--ink-on-inverse` | The item's own `rgba(255,254,251,.12)` ground stays reserved for *active*, so hover and active never look alike. |
+
+### Focus ring
+
+`2px solid --accent`, `outline-offset: 2px`, on **`:focus-visible` only** —
+never on `:focus`, so a mouse click never leaves a ring behind.
+
+`--accent` measures `5.82:1` on `--ground-page` and `6.35:1` on
+`--ground-surface`, both clear of the `3:1` floor for a non-text indicator.
+Using the accent rather than ink also keeps focus **distinct from hover**,
+which in this system is an ink border: the two states never render as the same
+mark on the same control.
+
+**One exception, forced by contrast.** On `--ground-inverse` the accent ring
+measures `2.77:1` and misses the floor, so every control on the dark sidebar
+takes an `--ink-on-inverse` ring instead (`17.58:1`).
+
+The ring is drawn with `outline`, not `box-shadow` — [Elevation](#elevation)
+holds even here, and an outline follows the border radius without a second
+element.
+
+### Disabled
+
+Filled buttons drop to **`opacity: .55`**. Outlined and ghost controls keep
+full opacity and instead take `--ink-muted` ink over a `--rule-inset` border,
+so their edge thins rather than going mushy.
+
+Two treatments rather than one because the levers differ: fading an outlined
+control attacks a `1px` hairline that is close to invisible already, while
+fading a fill leaves a shape that is still clearly a button. At `.55` the
+accent fill measures `2.37:1` and the inverse fill `3.85:1` against the page —
+below the text floor, which is [permitted for disabled
+controls](#contrast-audit) and is the point: a disabled control should read as
+unavailable at a glance.
+
+A disabled control takes **no** hover, pressed, or focus-visible state, and
+`cursor: not-allowed`. It must carry the real `disabled` attribute (or
+`aria-disabled` where focusability is wanted), never colour alone.
+
+Where this actually appears: **Generate week** with an empty catalogue, and
+**Save dish** with an empty name.
+
+### Transition
+
+`120ms` on `background-color`, `border-color`, `color` and `box-shadow` only.
+**Nothing moves** — no transform, no translate, no scale — which follows from
+having no elevation: there is no third dimension in this design to move
+through. Pressed states apply instantly enough at `120ms` to feel attached to
+the finger.
+
+This is unrelated to the draw animation discussed under [Motion](#motion),
+which is a behaviour decision rather than a visual-system one.
+
 ## Motion
 
 The mockup carries one motion cue, in the live artboard `1e`: generating or
@@ -661,6 +787,3 @@ in hand.
   it, so its type, weight and placement within the header are unspecified.
 - **Two screens have no artboard:** first-run setup, and forced password
   change. They must be composed from the components above.
-- **Hover, active, disabled, and focus-visible states.** The mockup is static
-  and shows none of them, except the link hover in the canvas chrome
-  (`--accent-hover`). Every interactive component above needs these filled in.
