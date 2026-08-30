@@ -100,6 +100,12 @@ One of the seven days of a [weekly plan](#weekly-plan), beginning at the
 instance's [week start](#week-start). Holds three [slots](#slot), one per
 [course](#course).
 
+A plan day whose date has passed is **elapsed**, and an elapsed plan day is
+immutable: it can no longer be [regenerated](#regenerating). A weekly plan is a
+record of what was decided, so redrawing a day the household has already eaten
+would rewrite the past rather than change a plan. Elapsed days stay part of the
+week and stay readable; they simply stop being decisions still open.
+
 ## Slot
 
 _(Spanish UI: "casilla")_
@@ -146,6 +152,9 @@ the plan says so when it does.
 
 Regenerating changes the day it was asked about and nothing else. It never
 moves a dish between days to make room.
+
+Only a day still ahead can be regenerated: an elapsed [plan day](#plan-day) is
+immutable.
 
 ## Repeating week
 
