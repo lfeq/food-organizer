@@ -288,6 +288,7 @@ body.f-disabled .frame .listrow{opacity:.4;cursor:not-allowed;pointer-events:non
   <h1>PROTOTYPE — What do the interactive states look like?</h1>
   <p>Issue <code>#65</code> on map <code>#31</code>. The mockup is eleven static artboards and shows <b>no</b> hover, pressed, disabled or focus-visible state anywhere. Three <b>state languages</b> below — three answers to "what changes when you touch a control" — each applied to the same component set, so the decision is made once for the system rather than seven times for seven buttons.</p>
   <p>Two constraints shape all three. The design has <b>no shadows</b>, so the usual lift-on-hover is unavailable: state must live in ground, border, or ink. And <b>phone and desktop are both primary</b>, so hover can never be the only signal that something is a control — every language below must also answer with a pressed state that a thumb can feel.</p>
+  <p style="background:#191817;color:#fffefb;padding:12px 14px;border-radius:8px;max-width:82ch"><b>RESOLVED.</b> <b>B — Border and ink</b>, focus ring <b>F1</b>, disabled <b>D3</b>, and the day card is <b>not</b> a control. Losing boards are kept below on purpose, so the reasoning stays legible. The decision lives in <code style="background:rgba(255,254,251,.15)">docs/design/visual-system.md</code> under <b>Interactive states</b>, not here.</p>
   <p>Focus-visible and disabled are decided separately, in their own rows at the bottom: they are orthogonal to the hover language, and each has an accessibility floor the hover choice does not.</p>
 </div>
 
@@ -370,7 +371,7 @@ body.f-disabled .frame .listrow{opacity:.4;cursor:not-allowed;pointer-events:non
 
     <!-- ============ B ============ -->
     <div class="col">
-      <div class="blabel"><b>B — Border and ink</b><br>The ground never moves; the border does the work. <code>--rule-control</code> is promoted to <code>--rule-strong</code>, faint ink darkens to <code>--ink</code>, and pressing sinks the ground to <code>--ground-sunken</code>. Filled buttons have no border to promote, so they use the spec's own <code>--accent-hover</code> and a lightened inverse.<br><span class="verdict good">This is the spec's own language already: <code>--rule-strong</code> means "emphasis, not decoration" on the today card and the focused field. It generalises that one rule.</span></div>
+      <div class="blabel"><b>B — Border and ink</b> <span style="background:#191817;color:#fffefb;font:600 9px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:3px 6px;border-radius:3px">CHOSEN</span><br>The ground never moves; the border does the work. <code>--rule-control</code> is promoted to <code>--rule-strong</code>, faint ink darkens to <code>--ink</code>, and pressing sinks the ground to <code>--ground-sunken</code>. Filled buttons have no border to promote, so they use the spec's own <code>--accent-hover</code> and a lightened inverse.<br><span class="verdict good">This is the spec's own language already: <code>--rule-strong</code> means "emphasis, not decoration" on the today card and the focused field. It generalises that one rule.</span></div>
       <div class="frame B">
 
         <div class="group">
@@ -520,7 +521,7 @@ body.f-disabled .frame .listrow{opacity:.4;cursor:not-allowed;pointer-events:non
   <p class="rowsub">Orthogonal to the hover language, and the one state with a hard accessibility floor: WCAG 2.2 asks for a focus indicator at least 2px thick, contrasting 3:1 against what it replaces. Shown here permanently, not on focus, so all three are comparable at a glance. The design has <b>no shadows</b>, so F3's ring is a double outline, not a glow.</p>
   <div class="cols">
     <div class="col" style="width:300px">
-      <div class="blabel"><b>F1 — Accent ring, 2px, offset 2</b><br><code>--accent</code> on <code>--ground-page</code> is 5.8:1, well clear of the 3:1 floor. Reads as "the app is talking to you", and ties focus to the same green as the active tab indicator.</div>
+      <div class="blabel"><b>F1 — Accent ring, 2px, offset 2</b> <span style="background:#191817;color:#fffefb;font:600 9px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:3px 6px;border-radius:3px">CHOSEN</span><br><code>--accent</code> on <code>--ground-page</code> is 5.8:1, well clear of the 3:1 floor. Reads as "the app is talking to you", and ties focus to the same green as the active tab indicator.</div>
       <div class="frame fr-1"><div class="stack"><button class="btn btn-cat">Add dish</button><button class="btn btn-secondary">Cancel</button></div></div>
     </div>
     <div class="col" style="width:300px">
@@ -547,7 +548,7 @@ body.f-disabled .frame .listrow{opacity:.4;cursor:not-allowed;pointer-events:non
       <div class="frame dz-2"><div class="stack"><button class="btn btn-plan">↻ Generate week</button><button class="btn btn-cat">Add dish</button><button class="btn btn-secondary">Cancel</button></div></div>
     </div>
     <div class="col" style="width:300px">
-      <div class="blabel"><b>D3 — Fade fills, hollow the outlines</b><br>Filled buttons fade to .55 (green lands at 2.4:1, still legible as a shape); outlined ones keep full opacity and drop to muted ink over a lighter rule, so the border does not go mushy.</div>
+      <div class="blabel"><b>D3 — Fade fills, hollow the outlines</b> <span style="background:#191817;color:#fffefb;font:600 9px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;padding:3px 6px;border-radius:3px">CHOSEN</span><br>Filled buttons fade to .55 (green lands at 2.4:1, still legible as a shape); outlined ones keep full opacity and drop to muted ink over a lighter rule, so the border does not go mushy.</div>
       <div class="frame dz-3"><div class="stack"><button class="btn btn-plan">↻ Generate week</button><button class="btn btn-cat">Add dish</button><button class="btn btn-secondary">Cancel</button></div></div>
     </div>
   </div>
@@ -555,8 +556,8 @@ body.f-disabled .frame .listrow{opacity:.4;cursor:not-allowed;pointer-events:non
 
 <div class="row">
   <h2>The question none of the columns answers on its own</h2>
-  <p class="rowsub"><b>1. The phone has no hover at all.</b> Whatever wins, every control also needs a pressed state that survives without one — and the <code>↻</code> and <code>→</code> glyphs, which the spec's own contrast audit already flags at 1.9:1, are the sharpest case: on a phone they get no hover to rescue them, so their <i>rest</i> state has to carry the affordance by itself.</p>
-  <p class="rowsub"><b>2. Should a whole day card be tappable?</b> All three columns assume yes and give it a hover. If only the <code>↻</code> is interactive, the day card should have no state at all — and the three languages then differ far less than they look, because the day card is the largest hover surface on the week screen.</p>
+  <p class="rowsub"><b>1. The phone has no hover at all.</b> Whatever wins, every control also needs a pressed state that survives without one — carried into the spec as a rule: a control with a hover and no pressed state is a bug. The <code>↻</code>/<code>→</code> half of this was already answered by <a href="https://github.com/lfeq/food-organizer/issues/63">Decide the palette's accessibility floor</a>, which ruled that a glyph forming the whole control takes real ink and never <code>--ink-faint</code>; this prototype still draws the pre-#63 <code>--ink-faint</code> reroll glyph.</p>
+  <p class="rowsub"><b>2. Should a whole day card be tappable?</b> <b>Decided: no.</b> All three columns above still assume yes and give the card a hover — that is the losing board, kept. Only the <code>↻</code> is interactive; the day card takes no state at all. Generalised in the spec as: a surface that merely contains a control is not itself a control.</p>
 </div>
 
 <script>
