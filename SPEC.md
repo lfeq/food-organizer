@@ -478,9 +478,14 @@ everyone sees the same seven days in the same order regardless of UI language.
 
 - **Current and next week only.** Both are fully generable and regenerable.
 - **Earlier weeks are read-only history.** Nothing rewrites them.
-- **Elapsed days of the current week are not locked.** Only past *weeks* freeze.
-  Wednesday's reroll still works on Friday — day-level locking would put a clock
-  in the domain for no benefit to a household.
+- **Elapsed days are locked.** A plan day whose date has passed is immutable, so
+  Wednesday's reroll no longer works on Friday. A weekly plan is a record of what
+  was decided: redrawing a day the household has already eaten rewrites the past
+  rather than changing a plan.
+- **The lock is enforced server-side**, in the same handlers that re-derive the
+  current week below, refusing with `DAY_ELAPSED`. Hiding the control is a
+  courtesy on top of that refusal, not the rule: the client's notion of "today"
+  is baked into a render and goes stale in a tab left open overnight.
 - The week picker's range is capped accordingly: the sidebar offers **This week**
   and **Next week**, and history is read-only.
 
@@ -647,9 +652,9 @@ change-password screen and logout.
 
 ### 9.1 Generating a week
 
-Draw one dish per course per day: three independent draws of seven,
-**without replacement within the course**, so generating never repeats a dish
-within the week as long as that course holds at least seven dishes.
+Draw one dish per course per day: three independent draws, one per day being
+written, **without replacement within the course**, so generating never repeats
+a dish within the week as long as that course holds at least seven dishes.
 
 - **Generating has no memory.** What came out last week does not influence this
   week.
@@ -661,9 +666,23 @@ within the week as long as that course holds at least seven dishes.
 - **A course below seven repeats as needed** — there are not enough dishes to go
   round. This is announced by the banner in §9.3, not refused.
 - **Generating over an existing plan is offered behind an explicit
-  confirmation** stating the current plan is replaced. It overwrites **in
-  place**: no version history, no second plan for that week.
-- The plan, its seven `plan_day` rows and its twenty-one `slot` rows are written
+  confirmation**: "The days still ahead will be redrawn from the catalogue. This
+  cannot be undone." It overwrites **in place**: no version history, no second
+  plan for that week.
+- **Generating redraws only the days still ahead.** Elapsed plan days are
+  immutable (§6.2), so they are left exactly as they stand and the rest of the
+  week is redrawn around them.
+- **Elapsed days' dishes count as used.** The redraw excludes the names they
+  hold, so the no-repeat promise covers the whole week the household is looking
+  at, not just the part that was redrawn. This shrinks the pool as the week wears
+  on, so a course comfortably above seven on the week start can still produce a
+  repeating week (§9.3) later in the week.
+- **Generating a week already underway that has no plan writes only the days
+  still ahead.** It does not invent the days that have passed: those would be
+  elapsed, and therefore immutable, the instant they were written — a permanent
+  record of meals nobody decided. **A weekly plan may therefore hold fewer than
+  seven `plan_day` rows.** What it can never hold is a day with nothing in it.
+- The plan, its `plan_day` rows and the three `slot` rows of each are written
   **in one transaction** — required by constraint trigger 3 and by "complete or
   not at all".
 
@@ -685,6 +704,10 @@ There is no separate "pool" that regenerating draws down. **Each regeneration
 recomputes against the week as it currently stands**, so repeated regenerations
 cannot drift into duplicates.
 
+**An elapsed day refuses outright** with `DAY_ELAPSED` (§6.2), before any of
+this. The screen names the reason rather than offering a retry, and refreshes
+itself so the control disappears — a retry can only fail again.
+
 **When the candidate set is empty, it falls back to the whole course**,
 excluding only the dish being replaced — it does **not** refuse. Refusing would
 make the app's most-used control dead on arrival on a small catalogue. Swapping
@@ -694,7 +717,8 @@ reroll's contract is **"this slot changes, nothing else does"**.
 
 So **regenerating may repeat**, and the app says so — §9.3.
 
-The candidate count is exactly `dishes_in_course − 7`, which is why the seed
+The candidate count is exactly `dishes_in_course − 7` for a full seven-day week
+(and `dishes_in_course − plan_days` for a short one, §9.1), which is why the seed
 catalogue is nine and not seven:
 
 | Per course | Generating | Regenerating |
@@ -836,15 +860,18 @@ Two columns.
 
 - **Today is a large card on the left**, showing all three courses at reading
   size, with its own labelled reroll button.
-- **The other six days are compact cards** stacked in a narrower right-hand
+- **The week's remaining days are compact cards** stacked in a narrower right-hand
   column, one line per course, each with a `↻` control.
 
 Today is distinguished three ways at once — its own column, a green outline, and
 a `today` tag — because the app's single most common use is answering "what are
 we eating today" at a glance.
 
-**Days already elapsed are dimmed but not locked**: past *weeks* freeze, elapsed
-days do not, so they keep their reroll control (§6.2).
+**Days already elapsed are dimmed and read-only**: they lose their reroll
+control entirely rather than showing a disabled one (§6.2). They stay part of
+the week and stay readable; they simply stop being decisions still open. Where a
+week was generated mid-week, the days before it was generated have no cards at
+all — no placeholder rows.
 
 When the week has no plan, the screen offers **Generate**; when it has one and
 the week is writable, generating again is offered behind the confirmation in
