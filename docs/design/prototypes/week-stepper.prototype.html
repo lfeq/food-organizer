@@ -170,6 +170,7 @@ const T = {
   accounts:    ['Accounts','Cuentas'],
   wed:         ['Wed 26','Mi&eacute; 26'],
   thu:         ['Thu 27','Jue 27'],
+  fri:         ['Fri 28','Vie 28'],
   mon:         ['Mon 31','Lun 31'],
   tue:         ['Tue 1','Mar 1'],
   d1main:      ['Chiles rellenos','Chiles rellenos'],
@@ -253,7 +254,7 @@ function phoneWeek(b, isNext){
     '<div><div class="t-course">' + t('side') + '</div><div class="t-today">' + t('d1side') + '</div></div>' +
     '<div><div class="t-course">' + t('main') + '</div><div class="t-hero">' + t('d1main') + '</div></div>' +
     '</div></div>';
-  const rows = [[isNext ? 'mon' : 'thu','d2main','d2sub'],[isNext ? 'tue' : 'wed','d3main','d3sub']].map(r =>
+  const rows = [[isNext ? 'mon' : 'thu','d2main','d2sub'],[isNext ? 'tue' : 'fri','d3main','d3sub']].map(r =>
     '<div class="daycard"><div class="gutter t-daylabel">' + t(r[0]) + '</div><div class="content">' +
     '<div class="t-dish">' + t(r[1]) + '</div><div class="t-meta-sans">' + t(r[2]) + '</div></div>' +
     '<button class="btn-outline-sm">&#8635;</button></div>').join('');
