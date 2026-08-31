@@ -185,7 +185,7 @@ let WIDTH = 'phone';
 /* ---------- product copy (stands in for i18n keys) ---------- */
 const T = {
   dishes:['Dishes','Platillos'], total:['9 total &middot; shared catalogue','9 en total &middot; cat&aacute;logo compartido'],
-  addDish:['+ Add dish','+ Agregar platillo'], add:['+ Add','+ Agregar'],
+  addDish:['+ Add dish','+ Agregar platillo'], add:['+ Add','+ Agregar'], all:['All','Todos'],
   soups:['Soups','Sopas'], sides:['Sides','Guarniciones'], mains:['Mains','Fuertes'],
   soup:['Soup','Sopa'], side:['Side','Guarnici&oacute;n'], main:['Main','Fuerte'],
   by:['added by mariana','agregado por mariana'], by2:['added by javier','agregado por javier'],
@@ -213,28 +213,30 @@ const X = {
   intro2:['Today the app draws three columns, one per course, with an <b>Edit</b> and a <b>Delete</b> button on every row. The artboard <code>1f</code> draws one list with three chips and a single <code>&middot;&middot;&middot;</code>. Three columns cannot fit a phone, so something has to give.',
           'Hoy la app dibuja tres columnas, una por curso, con un bot&oacute;n <b>Editar</b> y uno de <b>Eliminar</b> en cada rengl&oacute;n. El artboard <code>1f</code> dibuja una sola lista con tres chips y un solo <code>&middot;&middot;&middot;</code>. Tres columnas no caben en un tel&eacute;fono, as&iacute; que algo tiene que ceder.'],
 
-  cmph:['The one question to answer first: do the chips filter, or group?',
-        'La pregunta a contestar primero: &iquest;los chips filtran o agrupan?'],
-  cmpsub:['Both phones below hold the same catalogue of nine dishes. Count what is on screen.',
-          'Los dos tel&eacute;fonos de abajo tienen el mismo cat&aacute;logo de nueve platillos. Cuenta lo que est&aacute; en pantalla.'],
-  cmpnote:['<b>Filter (left):</b> the chips are a switch. Only the chosen course is on screen &mdash; <b>3 of the 9 dishes</b>. To see the sides you tap <code>Sides</code> and the soups disappear. You never see the whole catalogue at once.<br><br><b>Group (right):</b> the chips are gone and the courses become headings in one list. <b>All 9 dishes</b> are on screen, one under the other, and you scroll. Nothing is ever hidden.<br><br><b>Why it matters beyond the phone:</b> a filter cannot keep the three columns on the desktop &mdash; filtering to <i>Soups</i> would leave one column full and two empty. So this choice decides the desktop layout as well. Switch <b>Ancho</b> to <b>Escritorio</b> on boards A and B to see it.',
-            '<b>Filtrar (izquierda):</b> los chips son un interruptor. S&oacute;lo el curso elegido est&aacute; en pantalla &mdash; <b>3 de los 9 platillos</b>. Para ver las guarniciones tocas <code>Guarniciones</code> y las sopas desaparecen. Nunca ves el cat&aacute;logo completo de una vez.<br><br><b>Agrupar (derecha):</b> los chips desaparecen y los cursos se vuelven encabezados dentro de una sola lista. Los <b>9 platillos</b> est&aacute;n en pantalla, uno debajo del otro, y haces scroll. Nada queda escondido.<br><br><b>Por qu&eacute; importa m&aacute;s all&aacute; del tel&eacute;fono:</b> un filtro no puede conservar las tres columnas del escritorio &mdash; filtrar a <i>Sopas</i> dejar&iacute;a una columna llena y dos vac&iacute;as. As&iacute; que esta decisi&oacute;n define tambi&eacute;n el layout de escritorio. Cambia <b>Ancho</b> a <b>Escritorio</b> en los boards A y B para verlo.'],
+  cmph:['Settled: the chips filter. The question it leaves open: is there an All chip?',
+        'Decidido: los chips filtran. La pregunta que eso deja abierta: &iquest;hay un chip Todos?'],
+  cmpsub:['Same catalogue of nine dishes in both. Count what is on screen.',
+          'El mismo cat&aacute;logo de nueve platillos en los dos. Cuenta lo que est&aacute; en pantalla.'],
+  cmpnote:['<b>Filtering is decided</b>, which also settles the desktop: the three columns are gone, because filtering to <i>Soups</i> would leave one column full and two empty. Boards <b>B</b> and <b>C</b> below are out &mdash; they group. The live choice is now <b>A or D</b>, which differ only in where a row&rsquo;s actions live.<br><br>But a filter with three chips has no way back to the whole catalogue. <b>Left:</b> <code>1f</code> exactly &mdash; three chips, one always active, <b>3 of 9 dishes</b> on screen and no way to see all nine. <b>Right:</b> a fourth <code>All 9</code> chip, active by default, so the catalogue opens whole and the courses narrow it.<br><br>The right-hand version costs one more chip on the tightest row in the app &mdash; and in Spanish those chips carry <code>Guarniciones</code>. Tap <b>ES</b> and check that it still fits.',
+            '<b>Filtrar ya est&aacute; decidido</b>, y eso resuelve tambi&eacute;n el escritorio: las tres columnas desaparecen, porque filtrar a <i>Sopas</i> dejar&iacute;a una columna llena y dos vac&iacute;as. Los boards <b>B</b> y <b>C</b> de abajo quedan fuera &mdash; agrupan. La elecci&oacute;n viva es <b>A o D</b>, que s&oacute;lo difieren en d&oacute;nde viven las acciones del rengl&oacute;n.<br><br>Pero un filtro de tres chips no tiene c&oacute;mo volver al cat&aacute;logo completo. <b>Izquierda:</b> <code>1f</code> tal cual &mdash; tres chips, uno siempre activo, <b>3 de 9 platillos</b> en pantalla y ninguna forma de ver los nueve. <b>Derecha:</b> un cuarto chip <code>Todos 9</code>, activo por defecto, para que el cat&aacute;logo abra completo y los cursos lo acoten.<br><br>La versi&oacute;n de la derecha cuesta un chip m&aacute;s en el rengl&oacute;n m&aacute;s apretado de la app &mdash; y en espa&ntilde;ol esos chips llevan <code>Guarniciones</code>. Toca <b>ES</b> y comprueba que siga cabiendo.'],
 
   boardh:['The selected board','El board seleccionado'],
-  boardsub:['A and D filter. B and C group. Beyond that they disagree about where a row&rsquo;s actions live.',
-            'A y D filtran. B y C agrupan. M&aacute;s all&aacute; de eso, difieren en d&oacute;nde viven las acciones de cada rengl&oacute;n.'],
+  boardsub:['<b>A and D are the live choice</b> &mdash; both filter, and differ only in where a row&rsquo;s actions live. B and C are kept below for the record; they group, which is now ruled out.',
+            '<b>A y D son la elecci&oacute;n viva</b> &mdash; los dos filtran, y s&oacute;lo difieren en d&oacute;nde viven las acciones del rengl&oacute;n. B y C se conservan abajo como registro; agrupan, que ya qued&oacute; descartado.'],
+  ruledOut:['RULED OUT &mdash; this board groups, and grouping lost.',
+            'DESCARTADO &mdash; este board agrupa, y agrupar qued&oacute; fuera.'],
 
   sheeth:['The add / edit form','La hoja de agregar / editar'],
   sheetdecided:['<b>Settled.</b> <b>S2</b> &mdash; a Sheet rising from the bottom on the phone, a centred panel on the desktop. And the selected course segment is <b>dark, not green</b>: the catalogue is dark territory, and a course is not the weekly plan. Both are drawn that way here.<br><br>Still open, and independent of the board you pick: <code>1g</code> draws <span style="color:#8a2323">used 3&times; in the last 8 weeks</span>, which the app has no way to compute. Under the map&rsquo;s <i>New features</i> rule that looks like it should be dropped.',
                 '<b>Decidido.</b> <b>S2</b> &mdash; una hoja que sube desde abajo en el tel&eacute;fono, y un panel centrado en el escritorio. Y el segmento del curso seleccionado va en <b>oscuro, no en verde</b>: el cat&aacute;logo es territorio oscuro, y un curso no es el plan semanal. As&iacute; est&aacute;n dibujados aqu&iacute;.<br><br>Sigue abierto, e independiente del board que elijas: <code>1g</code> dibuja <span style="color:#8a2323">usado 3&times; en las &uacute;ltimas 8 semanas</span>, que la app no puede calcular. Bajo la regla de <i>New features</i> del mapa, parece que debe eliminarse.'],
 
-  filterLbl:['A &mdash; chips FILTER','A &mdash; los chips FILTRAN'],
-  groupLbl:['B &mdash; chips GROUP','B &mdash; los chips AGRUPAN'],
+  filterLbl:['Three chips &mdash; <code>1f</code> exactly','Tres chips &mdash; <code>1f</code> tal cual'],
+  groupLbl:['Four chips &mdash; with All','Cuatro chips &mdash; con Todos'],
   catalogue:['Catalogue','Cat&aacute;logo'],
   opens:['&middot;&middot;&middot; opens','&middot;&middot;&middot; abre'],
   rowOpens:['the row opens','el rengl&oacute;n abre'],
-  offscreen:['the other two courses are off screen &mdash; a filter and a by-course grid cannot both exist',
-             'los otros dos cursos no est&aacute;n en pantalla &mdash; un filtro y una cuadr&iacute;cula por curso no pueden coexistir'],
+  offscreen:['The desktop is the same filtered list, one column wider. The three columns are gone: a filter and a by-course grid cannot both exist, and the filter won.',
+             'El escritorio es la misma lista filtrada, una columna m&aacute;s ancha. Las tres columnas desaparecen: un filtro y una cuadr&iacute;cula por curso no pueden coexistir, y gan&oacute; el filtro.'],
   cannot:['the app cannot compute this','la app no puede calcular esto'],
   dimmed:['dishes &middot; dimmed','platillos &middot; atenuado'],
   phoneW:['Phone &mdash; 390px','Tel&eacute;fono &mdash; 390px'],
@@ -269,8 +271,10 @@ function head(wide){
     t('dishes') + '</div><div class="t-meta" style="margin-top:4px">' + t('total') +
     '</div></div><button class="btn btn-dark">' + t('addDish') + '</button></div>';
 }
-function filterChips(style){
-  return '<div class="chips"' + (style ? ' style="' + style + '"' : '') + '><button class="chip on">' +
+function filterChips(style, withAll){
+  const all = withAll ? '<button class="chip on">' + t('all') + ' 9</button>' : '';
+  const first = withAll ? '<button class="chip">' : '<button class="chip on">';
+  return '<div class="chips"' + (style ? ' style="' + style + '"' : '') + '>' + all + first +
     t('soups') + ' 3</button><button class="chip">' + t('sides') + ' 3</button><button class="chip">' +
     t('mains') + ' 3</button></div>';
 }
@@ -282,12 +286,16 @@ function tabbar(){
   return '<div class="tabbar"><div class="t-tab">' + t('plan') + '</div><div class="t-tab on">' + t('dishes') +
     '</div><div class="t-tab">' + t('history') + '</div><div class="t-tab">' + t('more') + '</div></div>';
 }
-function phone(b){
+/* When the All chip is the active one, every course is on screen at once. */
+function shown(withAll){
+  return withAll ? COURSES.reduce((a, c) => a.concat(DISHES[c]), []) : DISHES.soup;
+}
+function phone(b, withAll){
   let body;
-  if (b === 'A')      body = filterChips() + '<div class="list">' + DISHES.soup.map(d => item(d[0],d[1],'dots')).join('') + '</div>';
+  if (b === 'A')      body = filterChips(null, withAll) + '<div class="list">' + shown(withAll).map(d => item(d[0],d[1],'dots')).join('') + '</div>';
   else if (b === 'B') body = COURSES.map(c => groupHead(c) + '<div class="list">' + DISHES[c].map(d => item(d[0],d[1],'dots')).join('') + '</div>').join('');
   else if (b === 'C') body = COURSES.map(c => groupHead(c) + '<div class="list">' + DISHES[c].map(d => item(d[0],d[1],'edit')).join('') + '</div>').join('');
-  else                body = filterChips() + '<div class="list">' + DISHES.soup.map(d => itemTap(d[0],d[1])).join('') + '</div>';
+  else                body = filterChips(null, withAll) + '<div class="list">' + shown(withAll).map(d => itemTap(d[0],d[1])).join('') + '</div>';
   return '<div class="frame">' + head(false) + '<div style="padding-bottom:16px">' + body + '</div>' + tabbar() + '</div>';
 }
 function actionSheet(){
@@ -310,7 +318,7 @@ function desktop(b){
                            : DISHES.soup.map(d => itemTap(d[0],d[1])).join('');
     body = '<div style="padding:18px 30px 0">' + filterChips('padding:0') + '</div>' +
       '<div style="padding:0 30px 24px"><div class="list" style="border:1px solid var(--rule);border-radius:var(--radius-card)">' +
-      rows + '</div><div class="t-meta" style="margin-top:12px;color:#8a2323">' + x('offscreen') + '</div></div>';
+      rows + '</div><div class="t-meta" style="margin-top:12px;max-width:62ch">' + x('offscreen') + '</div></div>';
   } else {
     body = '<div class="grid3">' + COURSES.map(c => gcol(c, b === 'B' ? 'dots' : 'edit')).join('') + '</div>';
   }
@@ -345,8 +353,8 @@ const BOARDS = {
   A:{name:['A &mdash; Filter chips over one list','A &mdash; Chips que filtran sobre una lista'],
      blurb:['<code>1f</code> taken literally. The chips are a switch; one course on screen at a time. Each row has <code>&middot;&middot;&middot;</code>, which opens a small sheet with Edit and Delete. <code>+ Add dish</code> does not know the course, so the sheet has to ask for it.',
             '<code>1f</code> al pie de la letra. Los chips son un interruptor; un curso en pantalla a la vez. Cada rengl&oacute;n tiene <code>&middot;&middot;&middot;</code>, que abre una hoja peque&ntilde;a con Editar y Eliminar. <code>+ Agregar platillo</code> no sabe el curso, as&iacute; que la hoja tiene que preguntarlo.'],
-     cost:['COST: you never see the whole catalogue at once, and the desktop loses the three columns.',
-           'COSTO: nunca ves el cat&aacute;logo completo de una vez, y el escritorio pierde las tres columnas.']},
+     cost:['The <code>&middot;&middot;&middot;</code> is a small target beside a large row, and it is the only thing on the row that does anything.',
+           'El <code>&middot;&middot;&middot;</code> es un blanco peque&ntilde;o al lado de un rengl&oacute;n grande, y es lo &uacute;nico del rengl&oacute;n que hace algo.']},
   B:{name:['B &mdash; Grouped list, <code>&middot;&middot;&middot;</code> per row','B &mdash; Lista agrupada, <code>&middot;&middot;&middot;</code> por rengl&oacute;n'],
      blurb:['No chips. The three courses are headings in one list, each with its own count and its own <code>+ Add</code> &mdash; so the course is known before the form opens, the way the app works today. The row action is still <code>&middot;&middot;&middot;</code>.',
             'Sin chips. Los tres cursos son encabezados dentro de una lista, cada uno con su cuenta y su <code>+ Agregar</code> &mdash; as&iacute; el curso se sabe antes de abrir el formulario, como funciona la app hoy. La acci&oacute;n del rengl&oacute;n sigue siendo <code>&middot;&middot;&middot;</code>.'],
@@ -371,12 +379,14 @@ function render(){
   document.getElementById('wDesk').innerHTML = x('wDesk');
 
   document.getElementById('compare').innerHTML =
-    '<div><div class="state">' + x('filterLbl') + '</div>' + phone('A') + '</div>' +
-    '<div><div class="state">' + x('groupLbl') + '</div>' + phone('B') + '</div>';
+    '<div><div class="state">' + x('filterLbl') + '</div>' + phone('A', false) + '</div>' +
+    '<div><div class="state">' + x('groupLbl') + '</div>' + phone('A', true) + '</div>';
 
   const b = BOARDS[BOARD];
+  const out = (BOARD === 'B' || BOARD === 'C')
+    ? '<span class="cost" style="margin:0 0 8px;display:block;font-weight:600">' + x('ruledOut') + '</span>' : '';
   document.getElementById('boardlabel').innerHTML =
-    '<span class="bname">' + b.name[L] + '</span>' + b.blurb[L] +
+    out + '<span class="bname">' + b.name[L] + '</span>' + b.blurb[L] +
     '<span class="cost">' + b.cost[L] + '</span>';
 
   if (WIDTH === 'phone'){
