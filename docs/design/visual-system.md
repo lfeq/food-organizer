@@ -31,9 +31,10 @@ sidebar).
   custom properties.
 - **Copy.** Every visible string goes through `src/i18n.ts` (ADR-0001). The
   English words in the mockup are placeholders for keys, not content.
-- **Accessibility remediation.** The [contrast audit](#contrast-audit) below
-  reports the numbers; four of them fail WCAG AA and the fix is decided
-  elsewhere.
+- **Accessibility.** **WCAG 2.1 AA is the floor**, and this document clears it:
+  `4.5:1` for every text pairing, `3:1` for any glyph that is the only
+  indication of a control. The [contrast audit](#contrast-audit) below is the
+  record — every pairing measured, and the three that once failed decided.
 
 ## How the mockup was read
 
@@ -84,11 +85,19 @@ unknown one.
 | --- | --- | --- |
 | `--ink` | `#191817` | Everything that must be read: dish names, headings, button labels, the day a card is for. |
 | `--ink-secondary` | `#6d6862` | Sans prose that supports the primary line — the "soup · side" summary under a main, an explanatory sentence. |
-| `--ink-muted` | `#8b857d` | **Mono only.** Labels, dates, counts, authorship, and every eyebrow. If text is muted and not mono, it is `--ink-secondary`, not this. |
-| `--ink-faint` | `rgba(25,24,23,.3)` | Non-essential glyphs: the `⋯` overflow dot, the `→` chevron, an inactive `↻`. See the [contrast audit](#contrast-audit) — this is decorative weight, and anything interactive needs more. |
+| `--ink-muted` | `#6d6862` | **Mono only.** Labels, dates, counts, authorship, and every eyebrow. If text is muted and not mono, it is `--ink-secondary`, not this. Same value as `--ink-secondary`, two tokens because they are two jobs: a label reads as a label through family, case, size and weight, never through colour. See the [contrast audit](#contrast-audit). |
+| `--ink-faint` | `rgba(25,24,23,.3)` | **Decoration only**, and the one token in this document that does not clear `4.5:1`. Its single use is the `→` on a history row, which sits beside a high-contrast date on a card that is *itself* the control: the arrow repeats what the card already says. Never put it on a glyph that carries a job of its own. |
 | `--ink-on-inverse` | `#fffefb` | Text and glyphs on `--ground-inverse`. |
 | `--ink-on-inverse-muted` | `rgba(255,254,251,.62)` | Idle sidebar navigation items. |
-| `--ink-on-inverse-faint` | `rgba(255,254,251,.4)` | Sidebar footer metadata. |
+| `--ink-on-inverse-faint` | `rgba(255,254,251,.55)` | Sidebar footer metadata, and the instance name under the brand. A step dimmer than the idle nav items, and still past `4.5:1`. |
+
+**Standing rule — a glyph that is the whole control is not decoration.** If a
+mark carries an action on its own, with no text label beside it, it is a
+control and takes real ink (`--ink` or `--ink-secondary`), never
+`--ink-faint`. The `⋯` on a catalogue row is the one such mark in this design.
+Where a glyph merely accompanies a label — the `↻` in `↻ Reroll day`, the `→`
+in `Next week →` — it is *text inside* that control and takes the control's own
+colour; it is not a glyph question at all.
 
 ### Accent
 
@@ -403,6 +412,12 @@ and the accounts list run edge to edge, and only their *contents* are inset by
 `16px`. Everything else on those screens respects the gutter. This is what
 makes a long list read as a continuous sheet rather than a stack of cards.
 
+A catalogue row's trailing `⋯` is `--ink-secondary`, not `--ink-faint`: it is
+the row's only control and has no text beside it. A history row's trailing `→`
+*is* `--ink-faint`, because the whole card is the control and the arrow only
+repeats that. Being an unlabelled control, the `⋯` also needs an accessible
+name when it is built.
+
 A **day card** is a three-part row: a fixed `44px` mono day gutter
 (`day-label`, day name over day number), the content column, and an optional
 trailing affordance. The gutter width is fixed so that day labels align down
@@ -617,43 +632,72 @@ spec settles on, and why.
 
 ## Contrast audit
 
-Measured against WCAG 2.1 AA (`4.5:1` for body text, `3:1` for text at 18.66px
-bold or 24px regular, and for interactive graphics).
+Measured against WCAG 2.1 AA. **The floor this system holds itself to:**
+`4.5:1` for every text pairing, and `3:1` for any glyph that is the only
+indication of a control. The large-text exemption (`3:1` at 18.66px bold or
+24px regular) is **not claimed anywhere**: the mono labels this palette was
+thinnest on run at 9–11px, so no realistic size or weight change could reach
+that threshold. Contrast here is a colour question and was settled as one.
 
 | Foreground | Ground | Ratio | Verdict |
 | --- | --- | --- | --- |
 | `--ink` `#191817` | `--ground-page` `#f6f4ef` | 15.8:1 | Pass |
+| `--ink-secondary` `#6d6862` | `--ground-page` | 5.0:1 | Pass |
 | `--ink-secondary` `#6d6862` | `--ground-surface` `#fffefb` | 5.5:1 | Pass |
-| `--ink-muted` `#8b857d` | `--ground-surface` `#fffefb` | 3.2:1 | **Fails** — used at 9–11px |
-| `--ink-muted` `#8b857d` | `--ground-page` `#f6f4ef` | 2.97:1 | **Fails** — the thinnest pairing in the system, and short of even the 3:1 large-text floor |
-| `--ink-faint` `rgba(25,24,23,.3)` | `--ground-surface` `#fffefb` | 1.9:1 | **Fails** — and it is used on `↻` and `→`, which are controls |
-| `--accent` `#2d6a4d` | `--ground-surface` `#fffefb` | 6.3:1 | Pass |
+| `--ink-muted` `#6d6862` | `--ground-page` | 5.0:1 | Pass |
+| `--ink-muted` `#6d6862` | `--ground-surface` | 5.5:1 | Pass |
+| `--ink-faint` `rgba(25,24,23,.3)` | `--ground-surface` | 1.9:1 | **Decorative only** — see below |
+| `--accent` `#2d6a4d` | `--ground-surface` | 6.3:1 | Pass |
 | `--ink-on-accent` `#fffefb` | `--accent` `#2d6a4d` | 6.4:1 | Pass |
 | `--ink-on-inverse` `#fffefb` | `--ground-inverse` `#191817` | 17.6:1 | Pass |
 | `--ink-on-inverse-muted` `rgba(255,254,251,.62)` | `--ground-inverse` | 7.4:1 | Pass |
-| `--ink-on-inverse-faint` `rgba(255,254,251,.4)` | `--ground-inverse` | 3.8:1 | **Fails** — used at 11px |
+| `--ink-on-inverse-faint` `rgba(255,254,251,.55)` | `--ground-inverse` | 6.0:1 | Pass |
 | `--notice-ink` `#6b4c1c` | `--notice-ground` `#faf3e2` | 7.1:1 | Pass |
 | `--notice-ink-secondary` `#7a5a26` | `--notice-ground` | 5.7:1 | Pass |
 | `--notice-ink-action` `#8a6023` | `--notice-ground` | 5.0:1 | Pass |
 
-Four failures, and they are not equivalent:
+### What was decided, and why
 
-- **`--ink-muted` at 2.97–3.2:1** is the systemic one. It carries every mono
-  label, date, count and eyebrow — a large share of the text on every screen —
-  at 9–11px, the sizes with the least tolerance for low contrast.
-- **`--ink-faint` at 1.9:1** is the sharp one. The `↻` reroll glyph and the `→`
-  chevron are *controls*, and at that ratio they are close to invisible as
-  affordances.
-- **`--ink-on-inverse-faint` at 3.8:1** affects only the sidebar footer.
+An earlier draft of this table reported three failing text pairings. Each was
+resolved by moving a value, not by claiming an exemption.
 
-**This spec does not fix them**, because darkening `--ink-muted` shifts the
-whole feel of the design and that is a decision for the household, not a
-mechanical correction. The numbers are recorded so the choice is made with them
-in hand.
+**`--ink-muted` was `#8b857d`** — 3.3:1 on the page ground, 3.6:1 on a
+surface — and it carries every mono label, date, count and eyebrow, a large
+share of the text on every screen. It is now `#6d6862`, the same value as
+`--ink-secondary`.
+
+That collapse is the interesting part. The warm-grey ramp between "clears
+`4.5:1` on the page ground" (`#756f67`) and `--ink-secondary` (`#6d6862`) is
+**eight levels wide**, and at 9–11px those two greys are indistinguishable. So
+the muted-versus-secondary *colour* step cannot survive an AA floor: there is
+no room left below secondary in which to be muted. Rather than keep a
+nominally lighter grey that nobody can see, the two tokens now share a value
+and keep their separate names, exactly as `--ink` and `--ground-inverse` do
+(contradiction 21). The design loses nothing it was using: at `600 9px`
+uppercase with `.14em` tracking, an eyebrow is unmistakably a label. The
+muted-paper feel lives in the grounds and the hairline rules, not in one grey
+being eight levels lighter than another.
+
+**`--ink-on-inverse-faint` was `rgba(255,254,251,.4)`** — 3.8:1, on the desktop
+sidebar's footer and instance name at 11px. It is now `.55`, which clears
+`4.5:1` while staying a perceptible step below the idle nav items at `.62`.
+Unlike the grey above, this range had room to keep the step.
+
+**`--ink-faint` stays at `rgba(25,24,23,.3)` and stops being a control
+colour.** Its brief once read "the `⋯` overflow dot, the `→` chevron, an
+inactive `↻`", and at 1.9:1 that was the sharpest failure in the system. Two
+of those three uses turned out not to exist: the `↻` is text inside a labelled
+button, and the week stepper's `→` is text inside `Next week →`. What remained
+was one genuine control — the unlabelled `⋯` on a catalogue row, which now
+takes `--ink-secondary` — and one genuine decoration: the `→` on a history
+row, beside a high-contrast date, on a card that is itself the control. WCAG
+1.4.11 asks for `3:1` on graphics *required to understand the content*; that
+arrow is required for nothing. It is the only mark in the system below the
+floor, and it is below it on purpose. The [standing rule](#ink) above keeps it
+that way.
 
 ## Open questions this spec deliberately leaves
 
-- **The contrast failures above.** They need a decision, not a default.
 - **Which week-screen variant is the direction.** `1b` is the designer's own
   pick; nothing in this document depends on the answer.
 - **What the week-stepper affordance looks like.** `Next week →` / `← This
