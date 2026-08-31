@@ -18,22 +18,24 @@ awaiting a per-screen judgement call.
 **Covers:** colour roles, the type scale and the Sans/Mono split rule, the
 spacing scale, radii, borders, elevation, and the component variants
 (buttons, cards, chips, badges, fields, list rows, notice, sheet, tab bar,
-sidebar).
+sidebar), and the interactive states every one of them takes.
 
 **Does not cover:**
 
 - **Per-screen layout.** How the desktop grid reflows within a screen is a
   separate decision on the redesign map. The week-screen variant (`1b`) and
   what the sidebar becomes on a phone are now settled and written up above.
-- **How this gets implemented.** Whether `styles.css` stays one file, splits,
-  or becomes tokens plus components is an open question. This document names
-  tokens so that discussion has something to name; it does not mandate CSS
-  custom properties.
+- **How this gets implemented.** Settled separately, in
+  [CSS structure](./css-structure.md): the tokens named here *are* CSS custom
+  properties on `:root` under these exact names, `styles.css` splits into
+  `src/styles/`, and there is one literal `@media (min-width: 900px)`. That
+  document decides the shape of the code; this one decides the design.
 - **Copy.** Every visible string goes through `src/i18n.ts` (ADR-0001). The
   English words in the mockup are placeholders for keys, not content.
-- **Accessibility remediation.** The [contrast audit](#contrast-audit) below
-  reports the numbers; four of them fail WCAG AA and the fix is decided
-  elsewhere.
+- **Accessibility.** **WCAG 2.1 AA is the floor**, and this document clears it:
+  `4.5:1` for every text pairing, `3:1` for any glyph that is the only
+  indication of a control. The [contrast audit](#contrast-audit) below is the
+  record — every pairing measured, and the three that once failed decided.
 
 ## How the mockup was read
 
@@ -72,6 +74,8 @@ unknown one.
 | `--ground-page` | `#f6f4ef` | The screen itself: the warm paper everything sits on. Every phone screen and the desktop content column. |
 | `--ground-surface` | `#fffefb` | Anything that lifts off the page: cards, the sheet, list blocks, the tab bar. The lightest ground in the system. |
 | `--ground-inverse` | `#191817` | Ink used as a ground: the desktop sidebar, dark buttons, badges. |
+| `--inverse-hover` | `#2c2a28` | An inverse fill under the cursor. See [Interactive states](#interactive-states). |
+| `--inverse-pressed` | `#0f0e0e` | An inverse fill being pressed. |
 | `--ground-notice` | `#faf3e2` | The amber notice, and the inline highlight on a repeated dish name. **Reserved for the short-catalogue notice and nothing else.** |
 | `--ground-sunken` | `rgba(25,24,23,.05)` | An explanatory block recessed into the page (the admin-rights note in `1k`). No border. |
 | `--ground-chip` | `rgba(25,24,23,.07)` | An unselected chip in a filter row. |
@@ -84,11 +88,19 @@ unknown one.
 | --- | --- | --- |
 | `--ink` | `#191817` | Everything that must be read: dish names, headings, button labels, the day a card is for. |
 | `--ink-secondary` | `#6d6862` | Sans prose that supports the primary line — the "soup · side" summary under a main, an explanatory sentence. |
-| `--ink-muted` | `#8b857d` | **Mono only.** Labels, dates, counts, authorship, and every eyebrow. If text is muted and not mono, it is `--ink-secondary`, not this. |
-| `--ink-faint` | `rgba(25,24,23,.3)` | Non-essential glyphs: the `⋯` overflow dot, the `→` chevron, an inactive `↻`. See the [contrast audit](#contrast-audit) — this is decorative weight, and anything interactive needs more. |
+| `--ink-muted` | `#6d6862` | **Mono only.** Labels, dates, counts, authorship, and every eyebrow. If text is muted and not mono, it is `--ink-secondary`, not this. Same value as `--ink-secondary`, two tokens because they are two jobs: a label reads as a label through family, case, size and weight, never through colour. See the [contrast audit](#contrast-audit). |
+| `--ink-faint` | `rgba(25,24,23,.3)` | **Decoration only**, and the one token in this document that does not clear `4.5:1`. Its single use is the `→` on a history row, which sits beside a high-contrast date on a card that is *itself* the control: the arrow repeats what the card already says. Never put it on a glyph that carries a job of its own. |
 | `--ink-on-inverse` | `#fffefb` | Text and glyphs on `--ground-inverse`. |
 | `--ink-on-inverse-muted` | `rgba(255,254,251,.62)` | Idle sidebar navigation items. |
-| `--ink-on-inverse-faint` | `rgba(255,254,251,.4)` | Sidebar footer metadata. |
+| `--ink-on-inverse-faint` | `rgba(255,254,251,.55)` | Sidebar footer metadata, and the instance name under the brand. A step dimmer than the idle nav items, and still past `4.5:1`. |
+
+**Standing rule — a glyph that is the whole control is not decoration.** If a
+mark carries an action on its own, with no text label beside it, it is a
+control and takes real ink (`--ink` or `--ink-secondary`), never
+`--ink-faint`. The `⋯` on a catalogue row is the one such mark in this design.
+Where a glyph merely accompanies a label — the `↻` in `↻ Reroll day`, the `→`
+in `Next week →` — it is *text inside* that control and takes the control's own
+colour; it is not a glyph question at all.
 
 ### Accent
 
@@ -97,7 +109,8 @@ One green, used sparingly.
 | Token | Value | What it is for |
 | --- | --- | --- |
 | `--accent` | `#2d6a4d` | The primary plan action, links, inline text actions, the selected segmented cell, the active tab's underline, the text caret. |
-| `--accent-hover` | `#1f4d38` | Hover on a link or an accent-coloured text action. |
+| `--accent-hover` | `#1f4d38` | Hover on a link, an accent-coloured text action, or an accent fill. |
+| `--accent-pressed` | `#184029` | An accent fill being pressed. See [Interactive states](#interactive-states). |
 | `--ink-on-accent` | `#fffefb` | Text on `--accent`. |
 
 The mockup never uses the accent as a large fill except on a button. It is a
@@ -161,9 +174,70 @@ IBM Plex Mono  400 500 600
 ```
 
 Fallback stacks: `'IBM Plex Sans', system-ui, sans-serif` and
-`'IBM Plex Mono', ui-monospace, monospace`. **Whether these are served from
-Google Fonts or self-hosted is a separate decision** and does not affect
-anything below.
+`'IBM Plex Mono', ui-monospace, monospace`. Both are used **plain**, with no
+metric tuning. Note that `src/styles.css` today writes bare `monospace`, which
+resolves to a slab serif on some platforms; the value above is the binding one.
+
+How they are served is settled in [Loading the fonts](#loading-the-fonts)
+below, and does not affect the scales.
+
+### Loading the fonts
+
+Self-hosted from Fontsource's pre-built subsets, **vendored** into
+`public/fonts/` under stable filenames with a hand-written `@font-face` block.
+Fontsource is the source of the bytes, not a runtime import: nothing resolves
+its CSS at build time, so no hashed filename ever has to be recovered from
+Vite's manifest.
+
+Because the `@font-face` blocks are hand-written, the app **chooses the family
+names**, and names them `IBM Plex Sans` and `IBM Plex Mono` — matching the
+stacks above. Importing Fontsource's own CSS would have registered the variable
+Sans as `IBM Plex Sans Variable` and forced that name into every stack.
+
+Four files, latin subset, 89 KB total:
+
+| File | Bytes | Weights | Preloaded |
+| --- | --- | --- | --- |
+| `ibm-plex-sans-latin-wght-normal.woff2` | 45,712 | variable, 400–700 | **yes** |
+| `ibm-plex-mono-latin-600-normal.woff2` | 15,620 | 600 | **yes** |
+| `ibm-plex-mono-latin-400-normal.woff2` | 14,708 | 400 | no |
+| `ibm-plex-mono-latin-500-normal.woff2` | 14,888 | 500 | no |
+
+Mono has no variable build on Fontsource, which is why it is three files where
+Sans is one.
+
+**`font-display: optional` on all four.** A cold visit that misses the ~100 ms
+window renders entirely in the fallback for that page load, and picks up Plex
+from cache on the next one. The alternative, `swap`, was declined: it reflows
+dish names — the densest and most-read text on the phone — and Plex Sans is
+appreciably wider than the `system-ui` faces it would replace.
+
+**Preload the two weights the design cannot do without**: the variable Sans,
+which carries every dish name, and Mono 600, which is the structural weight
+behind every eyebrow, day label, course label, badge, chip and tab. Without a
+preload a font is discovered a round-trip late, after `styles.css` parses, and
+under `optional` that reliably loses the window. Preloading only Sans would
+have shipped a first visit with Plex dish names beside system-mono labels —
+the Sans/Mono split rule half-applied, which reads worse than not applied.
+Mono 400 and 500 are left to arrive on their own; they carry metadata and the
+outlined tag, where the substitution barely reads.
+
+**Cache the directory as immutable.** `optional` only pays off if the second
+visit finds the fonts already in cache and inside the window, so a
+revalidation round-trip would quietly defeat it. Stable filenames carry no
+content hash, so the policy must be declared — in **Nitro `routeRules`**, not
+`vercel.json`, whose `headers` key is ignored under the Build Output API that
+Nitro emits:
+
+```
+'/fonts/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } }
+```
+
+The price of `immutable` on unhashed names: **upgrading IBM Plex means renaming
+the files by hand.**
+
+Those weight sets are **closed**, and stay closed even though Sans is a
+variable font whose axis makes extra weights free. See [Weight](#weight).
 
 ### The Sans/Mono split rule
 
@@ -231,6 +305,65 @@ the week-screen direction, it overrides the split rule *on that screen only*.
 | `note` | `400 11px/1.6` | A mono paragraph — the sign-in explanation, the admin-rights block, the "added by … used 3× …" footer. |
 
 `meta` and `note` differ only in leading: `note` is for two or more lines.
+
+### Weight
+
+Both scales draw from a **closed set** of weights, and the two families are
+closed for different reasons:
+
+```
+IBM Plex Sans  400 500 600 700   closed by discipline
+IBM Plex Mono  400 500 600       closed by file cost
+```
+
+Sans is a **variable** font — one 45,712 B file carrying the continuous
+100–700 axis — so four weights and forty weights cost exactly the same. The set
+stays four anyway, because the four were never a budget. They are a ladder of
+four jobs:
+
+| Weight | Job | Roles that use it |
+| --- | --- | --- |
+| `700` | Titles | `title-page-desktop`, `title-page`, `title-sheet`. Sans only. |
+| `600` | Emphasis and controls | `dish-hero`, `dish-card`, the `button*` roles; and on the mono side `eyebrow`, `course-label`, `day-label`, `badge`, and the active state of `chip` and `tab`. |
+| `500` | Rows and inline actions | `dish-today`, `item-name`, `link-inline`, the Secondary button's label (the one component that steps `button` down a rung), mono `tag`, idle `chip`. |
+| `400` | Prose and metadata | `body`, `body-sm`, `meta-sans`, mono `meta` and `note`, idle `tab`. |
+
+**A fifth weight would need a fifth job, not a fifth number.** The axis being
+free is not a reason to spend it: a discrete set keeps seven screens
+consistent and keeps `font-weight` a token rather than a number anyone can
+invent. That discipline got *more* load-bearing, not less, when the palette's
+accessibility floor collapsed `--ink-muted` onto `--ink-secondary` — a label
+now reads as a label through family, case, size and weight, and weight is the
+only one of the four that a careless component can change by accident.
+
+**No in-between values, and no optical compensation by size.** The tempting
+use of a free axis is to render small text a little heavier — Sans `600` at
+`button-sm`'s 11px is thinner on the page than the same `600` at
+`dish-hero`'s 21px. Declined: making weight a function of size means `600`
+stops meaning one thing, and every component that changes size across the
+900px breakpoint would silently change weight with it. If a small control
+reads thin, move it up the ladder in the scale table, where the change is
+visible, rather than bending the value underneath it.
+
+The `600`/`700` gap, subtle on IBM Plex Sans at small sizes, needs no
+in-between value either: `700` runs only at 16–26px and only on titles, `600`
+at 11–21px, so the two never meet at the same size and the gap is never put to
+a side-by-side test.
+
+**The asymmetry is a constraint, not an oversight.** No variable IBM Plex Mono
+exists on either source, so Mono's three weights are three static files
+(~89 KB together) and a fourth costs both a file and a preload decision.
+Neither family may gain a weight without the other being checked: a split rule
+that applies to only one half of the system reads worse than one not applied
+at all — the same reasoning that preloads Mono `600` alongside the variable
+Sans rather than Sans alone.
+
+**Weight does not animate.** A variable font can interpolate `font-weight`
+continuously, which would let the two state changes that move weight — `tab`
+idle `400` → active `600`, `chip` idle `500` → `600` — transition rather than
+snap. Both are **Mono**, the family that cannot interpolate, so the one place
+this would apply is the one place the font forbids it. Weight changes are
+instant everywhere.
 
 ### Letter-spacing
 
@@ -403,6 +536,12 @@ and the accounts list run edge to edge, and only their *contents* are inset by
 `16px`. Everything else on those screens respects the gutter. This is what
 makes a long list read as a continuous sheet rather than a stack of cards.
 
+A catalogue row's trailing `⋯` is `--ink-secondary`, not `--ink-faint`: it is
+the row's only control and has no text beside it. A history row's trailing `→`
+*is* `--ink-faint`, because the whole card is the control and the arrow only
+repeats that. Being an unlabelled control, the `⋯` also needs an accessible
+name when it is built.
+
 A **day card** is a three-part row: a fixed `44px` mono day gutter
 (`day-label`, day name over day number), the content column, and an optional
 trailing affordance. The gutter width is fixed so that day labels align down
@@ -570,6 +709,129 @@ No navigation chrome appears on sign-in, first-run setup, or forced password
 change: there is either no session, or a session deliberately pinned to one
 screen.
 
+## Interactive states
+
+The mockup is eleven static artboards: it draws a focused field, a selected
+segmented cell, an active tab and a selected chip, and **no other state at
+all**. This section fills that gap for every component above, decided once for
+the system rather than seven times for seven buttons.
+
+Two constraints shape all of it. The design has **no elevation**, so the usual
+lift-on-hover is unavailable — state has to live in ground, border, or ink.
+And the phone is a primary device, so **hover is never the only signal** that
+something is a control.
+
+### The rule: the ground holds still; the border and the ink move
+
+Touching a control **promotes its border**. An outlined or ghost control takes
+its `--rule-control` edge to `--rule-strong`, and any supporting ink darkens to
+`--ink`. Nothing else changes: the ground stays exactly where it was.
+
+This is not a new mechanism. `--rule-strong` already means *emphasis, not
+decoration* in this system — it is what marks the today card and what a focused
+field becomes. Hover generalises that one rule to every control instead of
+introducing a second language beside it.
+
+A **filled** control has no border to promote, so it moves its own fill
+instead, using values the palette already names where it has them:
+
+| | Hover | Pressed |
+| --- | --- | --- |
+| **Accent fill** | `--accent-hover` `#1f4d38` | `--accent-pressed` `#184029` |
+| **Inverse fill** | `--inverse-hover` `#2c2a28` | `--inverse-pressed` `#0f0e0e` |
+| **Outlined / ghost** | border → `--rule-strong` | border → `--rule-strong`, ground → `--ground-sunken` |
+
+`--ink-on-accent` and `--ink-on-inverse` stay put on both; every pairing above
+clears `9.5:1`.
+
+**Pressed is not optional.** On a phone it is the *only* feedback a control
+ever gives, so every interactive component defines one — including those whose
+hover is the more visible half on the desktop. A control that has a hover and
+no pressed state is a bug.
+
+### A surface that contains a control is not itself a control
+
+The **day card takes no state at all**: no hover, no pressed, no focus ring,
+and `cursor: default`. What is interactive inside it is the reroll button, and
+that button carries the whole affordance. The card is the largest surface on
+the week screen, so giving it a hover would make the desktop look as though the
+whole week were clickable when only seven small buttons are.
+
+This generalises. Where a row or card merely *holds* controls, the surface is
+inert and only the controls inside it take state — the catalogue row, whose
+control is the `⋯`, works the same way. Where the whole row **is** the control
+— the history card, which opens its week — it takes the row treatment below.
+
+### Per component
+
+| Component | Hover | Pressed | Notes |
+| --- | --- | --- | --- |
+| **Primary — plan** | `--accent-hover` | `--accent-pressed` | |
+| **Primary — catalogue** | `--inverse-hover` | `--inverse-pressed` | Same for the full-width form button. |
+| **Secondary** | border → `--rule-strong` | + `--ground-sunken` | |
+| **Small outline** | border → `--rule-strong` | + `--ground-sunken` | |
+| **Icon** | border → `--rule-strong` | + `--ground-sunken` | |
+| **Destructive** | border → `--danger` (from `--danger-rule`) | + `rgba(138,35,35,.08)` | The one control whose border promotes to its *own* colour rather than to ink: a destructive action must not look like an ordinary one at the moment of pressing it. |
+| **Text action** | `--accent-hover`, underlined | — | The mockup's own link hover, and the only place an underline appears on hover. |
+| **Field** | no hover | — | Focus is its state; the spec's existing rule (border → `--rule-strong`) is unchanged. |
+| **List row** *(when the row is the control)* | `inset 2px 0 0 --rule-strong` on the leading edge | + `--ground-sunken` | Drawn as an inset border, not a shadow: it is a rule, and rules are how this design marks emphasis. A ground wash would fight the list block's own surface. |
+| **Day card** | none | none | See above — the card is not a control. |
+| **Chip, idle** | border → `--rule-strong`, ink → `--ink` | + `--ground-sunken` | |
+| **Chip, selected** | `--inverse-hover` | `--inverse-pressed` | It is an inverse fill; it behaves like one. |
+| **Tab (phone)** | ink → `--ink` | ink → `--ink` | No ground change: the bar is a fixed surface and a washed cell reads as a modal state. The active cell's `2px --accent` top border is unaffected by hover. |
+| **Sidebar item** | ink → `--ink-on-inverse` | ink → `--ink-on-inverse` | The item's own `rgba(255,254,251,.12)` ground stays reserved for *active*, so hover and active never look alike. |
+
+### Focus ring
+
+`2px solid --accent`, `outline-offset: 2px`, on **`:focus-visible` only** —
+never on `:focus`, so a mouse click never leaves a ring behind.
+
+`--accent` measures `5.82:1` on `--ground-page` and `6.35:1` on
+`--ground-surface`, both clear of the `3:1` floor for a non-text indicator.
+Using the accent rather than ink also keeps focus **distinct from hover**,
+which in this system is an ink border: the two states never render as the same
+mark on the same control.
+
+**One exception, forced by contrast.** On `--ground-inverse` the accent ring
+measures `2.77:1` and misses the floor, so every control on the dark sidebar
+takes an `--ink-on-inverse` ring instead (`17.58:1`).
+
+The ring is drawn with `outline`, not `box-shadow` — [Elevation](#elevation)
+holds even here, and an outline follows the border radius without a second
+element.
+
+### Disabled
+
+Filled buttons drop to **`opacity: .55`**. Outlined and ghost controls keep
+full opacity and instead take `--ink-muted` ink over a `--rule-inset` border,
+so their edge thins rather than going mushy.
+
+Two treatments rather than one because the levers differ: fading an outlined
+control attacks a `1px` hairline that is close to invisible already, while
+fading a fill leaves a shape that is still clearly a button. At `.55` the
+accent fill measures `2.37:1` and the inverse fill `3.85:1` against the page —
+below the text floor, which is [permitted for disabled
+controls](#contrast-audit) and is the point: a disabled control should read as
+unavailable at a glance.
+
+A disabled control takes **no** hover, pressed, or focus-visible state, and
+`cursor: not-allowed`. It must carry the real `disabled` attribute (or
+`aria-disabled` where focusability is wanted), never colour alone.
+
+Where this actually appears: **Generate week** with an empty catalogue, and
+**Save dish** with an empty name.
+
+### Transition
+
+`120ms` on `background-color`, `border-color`, `color` and `box-shadow` only.
+**Nothing moves** — no transform, no translate, no scale — which follows from
+having no elevation: there is no third dimension in this design to move
+through. Pressed states apply instantly enough at `120ms` to feel attached to
+the finger.
+
+This is unrelated to the draw animation discussed under [Motion](#motion),
+which is a behaviour decision rather than a visual-system one.
+
 ## Motion
 
 The mockup carries one motion cue, in the live artboard `1e`: generating or
@@ -617,43 +879,72 @@ spec settles on, and why.
 
 ## Contrast audit
 
-Measured against WCAG 2.1 AA (`4.5:1` for body text, `3:1` for text at 18.66px
-bold or 24px regular, and for interactive graphics).
+Measured against WCAG 2.1 AA. **The floor this system holds itself to:**
+`4.5:1` for every text pairing, and `3:1` for any glyph that is the only
+indication of a control. The large-text exemption (`3:1` at 18.66px bold or
+24px regular) is **not claimed anywhere**: the mono labels this palette was
+thinnest on run at 9–11px, so no realistic size or weight change could reach
+that threshold. Contrast here is a colour question and was settled as one.
 
 | Foreground | Ground | Ratio | Verdict |
 | --- | --- | --- | --- |
 | `--ink` `#191817` | `--ground-page` `#f6f4ef` | 15.8:1 | Pass |
+| `--ink-secondary` `#6d6862` | `--ground-page` | 5.0:1 | Pass |
 | `--ink-secondary` `#6d6862` | `--ground-surface` `#fffefb` | 5.5:1 | Pass |
-| `--ink-muted` `#8b857d` | `--ground-surface` `#fffefb` | 3.2:1 | **Fails** — used at 9–11px |
-| `--ink-muted` `#8b857d` | `--ground-page` `#f6f4ef` | 2.97:1 | **Fails** — the thinnest pairing in the system, and short of even the 3:1 large-text floor |
-| `--ink-faint` `rgba(25,24,23,.3)` | `--ground-surface` `#fffefb` | 1.9:1 | **Fails** — and it is used on `↻` and `→`, which are controls |
-| `--accent` `#2d6a4d` | `--ground-surface` `#fffefb` | 6.3:1 | Pass |
+| `--ink-muted` `#6d6862` | `--ground-page` | 5.0:1 | Pass |
+| `--ink-muted` `#6d6862` | `--ground-surface` | 5.5:1 | Pass |
+| `--ink-faint` `rgba(25,24,23,.3)` | `--ground-surface` | 1.9:1 | **Decorative only** — see below |
+| `--accent` `#2d6a4d` | `--ground-surface` | 6.3:1 | Pass |
 | `--ink-on-accent` `#fffefb` | `--accent` `#2d6a4d` | 6.4:1 | Pass |
 | `--ink-on-inverse` `#fffefb` | `--ground-inverse` `#191817` | 17.6:1 | Pass |
 | `--ink-on-inverse-muted` `rgba(255,254,251,.62)` | `--ground-inverse` | 7.4:1 | Pass |
-| `--ink-on-inverse-faint` `rgba(255,254,251,.4)` | `--ground-inverse` | 3.8:1 | **Fails** — used at 11px |
+| `--ink-on-inverse-faint` `rgba(255,254,251,.55)` | `--ground-inverse` | 6.0:1 | Pass |
 | `--notice-ink` `#6b4c1c` | `--notice-ground` `#faf3e2` | 7.1:1 | Pass |
 | `--notice-ink-secondary` `#7a5a26` | `--notice-ground` | 5.7:1 | Pass |
 | `--notice-ink-action` `#8a6023` | `--notice-ground` | 5.0:1 | Pass |
 
-Four failures, and they are not equivalent:
+### What was decided, and why
 
-- **`--ink-muted` at 2.97–3.2:1** is the systemic one. It carries every mono
-  label, date, count and eyebrow — a large share of the text on every screen —
-  at 9–11px, the sizes with the least tolerance for low contrast.
-- **`--ink-faint` at 1.9:1** is the sharp one. The `↻` reroll glyph and the `→`
-  chevron are *controls*, and at that ratio they are close to invisible as
-  affordances.
-- **`--ink-on-inverse-faint` at 3.8:1** affects only the sidebar footer.
+An earlier draft of this table reported three failing text pairings. Each was
+resolved by moving a value, not by claiming an exemption.
 
-**This spec does not fix them**, because darkening `--ink-muted` shifts the
-whole feel of the design and that is a decision for the household, not a
-mechanical correction. The numbers are recorded so the choice is made with them
-in hand.
+**`--ink-muted` was `#8b857d`** — 3.3:1 on the page ground, 3.6:1 on a
+surface — and it carries every mono label, date, count and eyebrow, a large
+share of the text on every screen. It is now `#6d6862`, the same value as
+`--ink-secondary`.
+
+That collapse is the interesting part. The warm-grey ramp between "clears
+`4.5:1` on the page ground" (`#756f67`) and `--ink-secondary` (`#6d6862`) is
+**eight levels wide**, and at 9–11px those two greys are indistinguishable. So
+the muted-versus-secondary *colour* step cannot survive an AA floor: there is
+no room left below secondary in which to be muted. Rather than keep a
+nominally lighter grey that nobody can see, the two tokens now share a value
+and keep their separate names, exactly as `--ink` and `--ground-inverse` do
+(contradiction 21). The design loses nothing it was using: at `600 9px`
+uppercase with `.14em` tracking, an eyebrow is unmistakably a label. The
+muted-paper feel lives in the grounds and the hairline rules, not in one grey
+being eight levels lighter than another.
+
+**`--ink-on-inverse-faint` was `rgba(255,254,251,.4)`** — 3.8:1, on the desktop
+sidebar's footer and instance name at 11px. It is now `.55`, which clears
+`4.5:1` while staying a perceptible step below the idle nav items at `.62`.
+Unlike the grey above, this range had room to keep the step.
+
+**`--ink-faint` stays at `rgba(25,24,23,.3)` and stops being a control
+colour.** Its brief once read "the `⋯` overflow dot, the `→` chevron, an
+inactive `↻`", and at 1.9:1 that was the sharpest failure in the system. Two
+of those three uses turned out not to exist: the `↻` is text inside a labelled
+button, and the week stepper's `→` is text inside `Next week →`. What remained
+was one genuine control — the unlabelled `⋯` on a catalogue row, which now
+takes `--ink-secondary` — and one genuine decoration: the `→` on a history
+row, beside a high-contrast date, on a card that is itself the control. WCAG
+1.4.11 asks for `3:1` on graphics *required to understand the content*; that
+arrow is required for nothing. It is the only mark in the system below the
+floor, and it is below it on purpose. The [standing rule](#ink) above keeps it
+that way.
 
 ## Open questions this spec deliberately leaves
 
-- **The contrast failures above.** They need a decision, not a default.
 - **Which week-screen variant is the direction.** `1b` is the designer's own
   pick; nothing in this document depends on the answer.
 - **What the week-stepper affordance looks like.** `Next week →` / `← This
@@ -661,6 +952,3 @@ in hand.
   it, so its type, weight and placement within the header are unspecified.
 - **Two screens have no artboard:** first-run setup, and forced password
   change. They must be composed from the components above.
-- **Hover, active, disabled, and focus-visible states.** The mockup is static
-  and shows none of them, except the link hover in the canvas chrome
-  (`--accent-hover`). Every interactive component above needs these filled in.
