@@ -566,6 +566,47 @@ header that flips by which week is shown: `Next week →` on this week,
 stay read-only. This applies at **both** widths, which is why the sidebar
 carries four items rather than `1d`'s five.
 
+#### The week stepper
+
+No artboard draws it, so its treatment is specified here rather than read off
+the mockup.
+
+The stepper is the [**Text action**](#buttons) variant — `link-inline`, Sans
+`500 12px`, `--accent`, no border and no ground — placed in the week header
+block **beneath the week range**, left-aligned under it. The same treatment in
+the same slot at both widths: one component, no breakpoint branch. Only the
+range above it changes size (`title-page` on the phone, `title-page-desktop`
+above `900px`).
+
+| Showing | Label |
+| --- | --- |
+| This week | `Next week →` |
+| Next week | `← This week` |
+
+- **The arrow rides the word and trails the direction of travel**: forward, it
+  follows the label; back, it leads. It is text with a normal space, like the
+  `↻` reroll glyph — never an icon asset, and never the whole control. A bare
+  `→` would have to carry "next *week*" alone, beside a `←` meaning "this week"
+  rather than "previous week", which [the accessibility floor](#contrast-audit)
+  forbids: *a glyph that is the whole control is not decoration*.
+- **Green, not ink.** Stepping between two weeks moves the view without
+  touching a plan, so it falls under the same navigation exemption as the
+  [tab bar](#tab-bar-phone)'s active marker: the green/dark rule governs what an
+  action *acts on*, and navigation acts on nothing. This puts two greens on the
+  week screen, only one of which is a plan action — accepted, and the reason the
+  stepper is a text action rather than a second button: a link does not compete
+  with `Generate week` for "the thing to press".
+- **The text action takes a `44px` hit area** from vertical padding, pulled back
+  with an equal negative margin so the header's rhythm is unchanged. This is a
+  standing rule, not a local fix: **a text action on a touch surface pads to a
+  thumb target; the padding never becomes visible spacing.**
+- **It is never a button.** The header's action group holds exactly one control
+  — `Generate week` — at both widths. The stepper is not admitted to it, even on
+  the desktop where `Print` being out of scope leaves the room: the phone
+  header cannot afford a second button in Spanish (`Semana siguiente` beside
+  `Generar semana` overruns `390px` and the group wraps), and
+  [Bilingual fit](#bilingual-fit) forbids a layout that branches on locale.
+
 No navigation chrome appears on sign-in, first-run setup, or forced password
 change: there is either no session, or a session deliberately pinned to one
 screen.
@@ -656,9 +697,6 @@ in hand.
 - **The contrast failures above.** They need a decision, not a default.
 - **Which week-screen variant is the direction.** `1b` is the designer's own
   pick; nothing in this document depends on the answer.
-- **What the week-stepper affordance looks like.** `Next week →` / `← This
-  week` in the week header is settled as the *behaviour*, but no artboard draws
-  it, so its type, weight and placement within the header are unspecified.
 - **Two screens have no artboard:** first-run setup, and forced password
   change. They must be composed from the components above.
 - **Hover, active, disabled, and focus-visible states.** The mockup is static
