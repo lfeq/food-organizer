@@ -78,7 +78,13 @@ on; past weeks are kept as history.
 
 A week with no weekly plan is simply a week nobody has generated: there is no
 such thing as an empty or half-filled plan. A weekly plan comes into existence
-complete, with all seven days and all twenty-one slots, or not at all.
+complete — every [plan day](#plan-day) it holds carries all three
+[slots](#slot) — or not at all.
+
+A plan generated before its week begins holds all seven days. One generated
+once the week is already underway holds only the days still ahead: a plan day
+for a date nobody planned does not exist, so a weekly plan may hold fewer than
+seven days. What it can never hold is a day with nothing in it.
 
 A weekly plan is a record of what was decided, not a live view of the
 catalogue: once generated it holds its own copy of what came out, so deleting a
@@ -102,15 +108,19 @@ same seven days in the same order.
 
 _(Spanish UI: "día del plan")_
 
-One of the seven days of a [weekly plan](#weekly-plan), beginning at the
-instance's [week start](#week-start). Holds three [slots](#slot), one per
-[course](#course).
+One day of a [weekly plan](#weekly-plan), falling on the instance's
+[week start](#week-start) or within the six days that follow it. Holds three
+[slots](#slot), one per [course](#course).
 
 A plan day whose date has passed is **elapsed**, and an elapsed plan day is
 immutable: it can no longer be [regenerated](#regenerating). A weekly plan is a
 record of what was decided, so redrawing a day the household has already eaten
 would rewrite the past rather than change a plan. Elapsed days stay part of the
 week and stay readable; they simply stop being decisions still open.
+
+Immutability is a property of the plan day, not of the screen it is drawn on: a
+request to redraw an elapsed day is refused however it arrives, and hiding the
+control is a courtesy on top of that refusal rather than the rule itself.
 
 ## Slot
 
@@ -143,6 +153,14 @@ plan can be in.
 Generating a week that already has a plan replaces it, and the household is
 told so before it happens. The replacement is the same plan for the same week,
 not a second one: the one-plan-per-week rule holds.
+
+What it replaces is only the days still ahead. An elapsed [plan day](#plan-day)
+is immutable, so generating leaves it exactly as it stands and redraws the rest
+of the week around it. The dishes those days hold still count as used: the
+no-repeat promise is made about the whole week the household is looking at, not
+only the part that was redrawn. That leaves fewer unused dishes to draw from as
+the week wears on, so a course comfortably above seven on the week start can
+still produce a [repeating week](#repeating-week) later on.
 
 ## Regenerating
 
