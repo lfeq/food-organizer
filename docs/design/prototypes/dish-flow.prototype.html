@@ -206,32 +206,35 @@ const t = k => T[k][L];
 const X = {
   lblLang:['Language','Idioma'], lblBoard:['Board','Board'], lblWidth:['Width','Ancho'],
   wPhone:['Phone','Tel&eacute;fono'], wDesk:['Desktop','Escritorio'],
-  h1:['What do the dish catalogue and its add/edit sheet become at both widths?',
-      '&iquest;En qu&eacute; se convierten el cat&aacute;logo de platillos y su hoja de agregar/editar en los dos anchos?'],
-  intro1:['Issue #84 on map #31. Pick a board in the bar above &mdash; one at a time, phone or desktop.',
-          'Issue #84 del mapa #31. Elige un board en la barra de arriba &mdash; uno a la vez, tel&eacute;fono o escritorio.'],
+  h1:['RESOLVED &mdash; What do the dish catalogue and its add/edit sheet become at both widths?',
+      'RESUELTO &mdash; &iquest;En qu&eacute; se convierten el cat&aacute;logo de platillos y su hoja de agregar/editar en los dos anchos?'],
+  intro1:['Issue #84 on map #31, resolved. <b>Board A, with a fourth All chip; the chips filter; the form is a Sheet on the phone and a Panel on the desktop; the selected course segment is dark.</b> The losing boards are kept below on purpose. Pick one in the bar above.',
+          'Issue #84 del mapa #31, resuelto. <b>Board A, con un cuarto chip Todos; los chips filtran; el formulario es una hoja en el tel&eacute;fono y un panel en el escritorio; el segmento del curso va oscuro.</b> Los boards perdedores se conservan abajo a prop&oacute;sito. Elige uno en la barra de arriba.'],
   intro2:['Today the app draws three columns, one per course, with an <b>Edit</b> and a <b>Delete</b> button on every row. The artboard <code>1f</code> draws one list with three chips and a single <code>&middot;&middot;&middot;</code>. Three columns cannot fit a phone, so something has to give.',
           'Hoy la app dibuja tres columnas, una por curso, con un bot&oacute;n <b>Editar</b> y uno de <b>Eliminar</b> en cada rengl&oacute;n. El artboard <code>1f</code> dibuja una sola lista con tres chips y un solo <code>&middot;&middot;&middot;</code>. Tres columnas no caben en un tel&eacute;fono, as&iacute; que algo tiene que ceder.'],
 
-  cmph:['Settled: the chips filter. The question it leaves open: is there an All chip?',
-        'Decidido: los chips filtran. La pregunta que eso deja abierta: &iquest;hay un chip Todos?'],
-  cmpsub:['Same catalogue of nine dishes in both. Count what is on screen.',
-          'El mismo cat&aacute;logo de nueve platillos en los dos. Cuenta lo que est&aacute; en pantalla.'],
+  cmph:['Settled: the chips filter, and there are four of them.',
+        'Decidido: los chips filtran, y son cuatro.'],
+  cmpsub:['Same catalogue of nine dishes in both. The right-hand one won.',
+          'El mismo cat&aacute;logo de nueve platillos en los dos. Gan&oacute; el de la derecha.'],
   cmpnote:['<b>Filtering is decided</b>, which also settles the desktop: the three columns are gone, because filtering to <i>Soups</i> would leave one column full and two empty. Boards <b>B</b> and <b>C</b> below are out &mdash; they group. The live choice is now <b>A or D</b>, which differ only in where a row&rsquo;s actions live.<br><br>But a filter with three chips has no way back to the whole catalogue. <b>Left:</b> <code>1f</code> exactly &mdash; three chips, one always active, <b>3 of 9 dishes</b> on screen and no way to see all nine. <b>Right:</b> a fourth <code>All 9</code> chip, active by default, so the catalogue opens whole and the courses narrow it.<br><br>The right-hand version costs one more chip on the tightest row in the app &mdash; and in Spanish those chips carry <code>Guarniciones</code>. Tap <b>ES</b> and check that it still fits.',
             '<b>Filtrar ya est&aacute; decidido</b>, y eso resuelve tambi&eacute;n el escritorio: las tres columnas desaparecen, porque filtrar a <i>Sopas</i> dejar&iacute;a una columna llena y dos vac&iacute;as. Los boards <b>B</b> y <b>C</b> de abajo quedan fuera &mdash; agrupan. La elecci&oacute;n viva es <b>A o D</b>, que s&oacute;lo difieren en d&oacute;nde viven las acciones del rengl&oacute;n.<br><br>Pero un filtro de tres chips no tiene c&oacute;mo volver al cat&aacute;logo completo. <b>Izquierda:</b> <code>1f</code> tal cual &mdash; tres chips, uno siempre activo, <b>3 de 9 platillos</b> en pantalla y ninguna forma de ver los nueve. <b>Derecha:</b> un cuarto chip <code>Todos 9</code>, activo por defecto, para que el cat&aacute;logo abra completo y los cursos lo acoten.<br><br>La versi&oacute;n de la derecha cuesta un chip m&aacute;s en el rengl&oacute;n m&aacute;s apretado de la app &mdash; y en espa&ntilde;ol esos chips llevan <code>Guarniciones</code>. Toca <b>ES</b> y comprueba que siga cabiendo.'],
 
   boardh:['The selected board','El board seleccionado'],
-  boardsub:['<b>A and D are the live choice</b> &mdash; both filter, and differ only in where a row&rsquo;s actions live. B and C are kept below for the record; they group, which is now ruled out.',
-            '<b>A y D son la elecci&oacute;n viva</b> &mdash; los dos filtran, y s&oacute;lo difieren en d&oacute;nde viven las acciones del rengl&oacute;n. B y C se conservan abajo como registro; agrupan, que ya qued&oacute; descartado.'],
-  ruledOut:['RULED OUT &mdash; this board groups, and grouping lost.',
-            'DESCARTADO &mdash; este board agrupa, y agrupar qued&oacute; fuera.'],
+  boardsub:['<b>Board A won.</b> The losing boards are kept, switchable above, because the reasoning is only legible next to what it beat. The decision lives in <code>docs/design/visual-system.md</code>, not here.',
+            '<b>Gan&oacute; el board A.</b> Los boards perdedores se conservan, seleccionables arriba, porque el razonamiento s&oacute;lo se entiende al lado de aquello a lo que le gan&oacute;. La decisi&oacute;n vive en <code>docs/design/visual-system.md</code>, no aqu&iacute;.'],
+  chosen:['CHOSEN','ELEGIDO'],
+  ruledOutBC:['NOT CHOSEN &mdash; this board groups, and the chips filter.',
+              'NO ELEGIDO &mdash; este board agrupa, y los chips filtran.'],
+  ruledOutD:['NOT CHOSEN &mdash; it would make the row itself the control, which needs an amendment to #65. Board A keeps one rule for the whole system.',
+             'NO ELEGIDO &mdash; volver&iacute;a el rengl&oacute;n mismo el control, lo que exige enmendar #65. El board A conserva una sola regla para todo el sistema.'],
 
   sheeth:['The add / edit form','La hoja de agregar / editar'],
   sheetdecided:['<b>Settled.</b> <b>S2</b> &mdash; a Sheet rising from the bottom on the phone, a centred panel on the desktop. And the selected course segment is <b>dark, not green</b>: the catalogue is dark territory, and a course is not the weekly plan. Both are drawn that way here.<br><br>Still open, and independent of the board you pick: <code>1g</code> draws <span style="color:#8a2323">used 3&times; in the last 8 weeks</span>, which the app has no way to compute. Under the map&rsquo;s <i>New features</i> rule that looks like it should be dropped.',
                 '<b>Decidido.</b> <b>S2</b> &mdash; una hoja que sube desde abajo en el tel&eacute;fono, y un panel centrado en el escritorio. Y el segmento del curso seleccionado va en <b>oscuro, no en verde</b>: el cat&aacute;logo es territorio oscuro, y un curso no es el plan semanal. As&iacute; est&aacute;n dibujados aqu&iacute;.<br><br>Sigue abierto, e independiente del board que elijas: <code>1g</code> dibuja <span style="color:#8a2323">usado 3&times; en las &uacute;ltimas 8 semanas</span>, que la app no puede calcular. Bajo la regla de <i>New features</i> del mapa, parece que debe eliminarse.'],
 
-  filterLbl:['Three chips &mdash; <code>1f</code> exactly','Tres chips &mdash; <code>1f</code> tal cual'],
-  groupLbl:['Four chips &mdash; with All','Cuatro chips &mdash; con Todos'],
+  filterLbl:['Three chips &mdash; <code>1f</code> exactly &mdash; NOT CHOSEN','Tres chips &mdash; <code>1f</code> tal cual &mdash; NO ELEGIDO'],
+  groupLbl:['Four chips, with All &mdash; CHOSEN','Cuatro chips, con Todos &mdash; ELEGIDO'],
   catalogue:['Catalogue','Cat&aacute;logo'],
   opens:['&middot;&middot;&middot; opens','&middot;&middot;&middot; abre'],
   rowOpens:['the row opens','el rengl&oacute;n abre'],
@@ -314,9 +317,9 @@ function gcol(c, action){
 function desktop(b){
   let body;
   if (b === 'A' || b === 'D'){
-    const rows = b === 'A' ? DISHES.soup.map(d => item(d[0],d[1],'dots')).join('')
-                           : DISHES.soup.map(d => itemTap(d[0],d[1])).join('');
-    body = '<div style="padding:18px 30px 0">' + filterChips('padding:0') + '</div>' +
+    const rows = b === 'A' ? shown(true).map(d => item(d[0],d[1],'dots')).join('')
+                           : shown(true).map(d => itemTap(d[0],d[1])).join('');
+    body = '<div style="padding:18px 30px 0">' + filterChips('padding:0', true) + '</div>' +
       '<div style="padding:0 30px 24px"><div class="list" style="border:1px solid var(--rule);border-radius:var(--radius-card)">' +
       rows + '</div><div class="t-meta" style="margin-top:12px;max-width:62ch">' + x('offscreen') + '</div></div>';
   } else {
@@ -383,10 +386,13 @@ function render(){
     '<div><div class="state">' + x('groupLbl') + '</div>' + phone('A', true) + '</div>';
 
   const b = BOARDS[BOARD];
-  const out = (BOARD === 'B' || BOARD === 'C')
-    ? '<span class="cost" style="margin:0 0 8px;display:block;font-weight:600">' + x('ruledOut') + '</span>' : '';
+  let banner;
+  if (BOARD === 'A') banner = '<span style="display:inline-block;margin:0 0 8px;background:#191817;color:#fffefb;' +
+    'font:600 10px/1 \'IBM Plex Mono\',monospace;letter-spacing:.14em;padding:6px 9px;border-radius:3px">' + x('chosen') + '</span>';
+  else banner = '<span class="cost" style="margin:0 0 8px;display:block;font-weight:600">' +
+    (BOARD === 'D' ? x('ruledOutD') : x('ruledOutBC')) + '</span>';
   document.getElementById('boardlabel').innerHTML =
-    out + '<span class="bname">' + b.name[L] + '</span>' + b.blurb[L] +
+    banner + '<span class="bname">' + b.name[L] + '</span>' + b.blurb[L] +
     '<span class="cost">' + b.cost[L] + '</span>';
 
   if (WIDTH === 'phone'){
@@ -394,7 +400,7 @@ function render(){
       ? '<div><div class="state">' + x('opens') + '</div>' + actionSheet() + '</div>'
       : (BOARD === 'D' ? '<div><div class="state">' + x('rowOpens') + '</div>' + sheetPhone() + '</div>' : '');
     document.getElementById('board').innerHTML =
-      '<div><div class="state">' + x('catalogue') + '</div>' + phone(BOARD) + '</div>' + extra;
+      '<div><div class="state">' + x('catalogue') + '</div>' + phone(BOARD, BOARD === 'A' || BOARD === 'D') + '</div>' + extra;
   } else {
     document.getElementById('board').innerHTML =
       '<div style="width:100%"><div class="state">' + x('deskW') + '</div>' + desktop(BOARD) + '</div>';
