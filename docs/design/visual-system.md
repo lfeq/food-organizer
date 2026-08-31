@@ -236,6 +236,9 @@ Nitro emits:
 The price of `immutable` on unhashed names: **upgrading IBM Plex means renaming
 the files by hand.**
 
+Those weight sets are **closed**, and stay closed even though Sans is a
+variable font whose axis makes extra weights free. See [Weight](#weight).
+
 ### The Sans/Mono split rule
 
 This is the single rule that makes the design feel like itself. State it as two
@@ -302,6 +305,65 @@ the week-screen direction, it overrides the split rule *on that screen only*.
 | `note` | `400 11px/1.6` | A mono paragraph — the sign-in explanation, the admin-rights block, the "added by … used 3× …" footer. |
 
 `meta` and `note` differ only in leading: `note` is for two or more lines.
+
+### Weight
+
+Both scales draw from a **closed set** of weights, and the two families are
+closed for different reasons:
+
+```
+IBM Plex Sans  400 500 600 700   closed by discipline
+IBM Plex Mono  400 500 600       closed by file cost
+```
+
+Sans is a **variable** font — one 45,712 B file carrying the continuous
+100–700 axis — so four weights and forty weights cost exactly the same. The set
+stays four anyway, because the four were never a budget. They are a ladder of
+four jobs:
+
+| Weight | Job | Roles that use it |
+| --- | --- | --- |
+| `700` | Titles | `title-page-desktop`, `title-page`, `title-sheet`. Sans only. |
+| `600` | Emphasis and controls | `dish-hero`, `dish-card`, the `button*` roles; and on the mono side `eyebrow`, `course-label`, `day-label`, `badge`, and the active state of `chip` and `tab`. |
+| `500` | Rows and inline actions | `dish-today`, `item-name`, `link-inline`, the Secondary button's label (the one component that steps `button` down a rung), mono `tag`, idle `chip`. |
+| `400` | Prose and metadata | `body`, `body-sm`, `meta-sans`, mono `meta` and `note`, idle `tab`. |
+
+**A fifth weight would need a fifth job, not a fifth number.** The axis being
+free is not a reason to spend it: a discrete set keeps seven screens
+consistent and keeps `font-weight` a token rather than a number anyone can
+invent. That discipline got *more* load-bearing, not less, when the palette's
+accessibility floor collapsed `--ink-muted` onto `--ink-secondary` — a label
+now reads as a label through family, case, size and weight, and weight is the
+only one of the four that a careless component can change by accident.
+
+**No in-between values, and no optical compensation by size.** The tempting
+use of a free axis is to render small text a little heavier — Sans `600` at
+`button-sm`'s 11px is thinner on the page than the same `600` at
+`dish-hero`'s 21px. Declined: making weight a function of size means `600`
+stops meaning one thing, and every component that changes size across the
+900px breakpoint would silently change weight with it. If a small control
+reads thin, move it up the ladder in the scale table, where the change is
+visible, rather than bending the value underneath it.
+
+The `600`/`700` gap, subtle on IBM Plex Sans at small sizes, needs no
+in-between value either: `700` runs only at 16–26px and only on titles, `600`
+at 11–21px, so the two never meet at the same size and the gap is never put to
+a side-by-side test.
+
+**The asymmetry is a constraint, not an oversight.** No variable IBM Plex Mono
+exists on either source, so Mono's three weights are three static files
+(~89 KB together) and a fourth costs both a file and a preload decision.
+Neither family may gain a weight without the other being checked: a split rule
+that applies to only one half of the system reads worse than one not applied
+at all — the same reasoning that preloads Mono `600` alongside the variable
+Sans rather than Sans alone.
+
+**Weight does not animate.** A variable font can interpolate `font-weight`
+continuously, which would let the two state changes that move weight — `tab`
+idle `400` → active `600`, `chip` idle `500` → `600` — transition rather than
+snap. Both are **Mono**, the family that cannot interpolate, so the one place
+this would apply is the one place the font forbids it. Weight changes are
+instant everywhere.
 
 ### Letter-spacing
 
