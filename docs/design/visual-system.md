@@ -23,8 +23,11 @@ sidebar), and the interactive states every one of them takes.
 **Does not cover:**
 
 - **Per-screen layout.** How the desktop grid reflows within a screen is a
-  separate decision on the redesign map. The week-screen variant (`1b`) and
-  what the sidebar becomes on a phone are now settled and written up above.
+  separate decision on the redesign map. Three are now settled and written up
+  above: the week-screen variant (`1b`), what the sidebar becomes on a phone,
+  and [the dish catalogue](#the-dish-catalogue). History and accounts are
+  still open, on [#86](https://github.com/lfeq/food-organizer/issues/86) and
+  [#85](https://github.com/lfeq/food-organizer/issues/85).
 - **How this gets implemented.** Settled separately, in
   [CSS structure](./css-structure.md): the tokens named here *are* CSS custom
   properties on `:root` under these exact names, `styles.css` splits into
@@ -79,8 +82,8 @@ unknown one.
 | `--ground-notice` | `#faf3e2` | The amber notice, and the inline highlight on a repeated dish name. **Reserved for the short-catalogue notice and nothing else.** |
 | `--ground-sunken` | `rgba(25,24,23,.05)` | An explanatory block recessed into the page (the admin-rights note in `1k`). No border. |
 | `--ground-chip` | `rgba(25,24,23,.07)` | An unselected chip in a filter row. |
-| `--ground-accent-soft` | `rgba(45,106,77,.09)` | The selected cell of a segmented control. |
-| `--scrim` | `rgba(25,24,23,.45)` | Behind a sheet. |
+| `--ground-inverse-soft` | `rgba(25,24,23,.06)` | The selected cell of a segmented control. Replaces `--ground-accent-soft`, which is dropped: the segment is [dark, not green](#segmented-control), and that token had no other user. |
+| `--scrim` | `rgba(25,24,23,.45)` | Behind a sheet or a panel. |
 
 ### Ink
 
@@ -108,7 +111,7 @@ One green, used sparingly.
 
 | Token | Value | What it is for |
 | --- | --- | --- |
-| `--accent` | `#2d6a4d` | The primary plan action, links, inline text actions, the selected segmented cell, the active tab's underline, the text caret. |
+| `--accent` | `#2d6a4d` | The primary plan action, links, inline text actions, the active tab's underline, the text caret. **Not** the selected segmented cell — see [rule 22](#where-the-mockup-contradicts-itself). |
 | `--accent-hover` | `#1f4d38` | Hover on a link, an accent-coloured text action, or an accent fill. |
 | `--accent-pressed` | `#184029` | An accent fill being pressed. See [Interactive states](#interactive-states). |
 | `--ink-on-accent` | `#fffefb` | Text on `--accent`. |
@@ -574,6 +577,28 @@ system (`GUARNICIONES 12`). They size to content and the row scrolls
 horizontally on a phone rather than truncating or wrapping — see
 [Bilingual fit](#bilingual-fit).
 
+**The chips filter; they do not group.** Exactly one is selected at any time,
+and the list below shows only that selection. This is a behaviour, not a
+decoration, and it has one consequence that reaches past the component: **a
+filter and a by-course grid are mutually exclusive.** Filtering to one course
+in a three-column-by-course layout would leave one column full and two empty,
+so the catalogue is a single list at *both* widths. See
+[The dish catalogue](#the-dish-catalogue).
+
+**There are four chips, not three.** `All` comes first and is **selected by
+default**, so the catalogue opens whole and the courses narrow it. Without it a
+filter has no way back to the full list, and the catalogue — which every other
+version of this screen showed in full — could never be seen entire. `All`
+carries the catalogue total, formatted like the other counts. A fresh instance
+is **not** empty: `SPEC.md` §10 seeds 27 dishes at setup, nine per course, so
+`All` is the useful default from the first visit rather than an empty state.
+
+The fourth chip is what makes this row the tightest in the system. At `390px`
+it fits in Spanish **only** with `Guarniciones`; the 15-character
+`Acompañamientos` overflows. That makes the `courseSide` / `courseSidePlural`
+rename a prerequisite of this screen, not a nicety — see
+[Bilingual fit](#bilingual-fit).
+
 ### Badges and tags
 
 - **Badge** (filled): `--ground-inverse` / `--ink-on-inverse`, `--radius-tag`,
@@ -602,9 +627,22 @@ Used once, for course selection. Equal-width cells, `6px` between them,
 padding `12px 0`, centred.
 
 - **Idle:** `1px --rule-control`, `--radius-control`, Sans `500 12px`, `--ink-secondary`.
-- **Selected:** `1px solid --accent`, `--ground-accent-soft`, Sans `600 12px`, `--accent`.
+- **Selected:** `1px solid --rule-strong`, `--ground-inverse-soft`, Sans `600 12px`, `--ink`.
 
-This is the only place the accent appears as a border and a soft fill together.
+**Selected is dark, not green.** `1g` draws it in the accent, and that is a
+mockup error rather than an exemption: the green/dark rule governs what an
+action *acts on*, and choosing a dish's course acts on the catalogue, which is
+dark territory. The two standing exemptions — the tab bar's active marker and
+the week stepper — are both **navigation**, which acts on nothing; a course
+segment is not navigation.
+
+This raises the segment's stakes rather than lowering them. Because the
+catalogue's `+ Add dish` is course-neutral (see
+[The dish catalogue](#the-dish-catalogue)), this control is the **only** place
+a course is chosen when adding a dish.
+
+`--ground-inverse-soft` is `rgba(25,24,23,.06)`: the dark counterpart of
+`--ground-accent-soft`, which now has no user and is dropped.
 
 ### Notice
 
@@ -636,6 +674,37 @@ the bottom edge like any other. Its title is `More`; its contents, in order:
 `Accounts` (only when the signed-in member is an admin), a `1px --rule`, then
 the session block — username with role, the `EN / ES` toggle, and `Sign out`.
 For a non-admin the sheet holds the session block alone.
+
+The **action sheet** is the third use: what a catalogue row's `···` opens. Its
+title is the **dish's own name** rather than a label — the sheet has to say
+which row was tapped, since the row that opened it is behind the scrim — and it
+dismisses on `Cancel`. Its contents are one action per row, `body` in `--ink`,
+`15px 4px`, separated by `1px --rule-inset`, with the destructive action last
+and in `--danger`. No icons.
+
+**A sheet is the phone's form. The desktop's is a [Panel](#panel-desktop).**
+
+### Panel (desktop)
+
+The same content as a Sheet, centred on the same `--scrim` instead of rising
+from the bottom edge. `--ground-surface`, `1px --rule`, `--radius-card`,
+padding `22px`, `max-width 420px`, `16px` between sections; the header and
+dismiss are the Sheet's.
+
+It takes a border because the system has [no elevation](#elevation) to separate
+it from the scrim, and it is the only floating surface wide enough to need
+one — a sheet is anchored to an edge and does not.
+
+This is the one component that is **two-formed across the breakpoint**: a Sheet
+below `900px`, a Panel above. Under [CSS structure](./css-structure.md) that
+earns a React component with a typed variant prop rather than a class.
+
+The rising sheet was considered for both widths — one component, no branch, the
+answer [the week stepper](#the-week-stepper) reached. It was declined here
+because a form is not a step: a full-width band of chrome pinned to the bottom
+edge of a wide monitor puts the fields far from the row that opened them, and
+unlike the stepper there is no locale-fit argument forcing the phone's answer
+onto the desktop.
 
 ### Tab bar (phone)
 
@@ -750,6 +819,35 @@ No navigation chrome appears on sign-in, first-run setup, or forced password
 change: there is either no session, or a session deliberately pinned to one
 screen.
 
+### The dish catalogue
+
+One list at **both** widths, filtered by [chips](#chips). Today's three-column
+`catalogue-grid` is retired: a filter and a by-course grid cannot coexist, and
+the filter is what survives a `390px` screen. The desktop is the same list in
+the wider content column, not a different composition — the phone decides this
+screen and the desktop only has to not fight it.
+
+**The row** is the dish name (`list-item`) over `added by <member>` in `meta`
+mono, with a `···` on the right that opens the
+[action sheet](#sheet). The row itself is **not** a control: it is a surface
+that contains one, so it takes no state and the `···` carries the affordance —
+the same rule the day card follows, in
+[A surface that contains a control](#a-surface-that-contains-a-control-is-not-itself-a-control).
+
+Tapping the row instead, with no glyph at all, was the alternative. It is the
+larger touch target and the quieter screen, but it would make the row the
+control and so require amending that rule for one screen. The `···` keeps one
+rule for the whole system.
+
+**Adding a dish** is one course-neutral action in the screen header, dark, at
+both widths. Per-course add buttons die with the columns; the course is chosen
+in the form's [segmented control](#segmented-control) instead, which is why
+that control is the only place a course is set. `dishAddTitle` loses its
+`{course}` interpolation.
+
+**Deleting** happens twice over: as the destructive row of the action sheet,
+and inside the form. Both are `--danger`; neither is a bare glyph.
+
 ## Interactive states
 
 The mockup is eleven static artboards: it draws a focused field, a selected
@@ -817,6 +915,9 @@ control is the `⋯`, works the same way. Where the whole row **is** the control
 | **Field** | no hover | — | Focus is its state; the spec's existing rule (border → `--rule-strong`) is unchanged. |
 | **List row** *(when the row is the control)* | `inset 2px 0 0 --rule-strong` on the leading edge | + `--ground-sunken` | Drawn as an inset border, not a shadow: it is a rule, and rules are how this design marks emphasis. A ground wash would fight the list block's own surface. |
 | **Day card** | none | none | See above — the card is not a control. |
+| **Segmented cell, idle** | border → `--rule-strong`, ink → `--ink` | + `--ground-sunken` | |
+| **Segmented cell, selected** | none | none | It already sits at `--rule-strong`; there is nowhere for the border to promote to, and moving its ground would contradict the rule above. The selected cell is a state, not an invitation. |
+| **Action-sheet row** | `inset 2px 0 0 --rule-strong` | + `--ground-sunken` | It is a list row that *is* the control, so it takes the list-row treatment. The destructive row promotes to `--danger` instead, like any destructive control. |
 | **Chip, idle** | border → `--rule-strong`, ink → `--ink` | + `--ground-sunken` | |
 | **Chip, selected** | `--inverse-hover` | `--inverse-pressed` | It is an inverse fill; it behaves like one. |
 | **Tab (phone)** | ink → `--ink` | ink → `--ink` | No ground change: the bar is a fixed surface and a washed cell reads as a modal state. The active cell's `2px --accent` top border is unaffected by hover. |
@@ -917,6 +1018,8 @@ spec settles on, and why.
 | 19 | Letter-spacing | `.08`, `.1`, `.12`, `.14`, `.16`, `.18`, `.3em` | **`.14em` at 9px, `.12em` at 10px** (`.3em` stays `1c`-only) | Tracking should follow size, not screen. |
 | 20 | Card padding | `11px 14px`, `12px 15px`, `13px 16px`, `14px 15px`, `14px 16px` | **`12px 16px`** | Five paddings for one component. |
 | 21 | Dark ground shade | `#191817` as ink and as ground | **One value, two tokens** (`--ink`, `--ground-inverse`) | Same colour, different jobs; naming both keeps a future adjustment from moving the other. |
+| 22 | Selected course segment | Green border and accent-soft fill in `1g`, on a screen whose every other control is dark | **Dark** (`--rule-strong` on `--ground-inverse-soft`) | Rule 4 again. Choosing a course acts on the catalogue, and the two green exemptions on the books — the tab bar's active cell and the week stepper — are both navigation, which acts on nothing. A course segment is not navigation. |
+| 23 | Catalogue filter chips | `1f` draws three chips, one always selected, so three of twenty-one dishes are on screen and the whole catalogue can never be seen | **Four chips, `All` first and selected by default** | A filter with no way back is a filter that hides the catalogue. The fourth chip is what keeps the screen's own subject reachable. |
 
 ## Contrast audit
 
@@ -986,7 +1089,24 @@ that way.
 
 ## Open questions this spec deliberately leaves
 
-- **Which week-screen variant is the direction.** `1b` is the designer's own
-  pick; nothing in this document depends on the answer.
-- **Two screens have no artboard:** first-run setup, and forced password
-  change. They must be composed from the components above.
+Both questions this section used to hold have since been answered, and the
+entries were left standing — the same drift
+[#72](https://github.com/lfeq/food-organizer/issues/72) found between `SPEC.md`
+and the glossary. Corrected here:
+
+- ~~**Which week-screen variant is the direction.**~~ Settled in
+  [#32](https://github.com/lfeq/food-organizer/issues/32): `1b`, with `1d` its
+  desktop counterpart and `1e` its no-today state — one responsive component,
+  not three designs.
+- ~~**Two screens have no artboard:** first-run setup, and forced password
+  change.~~ Settled in
+  [#37](https://github.com/lfeq/food-organizer/issues/37): setup is stepped,
+  two steps with a `STEP 1 OF 2` counter; forced password change reuses the
+  `1j` frame and demotes `Sign out` to a text action.
+
+What genuinely remains open sits on the map, not here: what a transient message
+becomes ([#87](https://github.com/lfeq/food-organizer/issues/87)), what the
+week screen shows with an empty catalogue
+([#88](https://github.com/lfeq/food-organizer/issues/88)), and the per-screen
+layouts of history ([#86](https://github.com/lfeq/food-organizer/issues/86))
+and accounts ([#85](https://github.com/lfeq/food-organizer/issues/85)).
