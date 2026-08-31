@@ -39,7 +39,14 @@ Three constraints, all of which exist to keep the vocabulary single:
 - **No component-local redefinition.** A token is not re-bound inside a
   component or a media query. `--accent` means one thing everywhere.
 - **`tokens.css` is the only file allowed to contain a literal colour, radius,
-  or spacing value.** Everything else uses `var()`.
+  spacing value, or font weight.** Everything else uses `var()`. Weight is on
+  that list for the same reason as colour: the spec closes each family's weight
+  set deliberately (*[Weight](./visual-system.md#weight)*), and a variable Sans
+  makes `font-weight: 550` cost nothing to write and everything to unpick. The
+  four weight tokens are named by **job**, matching how colour is named by
+  role: `--weight-body`, `--weight-row`, `--weight-emphasis`, `--weight-title`
+  for `400 / 500 / 600 / 700`. Naming them by number would make the token a
+  synonym for its value and leave nothing to grep for when the ladder moves.
 
 The one value that cannot be a token is the breakpoint: CSS custom properties
 are not usable in a media query condition. See [Media queries](#media-queries).
@@ -93,7 +100,7 @@ by an `@import` manifest.
 ```
 src/styles/
   index.css          ← the manifest: @import lines and nothing else
-  tokens.css         ← :root. The only file with a literal colour/radius/space
+  tokens.css         ← :root. The only file with a literal colour/radius/space/weight
   base.css           ← reset, body, font faces, the type classes
   components/*.css   ← one file per component the spec names
   screens/*.css      ← one file per route, layout only
@@ -108,8 +115,9 @@ request. **Splitting costs nothing at runtime.**
 Two rules make "which file does this go in?" mechanical rather than a
 judgement call:
 
-1. **`tokens.css` is the only file with literal values** (restated from
-   [Tokens](#tokens), because this is where it is enforced).
+1. **`tokens.css` is the only file with literal values** — colour, radius,
+   space, or font weight (restated from [Tokens](#tokens), because this is
+   where it is enforced).
 2. **If the spec names it, it is a component file. A screen file may position
    components; it may never repaint them.** `screens/plan.css` decides where
    the short-catalogue notice sits. It does not decide what the notice looks
@@ -167,6 +175,7 @@ reviewable. Four checks cover it:
 | Check | What a hit means |
 | --- | --- |
 | A literal `#` colour outside `src/styles/tokens.css` | A token was bypassed. |
+| A `font-weight:` whose value is not a `var()` outside `tokens.css` | The closed weight set was bypassed — most likely a value invented off the free variable axis. |
 | A `@media` line that is not `min-width: 900px` | A screen invented a breakpoint. |
 | A `--` custom property declared outside `tokens.css` | A token was redefined locally, or an alias crept in. |
 | A class whose block segment does not match its file name | A component's styles are leaking into a screen file. |
