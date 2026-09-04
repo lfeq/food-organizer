@@ -17,17 +17,18 @@ awaiting a per-screen judgement call.
 
 **Covers:** colour roles, the type scale and the Sans/Mono split rule, the
 spacing scale, radii, borders, elevation, and the component variants
-(buttons, cards, chips, badges, fields, list rows, notice, sheet, tab bar,
-sidebar), and the interactive states every one of them takes.
+(buttons, cards, chips, badges, fields, list rows, notice, sheet, panel, tab
+bar, sidebar), and the interactive states every one of them takes.
 
 **Does not cover:**
 
 - **Per-screen layout.** How the desktop grid reflows within a screen is a
-  separate decision on the redesign map. Three are now settled and written up
+  separate decision on the redesign map. Four are now settled and written up
   above: the week-screen variant (`1b`), what the sidebar becomes on a phone,
-  and [the dish catalogue](#the-dish-catalogue). History and accounts are
-  still open, on [#86](https://github.com/lfeq/food-organizer/issues/86) and
-  [#85](https://github.com/lfeq/food-organizer/issues/85).
+  [the dish catalogue](#the-dish-catalogue), and
+  [accounts](#the-accounts-screen) — which split off
+  [a settings screen](#the-settings-screen) in the process. History is still
+  open, on [#86](https://github.com/lfeq/food-organizer/issues/86).
 - **How this gets implemented.** Settled separately, in
   [CSS structure](./css-structure.md): the tokens named here *are* CSS custom
   properties on `:root` under these exact names, `styles.css` splits into
@@ -426,6 +427,43 @@ Three consequences:
 already intrinsic — but Spanish copy still runs longer, so no Sans control may
 be sized to its English label either.
 
+### The measurement that killed the accounts table
+
+The [accounts screen](#the-accounts-screen) was going to be a four-column table
+at desktop width. Measured in Spanish at the threshold, it overflows — and the
+overflow is the reason this section exists, so it is recorded rather than
+quietly designed around.
+
+At `900px` the content column is `716px` beside the `184px` sidebar, and the
+list block insets its contents by `16px` each side: **`684px` of usable width.**
+Against that, in Spanish:
+
+| Column | Contents | Width |
+| --- | --- | --- |
+| Member | `mariana` + `(tú)` | `120px` |
+| Role | `ADMIN` badge | `78px` |
+| Status | `DEBE CAMBIAR CONTRASEÑA` tag | `195px` |
+| Actions | `Restablecer contraseña` `151px` · `Hacer administrador` `134px` · `Eliminar` `69px`, `6px` apart | `398px` |
+| | | **`801px`** |
+
+Every lever this document would normally reach for is already forbidden: the
+labels cannot be abbreviated, the tag cannot be given a fixed width, and the
+layout cannot branch on locale. So the fix is structural — role and status fold
+back under the username, where the phone already draws them, and the columns
+go with them:
+
+| | Width |
+| --- | --- |
+| Member (username, `(tú)`, badge and tag on a second line) | `246px` |
+| Actions | `398px` |
+| | **`644px`**, inside `684px` |
+
+Two consequences worth stating. **The action group is capped at three**: a
+fourth Spanish label of any plausible length crosses the line. And **a column
+is the expensive way to show a tag** — a `Status` column is as wide as its
+widest tag on *every* row, while the same tag under a username costs the rows
+without one nothing at all.
+
 ## Spacing
 
 **The mockup has no spacing scale.** Measured values include 1, 2, 3, 4, 5, 6,
@@ -563,6 +601,32 @@ names alone, `main` with `soup · side` beneath it — so the column does not
 exist there. The today card stacks its label above each dish and is therefore
 unconstrained in either language.
 
+### The list block at width
+
+The [list block](#cards) is the one surface with two forms across the
+breakpoint. Below `900px` a row's actions sit behind a `···` and an
+[action sheet](#sheet); at or above it, a row that carries more than one action
+shows them **inline at the end of the row** — [Small outline](#buttons) buttons
+in a right-aligned group, `6px` apart, no wrap. Everything else about the block
+is unchanged: same ground, same full bleed, same `16px` inset, same
+`--rule-inset` between rows.
+
+Used once, on [accounts](#the-accounts-screen). A catalogue row carries one
+action and gains nothing from the width, so it keeps its `···` at both widths.
+
+**A row's inline action group never wraps, which caps it at three actions.**
+Three is the measured limit at the threshold in Spanish — see
+[Bilingual fit](#bilingual-fit). A fourth action does not get a narrower button
+or a shortened label; it goes behind the `···` at both widths.
+
+**The row still takes no state.** It is a surface that
+[contains controls rather than being one](#a-surface-that-contains-a-control-is-not-itself-a-control),
+and that is true of the inline group exactly as it was of the `···`.
+
+**There is no table in this design.** A four-column table was the obvious
+desktop form for accounts and it does not fit; the measurement is in
+[Bilingual fit](#bilingual-fit).
+
 ### Chips
 
 A horizontal filter row. `--radius-pill`, padding `6px 12px`, `chip` type.
@@ -671,16 +735,18 @@ be abandoned (the add/edit dish sheet), **`Close`** where nothing is at stake
 
 The **`More` sheet** is this same component used for navigation, rising from
 the bottom edge like any other. Its title is `More`; its contents, in order:
-`Accounts` (only when the signed-in member is an admin), a `1px --rule`, then
-the session block — username with role, the `EN / ES` toggle, and `Sign out`.
-For a non-admin the sheet holds the session block alone.
+`Accounts` and `Settings` (both only when the signed-in member is an admin), a
+`1px --rule`, then the session block — username with role, the `EN / ES`
+toggle, and `Sign out`. For a non-admin the sheet holds the session block
+alone.
 
-The **action sheet** is the third use: what a catalogue row's `···` opens. Its
-title is the **dish's own name** rather than a label — the sheet has to say
-which row was tapped, since the row that opened it is behind the scrim — and it
-dismisses on `Cancel`. Its contents are one action per row, `body` in `--ink`,
-`15px 4px`, separated by `1px --rule-inset`, with the destructive action last
-and in `--danger`. No icons.
+The **action sheet** is the third use: what a catalogue row's `···` opens, and
+what a [member row's](#the-accounts-screen) `···` opens below `900px`. Its
+title is the **row's own subject** — the dish's name, the member's username —
+rather than a label, because the sheet has to say which row was tapped and that
+row is behind the scrim. It dismisses on `Cancel`. Its contents are one action
+per row, `body` in `--ink`, `15px 4px`, separated by `1px --rule-inset`, with
+the destructive action last and in `--danger`. No icons.
 
 **A sheet is the phone's form. The desktop's is a [Panel](#panel-desktop).**
 
@@ -721,15 +787,20 @@ The cells are `Plan · Dishes · History · More`. The mockup draws three in `1b
 the fourth exists because the sidebar carries destinations and a session block
 that three cells cannot hold. `More` opens the [Sheet](#sheet).
 
+**Four cells hold five destinations because `More` is not one.** It is the
+drawer the two admin-only destinations and the session block sit in, so adding
+`Settings` beside `Accounts` lengthens that sheet and leaves the bar untouched.
+The bar's width is fixed at four; the sheet's contents are not.
+
 The active marker is `--accent` on **every** cell, including `Dishes`,
 `History` and `More`. This is the one place the green/dark rule below does not
 apply: that rule governs what an action *acts on*, and a navigation indicator
 acts on nothing.
 
 The active cell follows the **URL**, not the route taken to it: any `/plan/*`
-lights `Plan` — including a past week opened from History — and `/accounts`
-lights `More`. Provenance-based highlighting would show the same URL with two
-different bars.
+lights `Plan` — including a past week opened from History — and `/accounts` and
+`/settings` both light `More`. Provenance-based highlighting would show the
+same URL with two different bars.
 
 The bar sits **under** `--scrim` whenever a sheet is open, so an edit in
 progress cannot be navigated away from by a stray tap.
@@ -737,8 +808,11 @@ progress cannot be navigated away from by a stray tap.
 ### Sidebar (desktop)
 
 Width `184px`, `--ground-inverse`, padding `24px 16px`, `24px` between groups.
-Its items are `This week · Dishes · History · Accounts` — four, not the five
-`1d` draws. `Next week` is not a navigation destination at either width; see
+Its items are `This week · Dishes · History · Accounts · Settings` — five, but
+not `1d`'s five. `1d`'s fifth is `Next week`, which is not a navigation
+destination at either width; the fifth here is `Settings`, which
+[left the accounts screen](#the-settings-screen). `Accounts` and `Settings` are
+both admin-only, so a non-admin sees three items. See
 [Navigation across the breakpoint](#navigation-across-the-breakpoint).
 
 - Brand: Sans `600 13px` in `--ink-on-inverse`, with the instance name below in
@@ -764,15 +838,19 @@ A tablet in portrait (`768px`) is therefore on the **phone** side: `1d`'s
 two-column week grid needs the width, leaving roughly `716px` of content beside
 the `184px` sidebar at the threshold itself.
 
-Both forms carry the **same destination set**, so nothing is reachable at one
-width and not the other. `Accounts` remains admin-only in both.
+Both forms carry the **same destination set** — `This week`, `Dishes`,
+`History`, `Accounts`, `Settings` — so nothing is reachable at one width and
+not the other. `Accounts` and `Settings` are admin-only in both. The sets match
+even though the sidebar shows five items against the bar's four cells, because
+`More` is a drawer rather than a destination and holds the two admin-only
+screens plus the session block.
 
 **`Next week` is not a destination.** The app writes to exactly two weeks, so
 stepping between them lives on the week screen as a single affordance in the
 header that flips by which week is shown: `Next week →` on this week,
 `← This week` on next week. Past weeks are reached only through History and
-stay read-only. This applies at **both** widths, which is why the sidebar
-carries four items rather than `1d`'s five.
+stay read-only. This applies at **both** widths, which is why `Next week` is
+not one of the sidebar's five items.
 
 #### The week stepper
 
@@ -848,6 +926,115 @@ that control is the only place a course is set. `dishAddTitle` loses its
 **Deleting** happens twice over: as the destructive row of the action sheet,
 and inside the form. Both are `--danger`; neither is a bare glyph.
 
+### The accounts screen
+
+**One list block at both widths.** The only thing that changes across `900px`
+is where a member's three actions sit: behind a `···` below the threshold,
+[inline at the end of the row](#the-list-block-at-width) above it. This is the
+**second two-formed component** on this map, after the
+[Sheet and Panel](#panel-desktop) pair, and under
+[CSS structure](./css-structure.md) it earns a React component with a typed
+variant prop rather than a class.
+
+**The branch is earned by the row's contents, not by its width.** A member row
+carries three *different verbs* on one person — reset a password, change a
+role, remove the account — where a catalogue row carries one, `Edit`. A list
+that grows wider can promote one default action into view; it cannot promote
+three, and a row with three inline actions is the loudest thing in this design
+(it wraps to three lines in Spanish at `390px`). So the phone hides all three
+behind a `···` and the desktop, which has the room, shows all three at once.
+The catalogue stayed one form because widening it had nothing to reveal.
+
+**The phone row** is the username (`item-name`) with `(you)` after it in `meta`
+mono, a second line carrying the member's badge and tag, and a `···` on the
+right that opens the [action sheet](#sheet) titled with that username. The row
+is not a control; the `···` is, and needs an accessible name — the same rule
+the catalogue row follows.
+
+**The desktop row** is that same row with the `···` replaced by the three
+actions as [Small outline](#buttons) buttons, right-aligned. It stays at three:
+a fourth overflows in Spanish at the threshold. See
+[Bilingual fit](#bilingual-fit).
+
+**A four-column table was the intended desktop form and it does not fit.**
+`Member · Role · Status ·` actions measures **≈801px** in Spanish against the
+**684px** the content column offers at the threshold. Folding role and status
+back under the username — where the phone already puts them — is what recovers
+the width, and it leaves the two forms differing in exactly one thing, which is
+the smallest branch a two-formed component can have. The measurement is in
+[Bilingual fit](#bilingual-fit).
+
+**Role and status are a badge and a tag, and the difference is the point.**
+An admin carries the filled `ADMIN` [badge](#badges-and-tags); everyone else
+carries nothing, because with two roles a `MEMBER` tag on most rows is noise
+and absence already says it. `must change password` is the **outlined tag** —
+*a state this thing is in*, which is exactly what the outlined variant is for.
+Both ride the row's second line at both widths, which is the other half of why
+the four-column table failed: a `Status` column has to be as wide as its widest
+tag on every row, while a tag under a username costs nothing on the rows that
+do not carry one.
+
+**The screen is dark territory.** `1k` draws `Reset password` in `--accent`;
+that is a mockup error, not a third exemption — see
+[rule 24](#where-the-mockup-contradicts-itself). Nothing on this screen is
+green but the active tab's marker.
+
+**`Remove` is `--danger` in both forms and is never a row's default.** On the
+phone it is the action sheet's last row; on the desktop it is the last button
+in the group. It confirms in a Sheet below the breakpoint and a Panel above,
+like any other form.
+
+#### A disabled control keeps its own label
+
+An instance never has fewer than one admin (`CONTEXT.md`), so on the last
+remaining admin **both** the role control and `Remove` are unavailable, and
+both take the [Disabled](#disabled) treatment with a real `disabled` attribute.
+
+Today the role button's *text* is replaced by `Last admin` when it is
+disabled, so the control stops saying what it does and the row offers a button
+whose label is a fact about the member. That inverts the relationship. Standing
+rule, and it generalises past this screen:
+
+> **A disabled control keeps its own label. The reason it is unavailable sits
+> beside it, never in place of it.**
+
+`Last admin` therefore reads as a `meta` mono note in the row, and the two
+controls keep saying `Make member` and `Remove` while refusing to do either.
+The locked week start on [the settings screen](#the-settings-screen) already
+works this way — the value stays legible and `(locked — a plan already exists)`
+sits after it.
+
+### The settings screen
+
+`Instance settings` and `Export data` **leave accounts** and become their own
+admin-only destination. Accounts keeps the members list and the admin-rights
+note in a [sunken block](#cards) — one screen, one subject.
+
+They left rather than folding into a segmented control on accounts because the
+two are not two views of one thing: a member list and an instance's week start
+share only the fact that an admin edits both. A segmented control would also
+have given that component a second job on the very screen where
+[it became the only place a course is set](#segmented-control).
+
+The screen is two sections down one column at both widths, each titled with an
+`eyebrow`:
+
+- **Instance settings** — the three [fields](#fields) (week start, timezone,
+  display name) and a dark `Save settings`. Week start, once a plan exists, is
+  not a disabled `select`: it is the weekday as plain text with
+  `(locked — a plan already exists)` after it in `meta` mono. The value a
+  household cannot change is still a value it needs to read.
+- **Export data** — its explanatory sentence in `body-sm`, then
+  `Download my data` as a [Secondary](#buttons) button. Downloading a backup
+  acts on neither the plan nor the catalogue, and it is not the screen's
+  primary action.
+
+This is a **fifth destination**, which changes
+[#35](https://github.com/lfeq/food-organizer/issues/35)'s arithmetic but not
+its rule: the four became four by dropping `Next week`, not by aiming at four,
+and the destination sets still match across the breakpoint because `More`
+absorbs both admin-only screens.
+
 ## Interactive states
 
 The mockup is eleven static artboards: it draws a focused field, a selected
@@ -915,6 +1102,7 @@ control is the `⋯`, works the same way. Where the whole row **is** the control
 | **Field** | no hover | — | Focus is its state; the spec's existing rule (border → `--rule-strong`) is unchanged. |
 | **List row** *(when the row is the control)* | `inset 2px 0 0 --rule-strong` on the leading edge | + `--ground-sunken` | Drawn as an inset border, not a shadow: it is a rule, and rules are how this design marks emphasis. A ground wash would fight the list block's own surface. |
 | **Day card** | none | none | See above — the card is not a control. |
+| **List row with inline actions** | none | none | Same reason as the `···` row: it holds controls, so the buttons take the state and the row takes none. |
 | **Segmented cell, idle** | border → `--rule-strong`, ink → `--ink` | + `--ground-sunken` | |
 | **Segmented cell, selected** | none | none | It already sits at `--rule-strong`; there is nowhere for the border to promote to, and moving its ground would contradict the rule above. The selected cell is a state, not an invitation. |
 | **Action-sheet row** | `inset 2px 0 0 --rule-strong` | + `--ground-sunken` | It is a list row that *is* the control, so it takes the list-row treatment. The destructive row promotes to `--danger` instead, like any destructive control. |
@@ -1020,6 +1208,8 @@ spec settles on, and why.
 | 21 | Dark ground shade | `#191817` as ink and as ground | **One value, two tokens** (`--ink`, `--ground-inverse`) | Same colour, different jobs; naming both keeps a future adjustment from moving the other. |
 | 22 | Selected course segment | Green border and accent-soft fill in `1g`, on a screen whose every other control is dark | **Dark** (`--rule-strong` on `--ground-inverse-soft`) | Rule 4 again. Choosing a course acts on the catalogue, and the two green exemptions on the books — the tab bar's active cell and the week stepper — are both navigation, which acts on nothing. A course segment is not navigation. |
 | 23 | Catalogue filter chips | `1f` draws three chips, one always selected, so three of twenty-one dishes are on screen and the whole catalogue can never be seen | **Four chips, `All` first and selected by default** | A filter with no way back is a filter that hides the catalogue. The fourth chip is what keeps the screen's own subject reachable. |
+| 24 | `1k`'s green `Reset password` | Green, on a screen whose `Add member` button is dark | **Dark** | Rule 4 for the second time, and the same shape as rule 22. Resetting a password acts on an account, not on the plan, and it is not navigation — the only thing the two standing green exemptions have in common. |
+| 25 | `1k`'s member subtitle | `member · last seen today` | **Role badge and status tag** | Not a design disagreement: there is no last-seen data. `Member` is `{id, username, role, must_change_password}` and the `member` table carries `created_at` and nothing else, so the line cannot be built. The `meta` type role's `"last seen 3 d ago"` example is drawn from this artboard and is likewise hypothetical. |
 
 ## Contrast audit
 
@@ -1108,5 +1298,13 @@ What genuinely remains open sits on the map, not here: what a transient message
 becomes ([#87](https://github.com/lfeq/food-organizer/issues/87)), what the
 week screen shows with an empty catalogue
 ([#88](https://github.com/lfeq/food-organizer/issues/88)), and the per-screen
-layouts of history ([#86](https://github.com/lfeq/food-organizer/issues/86))
-and accounts ([#85](https://github.com/lfeq/food-organizer/issues/85)).
+layout of history ([#86](https://github.com/lfeq/food-organizer/issues/86)).
+
+**One thing this document can no longer verify.** Its stated source of truth,
+`docs/planificador-semanal-de-comidas/project/Meal Planner Mockups.dc.html`, is
+**not in this repository** — not on `main`, not on any branch, and in no
+commit. It was read when this spec was written and every value here was taken
+from it, but no later reader can check a claim about an artboard against the
+artboard. Where a per-screen decision has since turned on what `1k` or `1f`
+draws, the record of what it drew is the ticket that decided it, not the file.
+Found while resolving [#85](https://github.com/lfeq/food-organizer/issues/85).
