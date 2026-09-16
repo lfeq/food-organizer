@@ -1,0 +1,11 @@
+/*
+ * The manifest. @import lines and nothing else.
+ *
+ * Vite inlines these into the one emitted assets/styles-*.css — no second CSS
+ * asset and no extra request. Screen and component tickets add their file
+ * here; they do not add rules here.
+ *
+ * Order: tokens first (they are what everything else reads), then base.
+ */
+@import "./tokens.css";
+@import "./base.css";

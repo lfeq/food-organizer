@@ -1,0 +1,90 @@
+/*
+ * The token layer.
+ *
+ * Every token docs/design/visual-system.md names, on :root, under that
+ * document's exact name. No aliasing layer, no component-local redefinition.
+ *
+ * This is the ONLY file in the repository allowed to contain a literal
+ * colour, radius, spacing value or font weight — see
+ * docs/design/css-structure.md, "Tokens". src/__tests__/css-structure.test.ts
+ * enforces it.
+ */
+
+:root {
+  /* ── Grounds ─────────────────────────────────────────────────────────── */
+  --ground-page: #f6f4ef;
+  --ground-surface: #fffefb;
+  --ground-inverse: #191817;
+  --inverse-hover: #2c2a28;
+  --inverse-pressed: #0f0e0e;
+  --ground-notice: #faf3e2;
+  --ground-sunken: rgba(25, 24, 23, 0.05);
+  --ground-chip: rgba(25, 24, 23, 0.07);
+  --ground-inverse-soft: rgba(25, 24, 23, 0.06);
+  --scrim: rgba(25, 24, 23, 0.45);
+
+  /* ── Ink ─────────────────────────────────────────────────────────────── */
+  --ink: #191817;
+  --ink-secondary: #6d6862;
+  /* Mono only. Same value as --ink-secondary, two tokens because two jobs. */
+  --ink-muted: #6d6862;
+  /* Decoration only. The one token that does not clear 4.5:1, on purpose. */
+  --ink-faint: rgba(25, 24, 23, 0.3);
+  --ink-on-inverse: #fffefb;
+  --ink-on-inverse-muted: rgba(255, 254, 251, 0.62);
+  --ink-on-inverse-faint: rgba(255, 254, 251, 0.55);
+
+  /* ── Accent ──────────────────────────────────────────────────────────── */
+  --accent: #2d6a4d;
+  --accent-hover: #1f4d38;
+  --accent-pressed: #184029;
+  --ink-on-accent: #fffefb;
+
+  /* ── Notice (amber) ──────────────────────────────────────────────────── */
+  /* --ground-notice and --notice-ground are both named by the visual system
+     and carry the same value. Both are declared literally rather than one
+     aliasing the other: an alias is the second naming layer the structure
+     decision forbids. */
+  --notice-ground: #faf3e2;
+  --notice-rule: rgba(138, 96, 35, 0.35);
+  --notice-ink: #6b4c1c;
+  --notice-ink-secondary: #7a5a26;
+  --notice-ink-action: #8a6023;
+
+  /* ── Danger ──────────────────────────────────────────────────────────── */
+  --danger: #8a2323;
+  --danger-rule: rgba(138, 35, 35, 0.3);
+
+  /* ── Rules and borders ───────────────────────────────────────────────── */
+  --rule: rgba(25, 24, 23, 0.1);
+  --rule-inset: rgba(25, 24, 23, 0.07);
+  --rule-control: rgba(25, 24, 23, 0.18);
+  --rule-strong: #191817;
+
+  /* ── Spacing ─────────────────────────────────────────────────────────── */
+  --space-025: 2px;
+  --space-05: 6px;
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 20px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+
+  /* ── Radii ───────────────────────────────────────────────────────────── */
+  --radius-tag: 3px;
+  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-sheet: 16px 16px 0 0;
+  --radius-pill: 999px;
+
+  /* ── Weight ──────────────────────────────────────────────────────────── */
+  /* Named by job, not by number: the ladder is four jobs, and a number would
+     make the token a synonym for its value. The set is closed — a fifth
+     weight needs a fifth job. See visual-system.md, "Weight". */
+  --weight-body: 400;
+  --weight-row: 500;
+  --weight-emphasis: 600;
+  --weight-title: 700;
+}
