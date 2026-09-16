@@ -10,6 +10,7 @@ import { getAuthState } from "#/auth-fns"
 import { getLocale } from "#/locale-fns"
 import { getInstanceSettings } from "#/accounts-fns"
 import { LocaleContext } from "#/i18n"
+import designSystemCss from "../styles/index.css?url"
 import appCss from "../styles.css?url"
 
 export const Route = createRootRoute({
@@ -19,7 +20,31 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Food Organizer" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      // The variable Sans and Mono 600. Preloading Sans alone would ship a
+      // first visit with Plex dish names beside system-mono labels — the
+      // Sans/Mono split rule half-applied. See visual-system.md,
+      // "Loading the fonts".
+      {
+        rel: "preload",
+        href: "/fonts/ibm-plex-sans-latin-wght-normal.woff2",
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "preload",
+        href: "/fonts/ibm-plex-mono-latin-600-normal.woff2",
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
+      },
+      // The design system comes first so that, wherever it and the old
+      // stylesheet disagree, styles.css wins and an un-migrated screen
+      // renders exactly as it did. Ticket #114 removes the second line.
+      { rel: "stylesheet", href: designSystemCss },
+      { rel: "stylesheet", href: appCss },
+    ],
   }),
   beforeLoad: async ({ location }) => {
     const [authState, locale, settings] = await Promise.all([
