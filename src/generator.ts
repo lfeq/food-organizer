@@ -9,13 +9,25 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-/** Draw n dishes from pool, cycling if pool.length < n. Throws if pool is empty. */
-export function drawN(pool: Dish[], n: number): Dish[] {
+/**
+ * Draw n dishes from pool, cycling if pool.length < n. Throws if pool is empty.
+ *
+ * `usedNames` are dish names already spoken for elsewhere in the week — the
+ * dishes preserved elapsed days hold. They are drawn last rather than refused,
+ * so a course that has run short repeats instead of refusing (§9.1).
+ */
+export function drawN(pool: Dish[], n: number, usedNames?: ReadonlySet<string>): Dish[] {
   if (pool.length === 0) throw new Error("empty pool")
-  const shuffled = shuffle(pool)
-  const result: Dish[] = []
+  const used = usedNames ?? new Set<string>()
+  // Unused dishes first, then the ones the preserved days hold, then whatever
+  // it takes to fill the days: the week repeats as little as it can.
+  const ordered = [
+    ...shuffle(pool.filter((d) => !used.has(d.name))),
+    ...shuffle(pool.filter((d) => used.has(d.name))),
+  ]
+  const result: Dish[] = ordered.slice(0, n)
   while (result.length < n) {
-    result.push(...shuffled.slice(0, n - result.length))
+    result.push(...shuffle(pool).slice(0, n - result.length))
   }
   return result.slice(0, n)
 }

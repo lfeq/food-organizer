@@ -5,7 +5,7 @@ import { uuidv7 } from "uuidv7"
 import { Runtime } from "#/runtime.server"
 import { ok, err, type Result } from "#/result-codes"
 import { drawN, pickReroll } from "#/generator"
-import { addDays, dayOfWeek, weekStartFor } from "#/plan-dates"
+import { addDays, dayOfWeek, generateSplit, weekStartFor } from "#/plan-dates"
 import { rerollRefusal } from "#/plan-guards"
 import type { RepeatingDish } from "#/repeat-notice"
 
@@ -105,99 +105,165 @@ export const generateWeek = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<Result<WeekPlan>> => {
     const result = await Runtime.runPromiseExit(
       Effect.flatMap(PgClient.PgClient, (sql) =>
-        Effect.gen(function* () {
-          // Verify the week is writable server-side
-          const settings = yield* sql<{ week_start_dow: number; timezone: string }>`
-            SELECT week_start_dow, timezone FROM settings LIMIT 1
-          `
-          if (settings.length === 0) return err("DB_UNREACHABLE") as Result<WeekPlan>
+        // The plan, its days and their slots are written in one transaction:
+        // complete or not at all (§9.1).
+        sql.withTransaction(
+          Effect.gen(function* () {
+            // Verify the week is writable server-side
+            const settings = yield* sql<{ week_start_dow: number; timezone: string }>`
+              SELECT week_start_dow, timezone FROM settings LIMIT 1
+            `
+            if (settings.length === 0) return err("DB_UNREACHABLE") as Result<WeekPlan>
 
-          const { week_start_dow, timezone } = settings[0]
+            const { week_start_dow, timezone } = settings[0]
 
-          // Compute current week start server-side
-          const nowRow = yield* sql<{ today: string }>`
-            SELECT (now() AT TIME ZONE ${timezone})::date::text AS today
-          `
-          const todayStr = nowRow[0].today
-          const currentWeekStr = weekStartFor(todayStr, week_start_dow)
-          const nextWeekStr = addDays(currentWeekStr, 7)
+            // Compute current week start server-side
+            const nowRow = yield* sql<{ today: string }>`
+              SELECT (now() AT TIME ZONE ${timezone})::date::text AS today
+            `
+            const todayStr = nowRow[0].today
+            const currentWeekStr = weekStartFor(todayStr, week_start_dow)
+            const nextWeekStr = addDays(currentWeekStr, 7)
 
-          if (data.weekStart !== currentWeekStr && data.weekStart !== nextWeekStr) {
-            return err("WEEK_NOT_WRITABLE") as Result<WeekPlan>
-          }
+            if (data.weekStart !== currentWeekStr && data.weekStart !== nextWeekStr) {
+              return err("WEEK_NOT_WRITABLE") as Result<WeekPlan>
+            }
 
-          // Validate week_start matches week_start_dow
-          if (dayOfWeek(data.weekStart) !== week_start_dow) {
-            return err("WEEK_NOT_WRITABLE") as Result<WeekPlan>
-          }
+            // Validate week_start matches week_start_dow
+            if (dayOfWeek(data.weekStart) !== week_start_dow) {
+              return err("WEEK_NOT_WRITABLE") as Result<WeekPlan>
+            }
 
-          // Load all dishes per course
-          const dishes = yield* sql<{ id: string; name: string; course: Course }>`
-            SELECT id, name, course FROM dish ORDER BY course, name
-          `
-
-          const byCourse: Record<Course, Array<{ id: string; name: string }>> = {
-            soup: [],
-            side: [],
-            main: [],
-          }
-          for (const d of dishes) {
-            byCourse[d.course].push({ id: d.id, name: d.name })
-          }
-
-          // Validate no empty course
-          const emptyCourses: Course[] = []
-          const courses: Course[] = ["soup", "side", "main"]
-          for (const c of courses) {
-            if (byCourse[c].length === 0) emptyCourses.push(c)
-          }
-          if (emptyCourses.length > 0) {
-            return err("GENERATE_EMPTY_COURSE", emptyCourses.join(",")) as Result<WeekPlan>
-          }
-
-          const drawnSoup = drawN(byCourse.soup, 7)
-          const drawnSide = drawN(byCourse.side, 7)
-          const drawnMain = drawN(byCourse.main, 7)
-
-          // Delete existing plan for this week if any (overwrite in place)
-          yield* sql`DELETE FROM weekly_plan WHERE week_start = ${data.weekStart}::date`
-
-          // Insert plan + days + slots in one transaction
-          const planId = uuidv7()
-          yield* sql`
-            INSERT INTO weekly_plan (id, week_start)
-            VALUES (${planId}, ${data.weekStart}::date)
-          `
-
-          const planDays: PlanDayRow[] = []
-          for (let i = 0; i < 7; i++) {
-            const dayDateStr = addDays(data.weekStart, i)
-
-            const dayId = uuidv7()
-            yield* sql`
-              INSERT INTO plan_day (id, weekly_plan_id, day_date)
-              VALUES (${dayId}, ${planId}, ${dayDateStr}::date)
+            // Load all dishes per course
+            const dishes = yield* sql<{ id: string; name: string; course: Course }>`
+              SELECT id, name, course FROM dish ORDER BY course, name
             `
 
-            const slotRows: SlotRow[] = [
-              { course: "soup", dish_name: drawnSoup[i].name, dish_id: drawnSoup[i].id },
-              { course: "side", dish_name: drawnSide[i].name, dish_id: drawnSide[i].id },
-              { course: "main", dish_name: drawnMain[i].name, dish_id: drawnMain[i].id },
-            ]
+            const byCourse: Record<Course, Array<{ id: string; name: string }>> = {
+              soup: [],
+              side: [],
+              main: [],
+            }
+            for (const d of dishes) {
+              byCourse[d.course].push({ id: d.id, name: d.name })
+            }
 
-            for (const slot of slotRows) {
-              const slotId = uuidv7()
+            // Validate no empty course
+            const emptyCourses: Course[] = []
+            const courses: Course[] = ["soup", "side", "main"]
+            for (const c of courses) {
+              if (byCourse[c].length === 0) emptyCourses.push(c)
+            }
+            if (emptyCourses.length > 0) {
+              return err("GENERATE_EMPTY_COURSE", emptyCourses.join(",")) as Result<WeekPlan>
+            }
+
+            // Which days this generate writes, and which it leaves alone. Elapsed
+            // plan days are immutable (§6.2): they are preserved untouched and
+            // only the days still ahead are drawn (§9.1). `todayStr` above is the
+            // only authority on today — the client never supplies it, so a
+            // request aimed at an elapsed day is refused whatever the client
+            // believes.
+            const existingPlans = yield* sql<{ id: string }>`
+              SELECT id FROM weekly_plan WHERE week_start = ${data.weekStart}::date
+            `
+            const planId = existingPlans.length > 0 ? existingPlans[0].id : uuidv7()
+
+            const existingDays = existingPlans.length > 0
+              ? yield* sql<{ id: string; day_date: string }>`
+                  SELECT id, day_date::text AS day_date
+                  FROM plan_day
+                  WHERE weekly_plan_id = ${planId}
+                  ORDER BY day_date
+                `
+              : []
+
+            const split = generateSplit(
+              data.weekStart,
+              todayStr,
+              existingDays.map((d) => d.day_date)
+            )
+
+            // The dishes preserved days hold count as used, so the redraw avoids
+            // them and the no-repeat promise covers the whole week on screen.
+            const preservedDayIds = existingDays
+              .filter((d) => split.preserved.includes(d.day_date))
+              .map((d) => d.id)
+            const preservedSlots = preservedDayIds.length > 0
+              ? yield* sql<{ plan_day_id: string; course: Course; dish_name: string; dish_id: string | null }>`
+                  SELECT plan_day_id, course, dish_name, dish_id
+                  FROM slot
+                  WHERE plan_day_id IN ${sql.in(preservedDayIds)}
+                  ORDER BY plan_day_id, course
+                `
+              : []
+
+            const usedNames = (course: Course) =>
+              new Set(
+                preservedSlots.filter((s) => s.course === course).map((s) => s.dish_name as string)
+              )
+
+            const n = split.redraw.length
+            const drawnSoup = drawN(byCourse.soup, n, usedNames("soup"))
+            const drawnSide = drawN(byCourse.side, n, usedNames("side"))
+            const drawnMain = drawN(byCourse.main, n, usedNames("main"))
+
+            if (existingPlans.length === 0) {
               yield* sql`
-                INSERT INTO slot (id, plan_day_id, course, dish_name, dish_id)
-                VALUES (${slotId}, ${dayId}, ${slot.course}, ${slot.dish_name}, ${slot.dish_id})
+                INSERT INTO weekly_plan (id, week_start)
+                VALUES (${planId}, ${data.weekStart}::date)
               `
             }
 
-            planDays.push({ id: dayId, day_date: dayDateStr, slots: slotRows })
-          }
+            // Replace only the days still ahead; slots cascade with their day.
+            const discardedDayIds = existingDays
+              .filter((d) => split.discarded.includes(d.day_date))
+              .map((d) => d.id)
+            if (discardedDayIds.length > 0) {
+              yield* sql`DELETE FROM plan_day WHERE id IN ${sql.in(discardedDayIds)}`
+            }
 
-          return ok({ id: planId, week_start: data.weekStart, days: planDays }) as Result<WeekPlan>
-        })
+            const planDays: PlanDayRow[] = existingDays
+              .filter((d) => split.preserved.includes(d.day_date))
+              .map((d) => ({
+                id: d.id,
+                day_date: d.day_date,
+                slots: preservedSlots
+                  .filter((s) => s.plan_day_id === d.id)
+                  .map((s) => ({ course: s.course, dish_name: s.dish_name, dish_id: s.dish_id })),
+              }))
+
+            for (let i = 0; i < n; i++) {
+              const dayDateStr = split.redraw[i]
+
+              const dayId = uuidv7()
+              yield* sql`
+                INSERT INTO plan_day (id, weekly_plan_id, day_date)
+                VALUES (${dayId}, ${planId}, ${dayDateStr}::date)
+              `
+
+              const slotRows: SlotRow[] = [
+                { course: "soup", dish_name: drawnSoup[i].name, dish_id: drawnSoup[i].id },
+                { course: "side", dish_name: drawnSide[i].name, dish_id: drawnSide[i].id },
+                { course: "main", dish_name: drawnMain[i].name, dish_id: drawnMain[i].id },
+              ]
+
+              for (const slot of slotRows) {
+                const slotId = uuidv7()
+                yield* sql`
+                  INSERT INTO slot (id, plan_day_id, course, dish_name, dish_id)
+                  VALUES (${slotId}, ${dayId}, ${slot.course}, ${slot.dish_name}, ${slot.dish_id})
+                `
+              }
+
+              planDays.push({ id: dayId, day_date: dayDateStr, slots: slotRows })
+            }
+
+            planDays.sort((a, b) => (a.day_date < b.day_date ? -1 : 1))
+
+            return ok({ id: planId, week_start: data.weekStart, days: planDays }) as Result<WeekPlan>
+          })
+        )
       )
     )
 
