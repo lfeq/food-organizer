@@ -20,16 +20,26 @@ spacing scale, radii, borders, elevation, and the component variants
 (buttons, cards, chips, badges, fields, list rows, notice, sheet, panel, tab
 bar, sidebar), and the interactive states every one of them takes.
 
+**And per-screen layout**, which this document did not originally cover and now
+does: every screen in the app has a section — the week screen's variant (`1b`)
+and [what it shows when it cannot be generated](#a-week-that-cannot-be-generated),
+[navigation across the breakpoint](#navigation-across-the-breakpoint) and
+[the week stepper](#the-week-stepper), [the dish catalogue](#the-dish-catalogue),
+[accounts](#the-accounts-screen) — which split off
+[a settings screen](#the-settings-screen) in the process —
+[history](#the-history-screen) with
+[what a past week opens into](#what-a-past-week-opens-into), and
+[the session screens](#the-session-screens).
+
 **Does not cover:**
 
-- **Per-screen layout.** How the desktop grid reflows within a screen is a
-  separate decision on the redesign map. Five are now settled and written up
-  above: the week-screen variant (`1b`), what the sidebar becomes on a phone,
-  [the dish catalogue](#the-dish-catalogue),
-  [accounts](#the-accounts-screen) — which split off
-  [a settings screen](#the-settings-screen) in the process — and
-  [history](#the-history-screen), which carries
-  [what a past week opens into](#what-a-past-week-opens-into) with it.
+- **What a screen does.** [`SPEC.md`](../../SPEC.md) decides behaviour and the
+  rules that hold — which weeks are writable, what generating does, who may do
+  it — and §11 there is the map of the screens. This document decides what they
+  look like. **Neither restates the other**; where a rule has a visual
+  consequence, `SPEC.md` states the rule and links here for the treatment. That
+  division is not stylistic: the two documents contradicted each other for
+  eighteen tickets by each holding a half-copy of the same decision.
 - **How this gets implemented.** Settled separately, in
   [CSS structure](./css-structure.md): the tokens named here *are* CSS custom
   properties on `:root` under these exact names, `styles.css` splits into
@@ -340,7 +350,7 @@ four jobs:
 | `400` | Prose and metadata | `body`, `body-sm`, `meta-sans`, mono `meta` and `note`, idle `tab`. |
 
 **A fifth weight would need a fifth job, not a fifth number.** The axis being
-free is not a reason to spend it: a discrete set keeps seven screens
+free is not a reason to spend it: a discrete set keeps eight screens
 consistent and keeps `font-weight` a token rather than a number anyone can
 invent. That discipline got *more* load-bearing, not less, when the palette's
 accessibility floor collapsed `--ink-muted` onto `--ink-secondary` — a label
@@ -622,8 +632,9 @@ unconstrained in either language.
 
 ### The list block at width
 
-The [list block](#cards) is the one surface with two forms across the
-breakpoint. Below `900px` a row's actions sit behind a `···` and an
+The [list block](#cards) is the **second** of the two components with two forms
+across the breakpoint, after the [Sheet and Panel](#panel-desktop) pair.
+Below `900px` a row's actions sit behind a `···` and an
 [action sheet](#sheet); at or above it, a row that carries more than one action
 shows them **inline at the end of the row** — [Small outline](#buttons) buttons
 in a right-aligned group, `6px` apart, no wrap. Everything else about the block
@@ -953,8 +964,10 @@ It takes a border because the system has [no elevation](#elevation) to separate
 it from the scrim, and it is the only floating surface wide enough to need
 one — a sheet is anchored to an edge and does not.
 
-This is the one component that is **two-formed across the breakpoint**: a Sheet
-below `900px`, a Panel above. Under [CSS structure](./css-structure.md) that
+This is the **first** of the only two components **two-formed across the
+breakpoint**: a Sheet below `900px`, a Panel above. The other is
+[the list block at width](#the-list-block-at-width), used on
+[accounts](#the-accounts-screen). Under [CSS structure](./css-structure.md) each
 earns a React component with a typed variant prop rather than a class.
 
 The rising sheet was considered for both widths — one component, no branch, the
@@ -1357,6 +1370,42 @@ The same week screen in `1e`'s no-today state, plainly.
   in the sidebar; a vacant slot is not a reason to fill one. The tab bar lights
   `Plan`, by URL, as [the tab bar](#tab-bar-phone) already settles.
 
+### The session screens
+
+Three screens carry **no navigation chrome**: there is either no session, or a
+session deliberately pinned to one screen. Only one of the three has an
+artboard, so the other two are specified here rather than read off the mockup
+([#37](https://github.com/lfeq/food-organizer/issues/37)).
+
+They are all **dark-button only**. None of them acts on the weekly plan, so
+nothing on any of them is green — the same reading of the green/dark rule that
+makes [accounts](#the-accounts-screen) dark territory.
+
+- **Sign in** is `1j`, unchanged: the wordmark in `title-page-desktop`, the
+  explanation in `note` mono, two [fields](#fields) and a full-width
+  `button-lg` Primary.
+- **First-run setup** is **stepped, one question per screen, two steps** —
+  the admin account, then the week. A `meta` mono **`STEP 1 OF 2`** counter is
+  the only progress indicator: no dots, no bar, no back-and-forth affordance
+  beyond the step itself. Each step ends in a full-width dark button. It is two
+  steps and not three because a step where the household reviews the seed
+  catalogue was ruled out of scope (`SPEC.md` §14); the seeding itself is
+  silent.
+- **Forced password change** is the sign-in screen's twin: the same `1j` frame,
+  with `Signed in as <name>` in `note` mono where sign-in puts its host line.
+  **`Sign out` is a [Text action](#buttons)**, not the Secondary button the
+  route gives it today. A member in this state can reach exactly two things, so
+  signing out has to be present — but it is the way back out, not the thing
+  they came to do, and a second full-width button would read as an equal
+  choice. Being a text action on a touch surface, it pads to a `44px` target
+  and that padding never becomes visible spacing.
+
+Stepping setup was chosen over one long form because the two questions have
+nothing to do with each other — who you are, and when your week starts — and
+the standing preference is to keep less on screen at once. The counter is what
+makes a two-screen flow legible as one task rather than as an app that has lost
+your place.
+
 ## Interactive states
 
 The mockup is eleven static artboards: it draws a focused field, a selected
@@ -1628,7 +1677,9 @@ and the glossary. Corrected here:
   change.~~ Settled in
   [#37](https://github.com/lfeq/food-organizer/issues/37): setup is stepped,
   two steps with a `STEP 1 OF 2` counter; forced password change reuses the
-  `1j` frame and demotes `Sign out` to a text action.
+  `1j` frame and demotes `Sign out` to a text action. Both are now written up
+  in [The session screens](#the-session-screens), so the decision no longer
+  lives only in its ticket.
 
 - ~~**What the week screen shows with an empty catalogue.**~~ Settled in
   [#88](https://github.com/lfeq/food-organizer/issues/88): there is no
