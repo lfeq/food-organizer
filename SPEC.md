@@ -1,10 +1,15 @@
 # Implementation spec — self-hostable weekly meal planner
 
 **Status:** in progress. Walking skeleton (§13 steps 1–3) is complete as of
-2026-08-28. Every decision below was settled on the wayfinder map
+2026-08-28. Decisions below were settled on two wayfinder maps:
 [Map: self-hostable weekly meal planner](https://github.com/lfeq/food-organizer/issues/1)
-and its seven tickets. This document is the handoff: an agent should be able to
-build the app from it without reopening the tickets.
+and its seven tickets built the app, and
+[Map: Pleasant on the phone, comfortable on the desktop](https://github.com/lfeq/food-organizer/issues/31)
+and its eighteen tickets then redesigned every screen and made the phone a
+first-class device. This document is the handoff: an agent should be able to
+build the app from it without reopening the tickets. Where the second map
+changed something, this document states the **current** decision and §18 records
+the amendment.
 
 **Build progress:**
 - [x] §13 step 1 — Walking skeleton: TanStack Start app, SSR, Deploy Button
@@ -18,6 +23,7 @@ build the app from it without reopening the tickets.
 - [x] §13 step 9 — History
 - [x] §13 step 10 — Accounts
 - [x] §13 step 11 — Bilingual pass
+- [ ] §13 step 12 — The redesign (specified, not started)
 
 **How to read it.** Sections state decisions, not options. Where a heading is
 marked **Derived**, the content is mechanical fill-in written while assembling
@@ -31,6 +37,17 @@ start`, `Plan day`, `Slot`, `Repeating week`, `Seed catalogue`, `Locale`). Use
 its vocabulary in code, tests and commits. Two ADRs carry reasoning that will
 otherwise look wrong to a reader: [ADR-0001](docs/adr/0001-hand-rolled-bilingual-ui.md)
 and [ADR-0002](docs/adr/0002-slots-snapshot-the-dish-name.md).
+
+**Read alongside, for anything visual:**
+[`docs/design/visual-system.md`](docs/design/visual-system.md) is the design
+spec — colour, type, spacing, every component, and a section per screen — and
+[`docs/design/css-structure.md`](docs/design/css-structure.md) is how it lands
+in the codebase. **The division of labour is strict, and it is what keeps these
+documents from drifting apart again:** this document decides what a screen
+*does* and what rules hold; the visual system decides what it *looks like*.
+Where a rule has a visual consequence, this document states the rule and links
+rather than restating the treatment. §11 is therefore a map of the screens and
+their behaviour, not a description of their appearance.
 
 ---
 
@@ -184,8 +201,9 @@ breaking satellite minor on their own.
    `vercel install neon --plan free`. The integration injects `DATABASE_URL`,
    `DATABASE_URL_UNPOOLED`, `PG*` and `POSTGRES_*` into the project.
 4. Redeploy.
-5. Open the app and complete the **first-run setup screen** (§7.4): create the
-   admin account, confirm the week start, seed the catalogue.
+5. Open the app and complete **first-run setup** (§7.4, §11.7): two steps — the
+   admin account, then the week — after which the catalogue is seeded and they
+   are signed in.
 
 Two accounts. **No secret is ever typed or copied.** There is no
 `SESSION_SECRET`, no `ADMIN_PASSWORD`, no setup token — §7.3 explains why that
@@ -195,7 +213,8 @@ is a decision rather than an omission.
 
 - **Fork into a personal GitHub account, not an organisation.** Vercel Hobby
   cannot connect to org-owned repositories. One line here prevents a dead end.
-- The default UI language is **Spanish**; there is a toggle in the sidebar.
+- The default UI language is **Spanish**; there is a toggle in the sidebar, and
+  under `More` on a phone (§11.1).
 - **Backups are the household's problem.** An in-app data export is worth more
   here than any provider feature — §16.
 - The first load after a quiet period is slow (Neon cold start). This is normal.
@@ -432,12 +451,27 @@ through.
    Cross-table, so it cannot be a `CHECK`; with the freeze below, a misaligned
    week becomes unrepresentable.
 3. **A plan is complete or absent.** `after insert or update or delete on
-   plan_day and slot`: raise unless every `weekly_plan` has exactly seven
-   `plan_day` rows and every `plan_day` exactly three `slot` rows. This is the
+   plan_day and slot`: raise unless every `weekly_plan` has **at least one**
+   `plan_day` row and every `plan_day` exactly three `slot` rows. This is the
    database-level statement of "no empty or half-filled plans"; deferral is what
    makes it compatible with generating in one transaction.
+
+   **It is not "exactly seven".** A plan generated once its week is already
+   underway holds only the days still ahead (§9.1), so a row count of seven is
+   not an invariant and a trigger asserting it would make the decided behaviour
+   unrepresentable. What "complete" means is that no `plan_day` is empty, which
+   is the `slot` half of this trigger; the `plan_day` half only rules out a
+   `weekly_plan` with no days at all.
 4. **The week start freezes.** On `settings`: reject a change to
    `week_start_dow` when `exists (select 1 from weekly_plan)`.
+
+**Only 1 and 4 exist in the database today.** `migrations/0002_auth.sql` ships
+`check_at_least_one_admin` and `check_week_start_not_frozen`, and its own
+comments number them `§5.6 #1` and `§5.6 #4` — 2 and 3 were skipped silently
+while building. Nothing depends on their absence, and the invariants they
+express are still the invariants; they are listed here as work, not as
+description. Trigger 3's omission is also why the "exactly seven" wording above
+never reached Postgres to contradict §9.1 there as well.
 
 ### 5.7 Deliberately absent
 
@@ -486,8 +520,10 @@ everyone sees the same seven days in the same order regardless of UI language.
   current week below, refusing with `DAY_ELAPSED`. Hiding the control is a
   courtesy on top of that refusal, not the rule: the client's notion of "today"
   is baked into a render and goes stale in a tab left open overnight.
-- The week picker's range is capped accordingly: the sidebar offers **This week**
-  and **Next week**, and history is read-only.
+- The two writable weeks are reached from the week screen itself, not from
+  navigation: **`Next week` is not a destination**. A single stepper in the week
+  header flips between them, and past weeks are reached only through History and
+  stay read-only (§11.1).
 
 Every write path re-derives the current week server-side from
 `settings.timezone`; a week identifier arriving from the client is validated,
@@ -547,7 +583,9 @@ delete the question.
 While **no member exists**, every route redirects to a one-time setup page. No
 `ADMIN_USERNAME`/`ADMIN_PASSWORD` env vars, no setup token.
 
-Setup does four things in one transaction:
+Setup asks **one question per screen, in two steps** — the admin account, then
+the week — and then does four things in **one transaction**, on a single call
+made at the end. The step count is a UI shape, not four writes (§11.7):
 
 1. Creates the `settings` row (week start, defaulting to Sunday; timezone,
    defaulting to `America/Mexico_City`).
@@ -658,13 +696,22 @@ a dish within the week as long as that course holds at least seven dishes.
 
 - **Generating has no memory.** What came out last week does not influence this
   week.
-- **An empty course refuses the whole operation**, naming the empty courses
-  ("Add at least one side before generating"). A slot therefore always holds a
-  dish; there is no empty-slot state anywhere in the model, the screens or this
-  spec. The seed catalogue makes this rare, but a household can still delete its
-  way to an empty course.
+- **An empty course refuses the whole operation**, naming the empty courses.
+  A slot therefore always holds a dish; there is no empty-slot state anywhere in
+  the model, the screens or this spec. The seed catalogue makes this rare, but a
+  household can still delete its way to an empty course.
+
+  The household meets this three ways at once, and all three are deliberate:
+  the `Generate week` button is **disabled**, the **Notice** beside it says which
+  course is empty, and the server refuses the call anyway. A disabled control
+  keeps its own label and the reason sits beside it, never in place of it. The
+  refusal is a guard nobody is expected to read, not the way this is learned.
 - **A course below seven repeats as needed** — there are not enough dishes to go
-  round. This is announced by the banner in §9.3, not refused.
+  round. This is announced, not refused (§9.3). **Zero is the far end of short,
+  not a separate condition**: the predicate is "this course does not hold enough
+  dishes" either way, and what differs is the consequence — a short course draws
+  a week that repeats, an empty one draws no week at all — which the button
+  beside the message already states.
 - **Generating over an existing plan is offered behind an explicit
   confirmation**: "The days still ahead will be redrawn from the catalogue. This
   cannot be undone." It overwrites **in place**: no version history, no second
@@ -752,18 +799,34 @@ Comparison is on `dish_name` (§5.3, ADR-0002).
 
 **How it is said:**
 
-- **A banner on the plan, one line per repeating course, naming no dish**, and
-  pointing at the fix: "Soups repeat this week — add more dishes." Naming the
-  dish, or marking the offending slot, frames an expected consequence of a small
-  catalogue as a fault in one particular day.
-- **No per-slot repeat markers.** This settles the conflict with the design
-  canvas, which drew inline `↻2×` markers, **against** the canvas.
-- **A toast on the reroll that causes a repeat**, outcome-triggered: it fires
-  when the dish the reroll landed on is already elsewhere in that week — not
-  merely when the fallback ran, since the fallback can still land on an unused
-  dish. The toast is the causal link; the banner is the standing state. Without
-  it the banner materialises one reroll later with nothing connecting it to the
-  button that was pressed.
+- **One Notice on the week screen, said once per week**, in the message region
+  below the header, pointing at the fix: add more dishes. Not one line per
+  repeating course — this is one statement about the week, and it shares its
+  component with the short-catalogue message above.
+- **It names the dish when exactly one dish repeats, and the courses when
+  several do.** A single repeat has a name worth saying; several repeats say
+  something about the catalogue rather than about any one dish, and a short
+  catalogue has no dish to name at all.
+- **It is never said about the offending slot.** A repeat is an expected
+  consequence of a small catalogue, not a mistake in a particular day. Naming
+  the dish is not naming the day: the same dish sits in two of them and neither
+  is at fault. **No per-slot repeat markers** — this settles the conflict with
+  the design canvas, which drew inline `↻2×` markers, **against** the canvas.
+- **It appears only where the repeat can still be undone.** The Notice warns a
+  household before it lives the week, so it belongs to a *writable* week and
+  does not follow a plan into history. An alert with no action behind it teaches
+  people to ignore alerts, and a past week's own rows already say "we ate soup
+  twice" in a form that can be read.
+- **There is no toast, and no message of any kind on the reroll that causes a
+  repeat.** The Notice is not a report of what just happened but a statement of
+  what is true, so a reroll that lands on a repeat simply makes it true and the
+  Notice is there when the screen settles. This system has **no expiring
+  message**: a statement still true four seconds later cannot be told to
+  somebody in a way they can no longer re-read.
+
+The treatment — the Notice's two forms, its two messages and what each sentence
+says — is in
+[the visual system](docs/design/visual-system.md#notice).
 
 ---
 
@@ -830,93 +893,208 @@ unique within a course.
 
 ## 11. Screens and navigation
 
-Four screens and no more: **plan**, **dishes**, **history**, **accounts**.
-Accounts is admin-only. Decided from a prototype rather than from prose; the
-losing variants and the phone-first round remain on the
-[`prototype/screens`](https://github.com/lfeq/food-organizer/tree/prototype/screens)
-branch (`prototypes/screens-web/index.html?variant=W1` is the chosen one) as the
-primary source. **Only the decisions below are binding.**
+**Five destinations**: **plan**, **dishes**, **history**, **accounts**,
+**settings**. Accounts and settings are admin-only. Three further screens are
+not destinations, because they are reached with no session or with a session
+pinned to one screen: **sign in**, **first-run setup** and **forced password
+change**. Eight screens in all.
 
-**Web first, at desktop width.** The phone layout is deliberately deferred
-(§15); W1 was chosen partly because it degrades to one column gracefully.
+**Both widths are primary.** The household plans at a desk and reaches for a
+phone at mealtime, so there is one design with **one breakpoint, at `900px`**,
+and every screen answers both sides of it. Where the two forms differ, the
+difference is named per screen below and is never more than it has to be: only
+two components in the whole system are two-formed across the breakpoint.
+
+The `W1` variant on the
+[`prototype/screens`](https://github.com/lfeq/food-organizer/tree/prototype/screens)
+branch decided the original desktop screens and is **superseded** as a source:
+what each screen is now is decided here and in
+[the visual system's screen sections](docs/design/visual-system.md#navigation-across-the-breakpoint).
 
 ### 11.1 Navigation
 
-A persistent left **sidebar** on every screen:
+One navigation component with two forms, carrying the **same destination set**
+at both widths, so nothing is reachable at one width and not the other.
 
-- instance name at the top,
-- **This week · Next week · Dishes · History · Accounts** (Accounts admin-only),
-- the signed-in member and the **`EN / ES` toggle** pinned at the bottom.
+- **At or above `900px`, a persistent left sidebar**: the instance name at the
+  top, then `This week · Dishes · History · Accounts · Settings`, with the
+  signed-in member and the `EN / ES` toggle pinned at the bottom. A non-admin
+  sees three items.
+- **Below it, a four-cell bottom tab bar** — `Plan · Dishes · History · More` —
+  where `More` opens a sheet holding the two admin-only destinations and the
+  session block. **Four cells hold five destinations because `More` is a drawer,
+  not a destination**: another admin-only screen lengthens that sheet and leaves
+  the bar untouched.
 
-Nothing is more than one click from anywhere. No tabs, no drawer, no hamburger.
+The active cell or item follows the **URL**, not the route taken to it, so a
+past week opened from History still lights `Plan`.
 
-**Week switching lives in the sidebar as its own entry**, not as a control on
-the plan: "show me next week" is navigation, not an edit to the week you are
-looking at.
+**`Next week` is not a destination** (§6.2). The app writes to exactly two
+weeks, so stepping between them is a single affordance in the week header that
+flips by which week is shown — at **both** widths. This is a change of mind
+about what week switching *is*: not navigation to another place, but a view
+change on the screen you are already looking at. Past weeks are reached only
+through History.
+
+No navigation chrome appears on sign in, first-run setup or forced password
+change.
 
 ### 11.2 The plan (the front door)
 
-Two columns.
+One responsive screen, not two designs. At both widths it is a **today card**
+followed by the rest of the week's days; what changes across `900px` is the
+density of a day, not the composition of the screen.
 
-- **Today is a large card on the left**, showing all three courses at reading
-  size, with its own labelled reroll button.
-- **The week's remaining days are compact cards** stacked in a narrower right-hand
-  column, one line per course, each with a `↻` control.
-
-Today is distinguished three ways at once — its own column, a green outline, and
-a `today` tag — because the app's single most common use is answering "what are
-we eating today" at a glance.
+- **Today is featured**, showing all three courses at reading size with its own
+  labelled reroll control, because the app's single most common use is answering
+  "what are we eating today" at a glance.
+- **Every other day is a row** carrying a `↻` reroll. Below `900px` a row shows
+  its dish names alone; at or above it, the same row expands to labelled
+  `SOUP / SIDE / MAIN` rows in a two-column week. One threshold, both
+  consequences (§11.1).
+- **A day card is a surface that contains a control, not a control itself.**
+  The reroll button carries the affordance; the card takes no interactive state.
 
 **Days already elapsed are dimmed and read-only**: they lose their reroll
 control entirely rather than showing a disabled one (§6.2). They stay part of
 the week and stay readable; they simply stop being decisions still open. Where a
-week was generated mid-week, the days before it was generated have no cards at
-all — no placeholder rows.
+week was generated mid-week, **the days before it was generated have no cards at
+all** — no placeholder rows, no dashed outlines, nothing drawn as a ghost.
 
-When the week has no plan, the screen offers **Generate**; when it has one and
-the week is writable, generating again is offered behind the confirmation in
-§9.1. The repeating-week banner (§9.3) sits above the two columns.
+**A past week is the same screen with no featured day and no dimming** (§11.4).
+
+When the week has no plan, the screen offers **Generate week** and the day area
+draws **one line of plain text** saying there is no plan for this week yet —
+not a seven-day scaffold of empty cards, which would draw days the plan does not
+have. When it has one and the week is writable, generating again is offered
+behind the confirmation in §9.1. Any message — the repeating-week Notice (§9.3),
+an inline error — sits in one region directly below the screen header.
 
 **Reroll lives on the plan only**, one control per day. There is no reroll in
 the catalogue or in history.
 
 ### 11.3 Dishes (the catalogue)
 
-**One screen, three columns side by side** — one per course, each with its own
-count — not three screens. It fits without scrolling at catalogue sizes this
-household will see, and it makes the three-way split of the domain visible in
-the layout.
+**One list, filtered by chips, at both widths.** Four chips — `All` first and
+selected by default, then the three courses. The three-column by-course grid is
+retired: a filter and a by-course grid cannot both be the way this screen is
+read, and the filter is what survives a `390px` screen. `All` is selected by
+default because a filter with no way back would take away a view the app has
+always had.
 
-Adding and editing happen in a **modal sheet**, not on a separate route, so the
-list stays behind it as context. Every member may add, edit and delete any dish.
-Authorship is shown; a dish whose author was removed reads "removed member".
+**Adding a dish is one course-neutral action** in the screen header. The
+per-course add buttons die with the columns, and the course is chosen in the
+form instead — which makes that one control the only place in the app a course
+is set.
+
+**A row carries one action, behind a `···`.** The row itself is not a control,
+so it takes no state: the same rule the day card follows. Tapping the row was
+the larger touch target and the quieter screen, and was declined because it
+would make the row the control and need that rule amended for one screen.
+
+**Adding and editing happen in a modal form over the list**, not on a separate
+route, so the list stays behind it as context. This form is the first of the
+only two components **two-formed across the breakpoint** — a sheet rising from
+the bottom edge below `900px`, a centred panel above; the other is the list
+block's row actions (§11.5) — because a form is not a step, and a
+full-width band pinned to the bottom of a wide monitor puts the fields far from
+the row that opened them.
+
+Every member may add, edit and delete any dish. Authorship is shown; a dish
+whose author was removed reads "removed member".
 
 Deleting a dish must say plainly that **past weeks keep it** — and, symmetric
 with ADR-0002's consequence, renaming a dish must say that it changes the
 catalogue and every *future* plan but no past one. That asymmetry is deliberate
-and needs to be said out loud in the UI.
+and needs to be said out loud in the UI. Deletion is **unguarded**: the
+catalogue has no minimum, and what an empty course does to the week screen is
+settled in §9.1.
 
-### 11.4 History — **Derived**
+**With no rows to show**, the list says so in one line, and *which* line depends
+on the selected chip: with `All` selected it says the catalogue is empty; with a
+course chip selected it says **that course** is empty, because `All` would still
+show rows and a line blaming the catalogue would be false. The chips stay on
+screen and keep their counts either way.
+
+### 11.4 History
 
 A read-only list of past weeks, most recent first, each opening the same plan
-view with every write control absent (not merely disabled). No reroll, no
+view with every write control **absent** (not merely disabled). No reroll, no
 generate. The screen exists to answer "what did we eat", nothing more.
 
-### 11.5 Accounts (admin only)
+**One row form**, not two: a week's range and a trailing `→`. The range is the
+week's **full seven days** even where the plan holds fewer, because a weekly
+plan is identified by the date its week start falls on, not by its row count —
+two weeks of identical identity must not get different labels. That a week was
+partial is something the household learns by opening it.
 
-Member list with role; create member (password shown once, §7.5); reset
-password; remove member; promote/demote. The last-admin control is **disabled
-with the reason shown**, never simply missing (§7.6).
+A three-day peek of the newest week was the alternative and it lost on a fact
+rather than on taste: a week generated mid-week holds only the days still ahead
+(§9.1), so "see all 7 days" is false for such a week and the first three
+weekdays are exactly the days it does not have.
 
-This is also where the instance settings live: **week start** (editable until
-the first plan exists, read-only with the reason afterwards, §6.1) and
-**timezone**.
+**A history row is the one place in this design where the whole row is the
+control.** It carries no actions of its own, so it has nothing to put behind a
+`···` and nothing to grow at width: history looks the same at both widths.
+
+**What a past week opens into**: the plan screen with **no featured day** —
+featuring the first day for want of a today would give an arbitrary day the
+emphasis reserved for the day being lived — and **no elapsed dimming**, which on
+a wholly past week marks every row and so distinguishes nothing. Dimming is a
+within-the-current-week signal. A read-only tag sits where `Generate week` sits
+on a writable week, and there is no stepper (§11.1) and no repeating-week Notice
+(§9.3).
+
+### 11.5 Accounts and Settings (admin only)
+
+Two admin-only destinations, one subject each.
+
+**Accounts** is the member list: create member (password shown once, §7.5);
+reset password; remove member; promote/demote. It is **one list block at both
+widths**, and the only thing that changes across `900px` is where a member's
+three actions sit — behind a `···` below the threshold, inline at the end of the
+row above it. The branch is earned by the row's contents, not by its width: a
+member row carries three different verbs on one person where a catalogue row
+carries one, and three inline actions do not fit a phone.
+
+A four-column `Member · Role · Status ·` actions table was the intended desktop
+form and **does not fit in Spanish at the threshold** — the measurement is in
+[Bilingual fit](docs/design/visual-system.md#bilingual-fit). Role and status
+fold back under the username, where the phone already puts them. **A row's
+inline action group never wraps, which caps it at three**; a fourth action goes
+behind the `···` at both widths.
+
+The last-admin controls are **disabled with the reason shown**, never simply
+missing (§7.6) — and the standing rule, which generalises past this screen, is
+that **a disabled control keeps its own label and the reason sits beside it,
+never in place of it**. A button whose label has been replaced by a fact about
+the member has stopped saying what it does.
+
+**Settings** holds what used to sit at the bottom of accounts: **week start**
+(editable until the first plan exists, §6.1), **timezone**, the instance
+**display name** (§17), and the data export (§16). They left rather than folding
+into a tab on accounts because a member list and an instance's week start are
+not two views of one thing — they share only the fact that an admin edits both.
+
+A locked week start is **not a disabled `select`**: it is the weekday as plain
+text with the reason after it. The value a household cannot change is still a
+value it needs to read.
 
 ### 11.6 Look and feel
 
-From the household's own design canvas, *Planificador semanal de comidas*
-(direction 1b, desktop take 1d): **IBM Plex Sans / IBM Plex Mono, warm paper
-background, one green accent**, amber reserved for the repeating-week notice.
+**[`docs/design/visual-system.md`](docs/design/visual-system.md) is the design,
+and it is binding.** It was extracted from the household's own design canvas,
+*Planificador semanal de comidas* (direction `1b`, desktop take `1d`), whose
+palette, typography, spacing and components replace the ones this app shipped
+with: **IBM Plex Sans / IBM Plex Mono, warm paper background, one green
+accent**, amber reserved for the Notice. Where that document and the canvas
+disagree, that document wins — it decided the canvas's own contradictions, and
+the canvas file is no longer in this repository to be re-read.
+
+The one rule worth repeating here, because it is about behaviour rather than
+appearance: **green acts on the weekly plan; dark acts on the catalogue,
+accounts or session.** The exception is navigation, which acts on nothing and
+takes green in the tab bar's active marker and the week stepper.
 
 Two things on that canvas are **not** binding, having been decided against
 elsewhere: the inline per-slot repeat markers (§9.3) and a pseudo-author called
@@ -924,7 +1102,27 @@ elsewhere: the inline per-slot repeat markers (§9.3) and a pseudo-author called
 account, so there is only one kind of author (§10).
 
 The canvas's `14 weeks stored`, its `used 3× in the last 8 weeks` dish
-statistic, and its `Print` button are **not in scope** (§15).
+statistic, and its `21 dishes · 0 repeats` history summary are **not in scope**
+(§15); its `Print` button is out of scope outright (§14).
+
+### 11.7 The session screens
+
+Three screens with no navigation chrome, because there is either no session or a
+session deliberately pinned to one screen.
+
+- **Sign in** — the canvas's `1j`.
+- **First-run setup** (§7.4) is **stepped, one question per screen: two steps**,
+  account then week, over a single transaction. A mono `STEP 1 OF 2` counter is
+  the only progress indicator. A third step where the household reviews the seed
+  catalogue before finishing was considered and ruled out of scope (§14) — the
+  seeding itself ships and always did.
+- **Forced password change** (§7.5) reuses the sign-in frame with
+  `Signed in as <name>` in place of the host line, and demotes **Sign out to a
+  text action** rather than the second button the route gives it today. A member
+  in this state reaches exactly two things (§8), so sign out must be present —
+  but it is not what they came to do.
+
+Both of the latter are dark-button only: neither acts on the weekly plan.
 
 ---
 
@@ -935,7 +1133,8 @@ the URL, no locale in the database. Full reasoning in ADR-0001.
 
 ### 12.1 How a locale is chosen
 
-A **cookie**, written by the sidebar toggle and read server-side during SSR, so
+A **cookie**, written by the `EN / ES` toggle — in the sidebar, or in the
+`More` sheet on a phone — and read server-side during SSR, so
 there is no flash of the wrong language. Not a `Member` column and not a path
 segment:
 
@@ -1012,11 +1211,32 @@ rule, not the list, is what was decided.
 | `DISH_NAME_EMPTY` | blank after trim |
 | `GENERATE_EMPTY_COURSE` | one or more courses hold no dishes — **carries which** |
 | `WEEK_NOT_WRITABLE` | target is neither the current nor the next week |
+| `DAY_ELAPSED` | the target plan day's date has already passed (§6.2) |
 | `PLAN_NOT_FOUND` | reroll against a week with no plan |
 | `WEEK_START_FROZEN` | week-start change attempted after the first plan |
 
 `GENERATE_EMPTY_COURSE` carries the offending course values as data, since the
 message names them; the client translates the course names.
+
+`DAY_ELAPSED` is a **sibling of `WEEK_NOT_WRITABLE`, not a reuse of it**. The
+two refuse for different reasons and the screen says different things about
+them, and a client that cannot tell them apart cannot explain either. It is also
+the only code whose condition the client may reach without any user error: a tab
+left open overnight holds a stale "today", so the client refreshes itself on
+this code rather than offering a retry that can only fail again (§9.2).
+
+### 12.7 What bilingual costs the layout
+
+A rule that reads like a copy decision and is really a layout constraint, so it
+binds the build as much as the string table does:
+
+**No layout branches on locale, nothing is abbreviated to fit, and no mono
+label ever gets a fixed width.** A course label is written out in full in both
+languages (`CONTEXT.md`), and where a Spanish word is the wider one, the layout
+is sized to the word. In practice this means intrinsic sizing rather than
+measured columns, and it is what decided both the day card's course column and
+the shape of the accounts row (§11.5). The measurements are in
+[Bilingual fit](docs/design/visual-system.md#bilingual-fit).
 
 ---
 
@@ -1050,8 +1270,65 @@ somewhere demonstrable.
     and the cookie, format all dates through `Intl`. Doing this last is
     deliberate: it is mechanical once the screens exist, and the `tsc` error on a
     missing key makes it self-checking.
+12. **The redesign.** Adopt the visual system across all eight screens and make
+    the phone first-class. Not yet broken into steps; it is a build phase of its
+    own, specified by §11 here plus
+    [`visual-system.md`](docs/design/visual-system.md) and
+    [`css-structure.md`](docs/design/css-structure.md).
 
 Steps 5–8 are the app; 1–3 are where the stack's accepted risks land.
+
+**Steps 5–10 describe the screens as they were first built**, which is not what
+§11 now specifies — step 5's three-column catalogue, step 7's sidebar week
+switching and step 8's toast were all decided against afterwards. They are left
+as the record of how the app got here; **§11 is what a screen should be.**
+
+#### What step 12 inherits
+
+Findings the redesign map made while deciding something else, collected here so
+they do not have to be dug out of eighteen resolution comments. Each is small,
+none was in that map's scope to fix, and all are verified against the code as of
+this writing.
+
+**Wrong in the app today:**
+
+- **`removeMember` has no last-admin guard.** `src/accounts-fns.ts` deletes the
+  row unconditionally. The instance cannot actually reach zero admins — §5.6
+  trigger 1 *is* implemented and raises — but the handler does not anticipate it,
+  so the admin sees `DB_UNREACHABLE` where they should see `LAST_ADMIN`. The
+  guard belongs in the handler; the trigger is the backstop, not the message.
+- **The role badge never goes through `i18n`.** ADR-0001 says every visible
+  string does.
+- **The catalogue has no empty state at all**, and now needs two (§11.3).
+- **`deleteDish` is unguarded**, which is correct — the catalogue has no minimum
+  (`CONTEXT.md`) — but it is worth knowing it is deliberate and not an omission.
+- **The repeating-week Notice renders on past weeks.** The loader computes it for
+  any plan, so a week nothing can change still carries the warning (§9.3).
+- **`generateWeek` rewrites elapsed days.** It deletes and reinserts the whole
+  week, so one Thursday tap redraws three days the household has already eaten.
+  §9.1 is the decided behaviour; this is the largest gap between spec and code.
+- **`rerollDay` has no day-level elapsed check**, only the week-level one
+  (§6.2), and `DAY_ELAPSED` does not exist in the codebase yet.
+
+**String-table changes the design forces:**
+
+- `courseSide` es → **`Guarnición`**, and `courseSidePlural` es →
+  **`Guarniciones`**. Today they read "Acompañamiento" / "Acompañamientos".
+  This is not a preference: the catalogue's fourth chip fits Spanish at `390px`
+  only with the shorter word (§11.3), which promotes the rename from a nicety to
+  a prerequisite.
+- `dishAddTitle` loses its `{course}` interpolation — adding is course-neutral
+  (§11.3).
+- `planNoWeek` becomes the week screen's empty line (§11.2).
+- `planRegenNotice` → "The days still ahead will be redrawn from the catalogue":
+  true on a Sunday and a Thursday alike, with no count and no plural rule (§9.1).
+
+**One CSS fix that outlives `styles.css`:** `src/styles.css:553` sets
+`font-family: "IBM Plex Mono", monospace`. The bare `monospace` keyword resolves
+to a browser default that ignores the user's preference; it must be
+`ui-monospace, monospace` wherever the mono stack is declared.
+
+**Two schema invariants were never built:** §5.6 triggers 2 and 3.
 
 ### Testing — **Derived**
 
@@ -1085,6 +1362,20 @@ these has drifted, and should stop and ask.
 - **Pinning or hand-editing a slot.** Regenerating a whole day is the only edit.
 - **Cross-week variety.** Generating has no memory, on purpose.
 - **Cooking turns** (assigning who cooks each day). Raised and set aside.
+- **Printing the week.** A week on the fridge is a real want, and it was
+  deferred rather than ruled out until the redesign map pushed it past its own
+  destination: the canvas draws a `Print` button the app has never had, which
+  makes it a new capability rather than a restyling of an existing screen. It
+  moved here from §15 with its answer recorded rather than lost — the canvas's
+  `1c` artboard (mono, dashed rules, the whole week on one page, no interactive
+  affordances) is its natural form, which makes `1c` the print view for a later
+  effort rather than a rejected layout.
+- **Dark mode.** The canvas is light-only, nobody has asked for it, and adding
+  it would double every colour decision in the visual system.
+- **A first-run setup step for the catalogue.** Not the seeding itself, which
+  ships and always did (§10): a *third* setup screen where the household reviews
+  or edits the 27 seed dishes before finishing. A new screen, not a restyling of
+  one (§11.7).
 
 ---
 
@@ -1093,13 +1384,12 @@ these has drifted, and should stop and ask.
 These are real questions with no answer yet. They do not block the build, and
 guessing at them in code is worse than leaving them out.
 
-- **Phone layout.** Web first was chosen deliberately, but the app is opened
-  standing in a kitchen. Whether the plan's two columns simply collapse to one or
-  the phone gets its own layout is unsettled; the design canvas's direction 1b is
-  the starting point.
-- **Printing the week.** A week on the fridge is the offline answer for a
-  household, and it is the one surface where the phone-versus-desktop question
-  does not apply. Unclear whether it is a stylesheet or a screen.
+**Two entries have left this section.** The **phone layout** was the whole
+subject of the redesign map and is settled — the phone is a first-class device,
+there is one breakpoint at `900px`, and every screen answers both sides of it
+(§11). **Printing the week** turned out to be past that map's destination rather
+than deferred, and moved to §14.
+
 - **History retention.** The shipped behaviour is **unbounded** — nothing deletes
   a `weekly_plan`, and old weeks hold their own copies of dish names forever.
   Whether to add a bound is a product question, not a schema one.
@@ -1121,8 +1411,9 @@ hosting research and never became a ticket. It is not required to ship, and it
 is cheap: the whole database is seven small tables and nothing in it is
 localised.
 
-**Implementation:** Admin-only "Export data" section on the Accounts screen.
-One button triggers `exportData()` (server fn, admin-only) which queries all
+**Implementation:** Admin-only "Export data" section — built on the Accounts
+screen, and moving to **Settings** with the rest of the instance-level controls
+(§11.5). One button triggers `exportData()` (server fn, admin-only) which queries all
 tables — settings, members (no passwords/sessions), catalogue, and all weekly
 plans with their days and slots — and returns them as a self-describing JSON
 object. The client side serialises to a `Blob` and triggers a `<a download>`
@@ -1133,19 +1424,23 @@ localised; dish-name snapshots on past weeks are preserved verbatim.
 
 ## 17. Gaps the implementer must resolve
 
-Two loose ends that the map did not close. Neither blocks starting; both need an
-answer before the screen or table they touch is finished.
+Two loose ends the first map did not close. **Both are now closed**, by the
+build rather than by a decision, and are recorded here rather than deleted
+because each was left as a recommendation and a reader needs to know it was
+taken.
 
-1. **The instance display name.** The sidebar shows an instance name at its top
-   (the canvas draws "casa hernández"). It was explicitly agreed this is
-   *config*, not a `Household` row — but the schema has no column for it.
-   Cheapest resolution: add `settings.display_name text` (nullable, editable on
-   the accounts screen, falling back to a static app title when null). Chosen
-   here as the recommendation, not as a decision.
-2. **The generated temporary password's shape.** §7.5 says the app generates it
-   and shows it once; nothing says what it looks like. It is read aloud across a
-   kitchen, so favour a short, unambiguous, pronounceable form over entropy —
-   `must_change_password` means it lives for minutes.
+1. **The instance display name** — **resolved as recommended.**
+   `settings.display_name text` (nullable) exists in `migrations/0002_auth.sql`
+   and is read and written by `getInstanceSettings` / `saveInstanceSettings`. It
+   falls back to a static app title when null. It is edited on the **Settings**
+   screen rather than accounts (§11.5), and it is the name the sidebar and the
+   `More` sheet show at their top.
+2. **The generated temporary password's shape** — **resolved in the build**, and
+   in the direction §7.5 pointed: `generateTempPassword` in `src/auth.server.ts`
+   produces `CVC-CVC-CVC` from fifteen unambiguous consonants and five vowels,
+   dropping `l` (reads as `1`), `c` (ambiguous aloud) and `j/y/q/x`. Eleven
+   characters, comfortably over the eight-character floor (§7.6), pronounceable
+   across a kitchen, and alive for minutes because `must_change_password` is set.
 
 ---
 
@@ -1164,17 +1459,62 @@ wins, and the disagreements are noted in the table.
 | Schema, week start, time model, snapshotting, admin floor | [Decide the data model and schema](https://github.com/lfeq/food-organizer/issues/7) |
 | Reroll repeats, seed catalogue of nine, repeating-week framing | [Decide what happens when regenerating must repeat](https://github.com/lfeq/food-organizer/issues/10) |
 
+From [Map: Pleasant on the phone, comfortable on the desktop](https://github.com/lfeq/food-organizer/issues/31),
+whose eighteen tickets redesigned every screen. Its decisions are written out in
+[`visual-system.md`](docs/design/visual-system.md) and
+[`css-structure.md`](docs/design/css-structure.md); the rows below name only the
+ones that changed *this* document.
+
+| Decision | Ticket |
+| --- | --- |
+| The week screen is one responsive component (`1b`/`1d`/`1e`), §11.2 | [Which of the five week-screen variants is the direction?](https://github.com/lfeq/food-organizer/issues/32) |
+| Tab bar below `900px`, sidebar above, `Next week` is not a destination, §6.2 and §11.1 | [What happens to the sidebar on a phone?](https://github.com/lfeq/food-organizer/issues/35) |
+| Course labels are `Sopa / Guarnición / Fuerte`; no layout branches on locale, §12.7 | [Do the Spanish course labels survive the mono treatment?](https://github.com/lfeq/food-organizer/issues/36) |
+| Setup is two steps; forced password change is the sign-in twin, §11.7 | [How do setup and forced password change look?](https://github.com/lfeq/food-organizer/issues/37) |
+| Elapsed-day immutability is server-side; a plan may hold fewer than seven days, §5.6, §6.2, §9.1 | [Where is elapsed-day immutability enforced?](https://github.com/lfeq/food-organizer/issues/72) |
+| The week stepper lives on the week screen at both widths, §11.1 | [What does the week stepper look like?](https://github.com/lfeq/food-organizer/issues/75) |
+| The catalogue is one chip-filtered list; the form is a sheet or a panel, §11.3 | [What do the dish catalogue and its add/edit sheet become at both widths?](https://github.com/lfeq/food-organizer/issues/84) |
+| Accounts is one list block; settings and export leave for their own screen, §11.5 | [How does the accounts screen carry its member actions on a phone?](https://github.com/lfeq/food-organizer/issues/85) |
+| One history row form; what a past week opens into, §11.4 | [What does the history screen show per week, and what does a past week open into?](https://github.com/lfeq/food-organizer/issues/86) |
+| No expiring message; the toast is deleted; what the Notice names, §9.3 | [What replaces the toast under the new system?](https://github.com/lfeq/food-organizer/issues/87) |
+| Zero is the far end of short; every empty region is a sentence, §9.1, §11.2, §11.3 | [What does the week screen show when the catalogue is empty?](https://github.com/lfeq/food-organizer/issues/88) |
+| This reconciliation | [Reconcile SPEC.md and CONTEXT.md with everything this map decided](https://github.com/lfeq/food-organizer/issues/94) |
+
 **Amendments applied here, so the tickets alone would mislead:**
 
 - The seed catalogue is **27 dishes (nine per course)**, not the 21 (seven) the
   generator ticket first decided. Amended by the reroll-repeats ticket.
-- The repeating-week banner is a **property of the plan**, not the
+- The repeating-week message is a **property of the plan**, not the
   "fewer than seven dishes" catalogue predicate the generator ticket first
   described. Same amendment.
 - The week runs from a **configurable week start defaulting to Sunday**, not the
   Monday–Sunday the bilingual ticket asserted in passing. Amended by the schema
   ticket.
 - **No per-slot repeat markers**, against the design canvas that draws them.
+
+And by the redesign map, against what this document said until now:
+
+- **A weekly plan may hold fewer than seven plan days.** The §5.6 completeness
+  trigger said "exactly seven" and would have made the decided behaviour
+  unrepresentable. Amended by the elapsed-enforcement ticket.
+- **The repeating-week message names the dish** when exactly one repeats, and is
+  said **once per week** rather than once per repeating course. **And there is
+  no toast** — the message family is closed at three, none of them timed.
+- **The catalogue is one filtered list**, not three columns side by side; adding
+  is course-neutral.
+- **Instance settings and the data export left the accounts screen** for a fifth
+  destination, making accounts one subject and the app eight screens.
+- **The phone layout is no longer deferred.** §15 carried it as an open question
+  for the whole first map; it was the second map's entire subject.
+
+**Why this section now exists in two halves.** `SPEC.md` drifted from the
+glossary for eighteen tickets and the drift was found once, by accident, when
+one ticket happened to re-read §6.2. The cause was that decisions were written
+to `CONTEXT.md` or to the visual system and this document was not re-read. The
+division of labour stated at the top — this document decides what a screen does,
+the visual system decides what it looks like, and neither restates the other —
+is the standing answer, and every amendment above is an instance of what happens
+without it.
 
 Supporting material: [`docs/research/stack-and-hosting.md`](docs/research/stack-and-hosting.md)
 (sources and check dates, all 2026-08-28), the

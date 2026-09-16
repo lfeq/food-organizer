@@ -9,7 +9,7 @@ breakpoint may be written.
 [#31](https://github.com/lfeq/food-organizer/issues/31).
 
 **This is a structure decision, not the migration.** Nothing here says when
-`src/styles.css` is replaced or in what order the seven screens move. It says
+`src/styles.css` is replaced or in what order the eight screens move. It says
 what they move *into*.
 
 **What it is answering.** Today all styling is one 899-line `src/styles.css` of
@@ -123,7 +123,7 @@ judgement call:
    the short-catalogue notice sits. It does not decide what the notice looks
    like.
 
-Rule 2 is the whole point of the split. Seven screens each free to restyle a
+Rule 2 is the whole point of the split. Eight screens each free to restyle a
 card is how `styles.css` reached 899 lines, and it is the failure the redesign
 is most exposed to, because the map expects screens to be built in parallel
 sessions.
@@ -162,7 +162,7 @@ the codebase.** Not a preprocessor variable, not a Lightning CSS
 `@custom-media` alias. The value is repeated, deliberately: one grep lists every
 media query in the repository, and any line that is not `min-width: 900px` is
 visibly a bug rather than a plausible local decision. That is the enforcement
-this rule is for — stopping seven screens from each inventing their own
+this rule is for — stopping eight screens from each inventing their own
 threshold. `@custom-media` is reachable (Lightning CSS already ships inside
 Vite 8; it needs a `css.transformer` flag and a drafts option) and is a two-line
 change away if a second breakpoint ever earns its place.
