@@ -47,7 +47,7 @@ export const strings = {
   planRepeatCourses: { en: "{courses} repeat this week — add more dishes to avoid duplicates.", es: "{courses} se repiten esta semana — agrega más platillos para evitar duplicados." },
   planRerollToast:  { en: "A dish now repeats this week — add more dishes to avoid it.", es: "Un platillo se repite esta semana — agrega más platillos para evitarlo." },
   planRegenTitle:   { en: "Regenerate this week?",       es: "¿Regenerar esta semana?" },
-  planRegenNotice:  { en: "The current plan will be replaced with a new one drawn from the catalogue. This cannot be undone.", es: "El plan actual será reemplazado con uno nuevo sacado del catálogo. Esta acción no se puede deshacer." },
+  planRegenNotice:  { en: "The days still ahead will be redrawn from the catalogue. This cannot be undone.", es: "Los días que faltan se volverán a sacar del catálogo. Esta acción no se puede deshacer." },
   planErrEmptyCourse:  { en: "Add at least one dish before generating: {courses}", es: "Agrega al menos un platillo antes de generar: {courses}" },
   planErrNotWritable:  { en: "Only the current and next week can be generated.", es: "Solo se puede generar el plan de la semana actual y la siguiente." },
   planErrRerollFailed: { en: "Reroll failed. Try again.", es: "No se pudo cambiar el día. Inténtalo de nuevo." },

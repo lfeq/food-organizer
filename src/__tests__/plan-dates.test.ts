@@ -3,6 +3,7 @@ import {
   addDays,
   dayOfWeek,
   daysStillAhead,
+  generateSplit,
   hasElapsed,
   weekDays,
   weekStartFor,
@@ -122,5 +123,72 @@ describe("daysStillAhead", () => {
 
   it("returns none when the whole week is behind today", () => {
     expect(daysStillAhead(WEEK_START, "2026-03-08")).toEqual([])
+  })
+})
+
+describe("generateSplit", () => {
+  it("draws all seven days generating on the week start, with nothing to preserve", () => {
+    const split = generateSplit(WEEK_START, WEEK_START, [])
+    expect(split.redraw).toEqual(WEEK)
+    expect(split.preserved).toEqual([])
+    expect(split.discarded).toEqual([])
+  })
+
+  it("preserves the elapsed days and draws only the days still ahead mid-week", () => {
+    const split = generateSplit(WEEK_START, "2026-03-04", WEEK)
+    expect(split.preserved).toEqual(["2026-03-01", "2026-03-02", "2026-03-03"])
+    expect(split.redraw).toEqual([
+      "2026-03-04",
+      "2026-03-05",
+      "2026-03-06",
+      "2026-03-07",
+    ])
+    expect(split.discarded).toEqual(split.redraw)
+  })
+
+  it("invents nothing for elapsed dates that were never planned", () => {
+    // A week already underway with no plan at all: only the days still ahead
+    // are written, so the plan holds fewer than seven plan days.
+    const split = generateSplit(WEEK_START, "2026-03-04", [])
+    expect(split.redraw).toHaveLength(4)
+    expect(split.preserved).toEqual([])
+    expect(split.discarded).toEqual([])
+  })
+
+  it("draws only the last day when generating on the last day of the week", () => {
+    const split = generateSplit(WEEK_START, "2026-03-07", WEEK)
+    expect(split.redraw).toEqual(["2026-03-07"])
+    expect(split.preserved).toEqual(WEEK.slice(0, 6))
+    expect(split.discarded).toEqual(["2026-03-07"])
+  })
+
+  it("regenerates over an existing partial plan without touching its elapsed days", () => {
+    // The plan was first generated on the Wednesday, so it holds 03-04…03-07.
+    // Regenerating on the Friday preserves 03-04 and 03-05 and redraws the rest.
+    const partial = ["2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07"]
+    const split = generateSplit(WEEK_START, "2026-03-06", partial)
+    expect(split.preserved).toEqual(["2026-03-04", "2026-03-05"])
+    expect(split.redraw).toEqual(["2026-03-06", "2026-03-07"])
+    expect(split.discarded).toEqual(["2026-03-06", "2026-03-07"])
+  })
+
+  it("names every week day exactly once across preserved and redraw", () => {
+    for (const today of WEEK) {
+      const split = generateSplit(WEEK_START, today, WEEK)
+      expect([...split.preserved, ...split.redraw]).toEqual(WEEK)
+    }
+  })
+
+  it("discards nothing that does not already exist", () => {
+    const split = generateSplit(WEEK_START, "2026-03-04", ["2026-03-06"])
+    expect(split.discarded).toEqual(["2026-03-06"])
+    expect(split.redraw).toHaveLength(4)
+  })
+
+  it("preserves the whole week and draws nothing once the week is behind today", () => {
+    const split = generateSplit(WEEK_START, "2026-03-08", WEEK)
+    expect(split.preserved).toEqual(WEEK)
+    expect(split.redraw).toEqual([])
+    expect(split.discarded).toEqual([])
   })
 })

@@ -66,3 +66,32 @@ export function hasElapsed(dayDate: IsoDate, today: IsoDate): boolean {
 export function daysStillAhead(weekStart: IsoDate, today: IsoDate): IsoDate[] {
   return weekDays(weekStart).filter((d) => !hasElapsed(d, today))
 }
+
+/**
+ * What a generate writes, given the plan days that already exist.
+ *
+ * `preserved` are the plan days that are elapsed: generating leaves them
+ * exactly as they stand, and the dishes they hold count as used when the rest
+ * is drawn. `redraw` are the days still ahead — the dates the generate draws,
+ * whether or not a plan day already exists for them. `discarded` are the plan
+ * days that already exist on those dates and are therefore replaced.
+ *
+ * Nothing is invented for a date that is elapsed and has no plan day: those
+ * would be immutable the instant they were written, a permanent record of
+ * meals nobody decided. A weekly plan may therefore hold fewer than seven plan
+ * days.
+ */
+export function generateSplit(
+  weekStart: IsoDate,
+  today: IsoDate,
+  existingDayDates: readonly IsoDate[],
+): { preserved: IsoDate[]; redraw: IsoDate[]; discarded: IsoDate[] } {
+  const redraw = daysStillAhead(weekStart, today)
+  const ahead = new Set(redraw)
+  const existing = [...new Set(existingDayDates)].sort()
+  return {
+    preserved: existing.filter((d) => !ahead.has(d)),
+    redraw,
+    discarded: existing.filter((d) => ahead.has(d)),
+  }
+}

@@ -37,6 +37,36 @@ describe("drawN", () => {
   })
 })
 
+describe("drawN with dishes already used by preserved elapsed days", () => {
+  it("avoids the used names while unused dishes remain", () => {
+    const pool = makeDishes(9)
+    const used = new Set(["dish-0", "dish-1", "dish-2"])
+    for (let run = 0; run < 20; run++) {
+      const drawn = drawN(pool, 4, used).map((d) => d.name)
+      expect(drawn.some((n) => used.has(n))).toBe(false)
+      expect(new Set(drawn).size).toBe(4)
+    }
+  })
+
+  it("falls back to the whole pool rather than refusing when the unused run out", () => {
+    // Nine dishes, six already eaten this week, four days still ahead: the week
+    // must repeat. Announced (§9.3), not refused.
+    const pool = makeDishes(9)
+    const used = new Set(["dish-0", "dish-1", "dish-2", "dish-3", "dish-4", "dish-5"])
+    const drawn = drawN(pool, 4, used)
+    expect(drawn).toHaveLength(4)
+    expect(drawn.some((d) => used.has(d.name))).toBe(true)
+  })
+
+  it("draws nothing when no day is still ahead", () => {
+    expect(drawN(makeDishes(9), 0, new Set())).toEqual([])
+  })
+
+  it("is unchanged when no names are used", () => {
+    expect(drawN(makeDishes(9), 7, new Set())).toHaveLength(7)
+  })
+})
+
 describe("pickReroll", () => {
   it("never returns the replaced dish (7-dish pool, all used)", () => {
     const pool = makeDishes(7)
