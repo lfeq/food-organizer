@@ -27,12 +27,12 @@ export const strings = {
 
   // --- Course names singular ---
   courseSoup:  { en: "Soup",         es: "Sopa" },
-  courseSide:  { en: "Side",         es: "Acompañamiento" },
+  courseSide:  { en: "Side",         es: "Guarnición" },
   courseMain:  { en: "Main",         es: "Fuerte" },
 
   // --- Course names plural (for catalogue headers & banners) ---
   courseSoupPlural: { en: "Soups",   es: "Sopas" },
-  courseSidePlural: { en: "Sides",   es: "Acompañamientos" },
+  courseSidePlural: { en: "Sides",   es: "Guarniciones" },
   courseMainPlural: { en: "Mains",   es: "Fuertes" },
 
   // --- Plan screen ---
