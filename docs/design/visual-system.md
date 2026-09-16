@@ -23,12 +23,13 @@ bar, sidebar), and the interactive states every one of them takes.
 **Does not cover:**
 
 - **Per-screen layout.** How the desktop grid reflows within a screen is a
-  separate decision on the redesign map. Four are now settled and written up
+  separate decision on the redesign map. Five are now settled and written up
   above: the week-screen variant (`1b`), what the sidebar becomes on a phone,
-  [the dish catalogue](#the-dish-catalogue), and
+  [the dish catalogue](#the-dish-catalogue),
   [accounts](#the-accounts-screen) — which split off
-  [a settings screen](#the-settings-screen) in the process. History is still
-  open, on [#86](https://github.com/lfeq/food-organizer/issues/86).
+  [a settings screen](#the-settings-screen) in the process — and
+  [history](#the-history-screen), which carries
+  [what a past week opens into](#what-a-past-week-opens-into) with it.
 - **How this gets implemented.** Settled separately, in
   [CSS structure](./css-structure.md): the tokens named here *are* CSS custom
   properties on `:root` under these exact names, `styles.css` splits into
@@ -93,7 +94,7 @@ unknown one.
 | `--ink` | `#191817` | Everything that must be read: dish names, headings, button labels, the day a card is for. |
 | `--ink-secondary` | `#6d6862` | Sans prose that supports the primary line — the "soup · side" summary under a main, an explanatory sentence. |
 | `--ink-muted` | `#6d6862` | **Mono only.** Labels, dates, counts, authorship, and every eyebrow. If text is muted and not mono, it is `--ink-secondary`, not this. Same value as `--ink-secondary`, two tokens because they are two jobs: a label reads as a label through family, case, size and weight, never through colour. See the [contrast audit](#contrast-audit). |
-| `--ink-faint` | `rgba(25,24,23,.3)` | **Decoration only**, and the one token in this document that does not clear `4.5:1`. Its single use is the `→` on a history row, which sits beside a high-contrast date on a card that is *itself* the control: the arrow repeats what the card already says. Never put it on a glyph that carries a job of its own. |
+| `--ink-faint` | `rgba(25,24,23,.3)` | **Decoration only**, and the one token in this document that does not clear `4.5:1`. Its single use is the `→` on a history row, which sits beside a high-contrast date on a row that is *itself* the control: the arrow repeats what the card already says. Never put it on a glyph that carries a job of its own. |
 | `--ink-on-inverse` | `#fffefb` | Text and glyphs on `--ground-inverse`. |
 | `--ink-on-inverse-muted` | `rgba(255,254,251,.62)` | Idle sidebar navigation items. |
 | `--ink-on-inverse-faint` | `rgba(255,254,251,.55)` | Sidebar footer metadata, and the instance name under the brand. A step dimmer than the idle nav items, and still past `4.5:1`. |
@@ -566,20 +567,31 @@ icon asset.
 | --- | --- | --- | --- | --- |
 | **Day card** | `--ground-surface` | `1px --rule` | card | `12px 16px` |
 | **Today card** | `--ground-surface` | **`1px --rule-strong`** | card | `16px` |
-| **History card** | `--ground-surface` | `1px --rule` | card | `12px 16px` |
 | **Notice** | `--notice-ground` | `1px --notice-rule` | card | `12px 16px` |
 | **Placeholder** | none | `1px dashed --rule-dashed` | card | `12px 16px` |
 | **Sunken note** | `--ground-sunken` | none | card | `12px 16px` |
 | **List block** | `--ground-surface` | top `1px --rule`; rows separated by `1px --rule-inset` | none — full bleed to the screen edges | rows `12px 16px` |
 
-The **list block** is the one surface that ignores the gutter: the catalogue
-and the accounts list run edge to edge, and only their *contents* are inset by
-`16px`. Everything else on those screens respects the gutter. This is what
+The **list block** is the one surface that ignores the gutter: the catalogue,
+accounts and history lists run edge to edge, and only their *contents* are
+inset by `16px`. Everything else on those screens respects the gutter. This is what
 makes a long list read as a continuous sheet rather than a stack of cards.
+
+**The Placeholder card has no user left.** `--rule-dashed`'s only documented
+use is the "past days" placeholder tile, and both readings of that tile have
+since been decided away: if it drew elapsed days,
+[#32](https://github.com/lfeq/food-organizer/issues/32) made those visible and
+dimmed rather than dashed; if it drew never-planned dates,
+[#72](https://github.com/lfeq/food-organizer/issues/72) made them absent from
+the screen entirely. Both rows are left standing rather than deleted, because
+[#88](https://github.com/lfeq/food-organizer/issues/88) may still claim them
+for the week screen's own empty state. Same shape as `--ground-accent-soft`
+losing its only user in
+[#84](https://github.com/lfeq/food-organizer/issues/84).
 
 A catalogue row's trailing `⋯` is `--ink-secondary`, not `--ink-faint`: it is
 the row's only control and has no text beside it. A history row's trailing `→`
-*is* `--ink-faint`, because the whole card is the control and the arrow only
+*is* `--ink-faint`, because the whole row is the control and the arrow only
 repeats that. Being an unlabelled control, the `⋯` also needs an accessible
 name when it is built.
 
@@ -612,7 +624,9 @@ is unchanged: same ground, same full bleed, same `16px` inset, same
 `--rule-inset` between rows.
 
 Used once, on [accounts](#the-accounts-screen). A catalogue row carries one
-action and gains nothing from the width, so it keeps its `···` at both widths.
+action and gains nothing from the width, so it keeps its `···` at both widths,
+and a [history](#the-history-screen) row carries no action at all — the row
+*is* the control — so it takes neither form.
 
 **A row's inline action group never wraps, which caps it at three actions.**
 Three is the measured limit at the threshold in Spanish — see
@@ -721,6 +735,13 @@ single sentence with an underlined action, `12px 16px`, `--radius-control`.
 When a specific dish is the repeat, its name is wrapped inline in
 `--notice-ground` at `--radius-tag`, padding `1px 4px`. This is the only place
 the notice colour appears outside a notice.
+
+**The repeating-week notice appears where the repeat can still be undone.** It
+warns a household before it lives the week, so it belongs to a *writable* week
+and does not follow a plan into [history](#the-history-screen). An alert with
+no action behind it teaches people to ignore alerts, and the week's own rows
+say "we ate soup twice" in a form that can actually be read. Stated as one rule
+rather than a past-week exception.
 
 ### Sheet
 
@@ -1035,6 +1056,85 @@ its rule: the four became four by dropping `Next week`, not by aiming at four,
 and the destination sets still match across the breakpoint because `More`
 absorbs both admin-only screens.
 
+### The history screen
+
+A [list block](#cards) of past weeks, most recent first, and nothing else.
+`1i` draws two row forms at once — the newest week expanded over three of its
+days, every older week a single line — and **one form wins**.
+
+The three-day peek did not lose on taste. A weekly plan generated once its week
+is already underway holds only the days still ahead, so it may hold **fewer
+than seven** plan days
+([#72](https://github.com/lfeq/food-organizer/issues/72)). `See all 7 days →`
+is then simply false, and `MON / TUE / WED` are exactly the days such a week
+does not have. A row form that lies about some of the weeks it draws is not a
+row form.
+
+**A row is the week's range and a trailing `→`.** The range is the week's
+**full seven days** — `Aug 25 – 31` — never the span of the plan days actually
+stored. A weekly plan is identified by the date its week start falls on, so the
+label names a week, not a row count, and deriving it from the rows would give
+two weeks of identical identity different labels. That a week was partial is
+something the household learns by opening it, which is what
+[#72](https://github.com/lfeq/food-organizer/issues/72) decided.
+
+The year rides in **every row** rather than in a section heading. A year
+`eyebrow` would be a new [list block](#cards) variant, and the catalogue and
+accounts would then either want one or conspicuously lack it — one shared
+component growing a branch to serve one screen. If the list ever gets long
+enough to need grouping, that belongs with the retention question in `SPEC.md`
+§15, not here.
+
+**History is a list block, not a stack of cards.** The catalogue and accounts
+both landed there, and three long lists on one system should not read as two
+kinds of list. The `History card` this document used to carry in the
+[Cards](#cards) table retires with the distinction.
+
+A history row is the one place in this design where **the whole row is the
+control** — see
+[A surface that contains a control](#a-surface-that-contains-a-control-is-not-itself-a-control).
+It carries no actions of its own, so it has nothing to put behind a `···` and
+no inline group to grow at width: history looks the **same at both widths**,
+its rows constrained to the content column. There is no grid of weeks. A grid
+of near-identical rows is harder to scan than a column, and dates are already a
+vertical sequence.
+
+`1i`'s `21 dishes · 0 repeats` summary is **not shown**. The screen does not
+compute it — `listPastWeeks` returns week starts and nothing else — `21` is
+wrong for any partial week, and `SPEC.md` §11.6 already ruled the canvas's
+other two derived numbers out of scope. History exists to answer "what did we
+eat" (§11.4), and the rows answer it.
+
+The empty state is a plain line in `--ink-secondary`, no container.
+
+#### What a past week opens into
+
+The same week screen in `1e`'s no-today state, plainly.
+
+- **No featured day.** `1e` is the no-today state
+  ([#32](https://github.com/lfeq/food-organizer/issues/32)). Featuring the
+  week's first day for want of a today would give one arbitrary day the
+  emphasis this design reserves for the day being lived.
+- **No elapsed dimming.** Dimming marks a day that can no longer be changed
+  *beside* days that can. On a wholly past week it marks every row, which
+  distinguishes nothing and only makes the screen quieter than the live one for
+  no reason. Elapsed dimming is a within-the-current-week signal.
+- **`READ ONLY` in the header's action slot**, where `Generate week` sits on a
+  writable week — an [outlined tag](#badges-and-tags), not a disabled button.
+  Every write control is *absent* rather than disabled (`SPEC.md` §11.4), so
+  the tag is the only thing on screen saying why. It reads `READ ONLY` /
+  `SOLO LECTURA` and not "past week": the title beside it is already a past
+  week's date range.
+- **The title is the week range**, as `title-page` already specifies. A past
+  week has no `This week` / `Next week` name to fall back on.
+- **No repeating-week notice** — see [Notice](#notice).
+- **No stepper, and no back action.** Past weeks are reached only through
+  History ([Navigation across the breakpoint](#navigation-across-the-breakpoint)),
+  and the slot beneath the range that carries the stepper on a writable week
+  stays **empty**. `History` is one tap away in the tab bar and one click away
+  in the sidebar; a vacant slot is not a reason to fill one. The tab bar lights
+  `Plan`, by URL, as [the tab bar](#tab-bar-phone) already settles.
+
 ## Interactive states
 
 The mockup is eleven static artboards: it draws a focused field, a selected
@@ -1086,7 +1186,7 @@ whole week were clickable when only seven small buttons are.
 This generalises. Where a row or card merely *holds* controls, the surface is
 inert and only the controls inside it take state — the catalogue row, whose
 control is the `⋯`, works the same way. Where the whole row **is** the control
-— the history card, which opens its week — it takes the row treatment below.
+— the history row, which opens its week — it takes the row treatment below.
 
 ### Per component
 
@@ -1210,6 +1310,9 @@ spec settles on, and why.
 | 23 | Catalogue filter chips | `1f` draws three chips, one always selected, so three of twenty-one dishes are on screen and the whole catalogue can never be seen | **Four chips, `All` first and selected by default** | A filter with no way back is a filter that hides the catalogue. The fourth chip is what keeps the screen's own subject reachable. |
 | 24 | `1k`'s green `Reset password` | Green, on a screen whose `Add member` button is dark | **Dark** | Rule 4 for the second time, and the same shape as rule 22. Resetting a password acts on an account, not on the plan, and it is not navigation — the only thing the two standing green exemptions have in common. |
 | 25 | `1k`'s member subtitle | `member · last seen today` | **Role badge and status tag** | Not a design disagreement: there is no last-seen data. `Member` is `{id, username, role, must_change_password}` and the `member` table carries `created_at` and nothing else, so the line cannot be built. The `meta` type role's `"last seen 3 d ago"` example is drawn from this artboard and is likewise hypothetical. |
+| 26 | `1i`'s green `See all 7 days →` | A green text action inside a card that is itself a link | **No such control** | Rule 4 for the third time. It is also two controls in one row: the history row *is* the control, so a second action inside it competes with the row for the tap. The peek it opened is gone regardless — see [the history screen](#the-history-screen). |
+| 27 | `1i`'s two row forms | The newest week expanded over three days; every older week one line | **One form, the one line** | Two forms need "newest" to mean something that survives the week rolling over, and it buys nothing: the newest past week is the one the household just stopped looking at on the plan screen. The expanded form also cannot be drawn for a week holding fewer than seven days. |
+| 28 | `1i`'s `21 dishes · 0 repeats` | A per-week summary line | **Not shown** | Not a design disagreement: `listPastWeeks` returns week starts only, and `21` assumes seven days a partial week does not have. `SPEC.md` §11.6 already ruled the canvas's `14 weeks stored` and `used 3× in the last 8 weeks` out of scope; this is the same class. |
 
 ## Contrast audit
 
@@ -1295,10 +1398,9 @@ and the glossary. Corrected here:
   `1j` frame and demotes `Sign out` to a text action.
 
 What genuinely remains open sits on the map, not here: what a transient message
-becomes ([#87](https://github.com/lfeq/food-organizer/issues/87)), what the
-week screen shows with an empty catalogue
-([#88](https://github.com/lfeq/food-organizer/issues/88)), and the per-screen
-layout of history ([#86](https://github.com/lfeq/food-organizer/issues/86)).
+becomes ([#87](https://github.com/lfeq/food-organizer/issues/87)), and what
+the week screen shows with an empty catalogue
+([#88](https://github.com/lfeq/food-organizer/issues/88)).
 
 **One thing this document can no longer verify.** Its stated source of truth,
 `docs/planificador-semanal-de-comidas/project/Meal Planner Mockups.dc.html`, is
