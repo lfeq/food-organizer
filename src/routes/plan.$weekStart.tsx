@@ -146,7 +146,17 @@ function PlanPage() {
     const res = await rerollDay({ data: { planDayId } })
     setBusy(false)
     if (!res.ok) {
-      setError(t(locale, "planErrRerollFailed"))
+      if (res.code === "DAY_ELAPSED") {
+        // The tab's "today" went stale — most likely across midnight. Say so,
+        // then redraw, so the day comes back dimmed and without its control
+        // instead of offering a retry that can only fail again (SPEC §9.2).
+        setError(t(locale, "planErrDayElapsed"))
+        await router.invalidate()
+      } else if (res.code === "WEEK_NOT_WRITABLE") {
+        setError(t(locale, "planErrNotWritable"))
+      } else {
+        setError(t(locale, "planErrRerollFailed"))
+      }
       return
     }
     if (res.data.causedRepeat) {
@@ -291,7 +301,7 @@ function PlanPage() {
                   {featuredDay.day_date === todayDayDate && (
                     <span className="plan-today-tag">{t(locale, "planToday")}</span>
                   )}
-                  {isWritable && (
+                  {isWritable && !isElapsed(featuredDay.day_date) && (
                     <button
                       className="plan-reroll-btn plan-reroll-btn--labeled"
                       onClick={() => void handleReroll(featuredDay.id)}
@@ -324,7 +334,7 @@ function PlanPage() {
                 >
                   <div className="plan-day-header">
                     <span className="plan-day-date">{formatDate(day.day_date)}</span>
-                    {isWritable && (
+                    {isWritable && !isElapsed(day.day_date) && (
                       <button
                         className="plan-reroll-btn"
                         onClick={() => void handleReroll(day.id)}
