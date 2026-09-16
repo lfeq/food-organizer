@@ -116,7 +116,9 @@ function AccountsPage() {
     const res = await removeMember({ data: { memberId: member.id } })
     setBusy(false)
     if (!res.ok) {
-      setError(t(locale, "errGeneric"))
+      setError(
+        t(locale, res.code === "LAST_ADMIN" ? "accountsErrLastAdmin" : "errGeneric")
+      )
       return
     }
     closeModal()
@@ -247,7 +249,9 @@ function AccountsPage() {
                     {m.id === me.id && <span className="member-you"> {t(locale, "accountsYou")}</span>}
                   </td>
                   <td>
-                    <span className={`role-badge role-badge--${m.role}`}>{m.role}</span>
+                    <span className={`role-badge role-badge--${m.role}`}>
+                      {t(locale, m.role === "admin" ? "accountsRoleAdmin" : "accountsRoleMember")}
+                    </span>
                   </td>
                   <td>
                     {m.must_change_password && (
@@ -333,7 +337,7 @@ function AccountsPage() {
                 className="settings-input"
                 value={instanceDisplayName}
                 onChange={(e) => setInstanceDisplayName(e.target.value)}
-                placeholder="e.g. Casa Hernández"
+                placeholder={t(locale, "settingsDisplayNamePlaceholder")}
               />
             </label>
             {settingsError && <p className="form-error">{settingsError}</p>}
