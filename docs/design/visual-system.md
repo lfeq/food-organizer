@@ -81,7 +81,7 @@ unknown one.
 | `--ground-inverse` | `#191817` | Ink used as a ground: the desktop sidebar, dark buttons, badges. |
 | `--inverse-hover` | `#2c2a28` | An inverse fill under the cursor. See [Interactive states](#interactive-states). |
 | `--inverse-pressed` | `#0f0e0e` | An inverse fill being pressed. |
-| `--ground-notice` | `#faf3e2` | The amber notice, and the inline highlight on a repeated dish name. **Reserved for the short-catalogue notice and nothing else.** |
+| `--ground-notice` | `#faf3e2` | The amber notice, and the inline highlight on a repeated dish name. **Reserved for the [Notice](#notice) and nothing else.** |
 | `--ground-sunken` | `rgba(25,24,23,.05)` | An explanatory block recessed into the page (the admin-rights note in `1k`). No border. |
 | `--ground-chip` | `rgba(25,24,23,.07)` | An unselected chip in a filter row. |
 | `--ground-inverse-soft` | `rgba(25,24,23,.06)` | The selected cell of a segmented control. Replaces `--ground-accent-soft`, which is dropped: the segment is [dark, not green](#segmented-control), and that token had no other user. |
@@ -124,9 +124,11 @@ maybe one text link.
 
 ### Notice (amber)
 
-**Reserved for the short-catalogue notice.** Amber never means "warning" in
-general here — it means "your catalogue is too short for this course, so dishes
-repeat". Five values, all used together:
+**Reserved for the [Notice](#notice).** Amber never means "warning" in general
+here — it means "the catalogue is too short to fill this week without
+repeating". That is one meaning covering the Notice's two messages: a catalogue
+short enough to predict a repeat, and a week that has actually drawn one. Five
+values, all used together:
 
 | Token | Value | What it is for |
 | --- | --- | --- |
@@ -145,6 +147,10 @@ repeat". Five values, all used together:
 
 There is no danger *ground*. Destructive actions are outlined, never filled —
 the only one in the mockup is **Delete** in the dish sheet.
+
+`--danger` is also the ink of an [inline error](#inline-error). That is the
+whole of it: an error has no ground and no border, because there is no danger
+ground to give it one.
 
 ### Rules and borders
 
@@ -722,19 +728,81 @@ a course is chosen when adding a dish.
 `--ground-inverse-soft` is `rgba(25,24,23,.06)`: the dark counterpart of
 `--ground-accent-soft`, which now has no user and is dropped.
 
+### Messages: the family
+
+**This system has no expiring message.** A message is shown while it is true,
+or until a person dismisses it. Nothing in the app appears on a timer and
+leaves on one.
+
+There are exactly three ways the app says something, and every message is one
+of them:
+
+| | What it is | How it leaves |
+| --- | --- | --- |
+| **[Notice](#notice)** | A condition that holds: the catalogue is short, or the week has drawn a repeat. | When the condition stops holding. |
+| **[Inline error](#inline-error)** | An action just failed, with the person standing there. | When the next action supersedes it. |
+| **[Sheet](#sheet)** | Something that needs a decision or a dismissal. | When the person dismisses it. |
+
+A timed message fails the two tests this design is held to. It is invisible to
+whoever looked away — and when the statement is still true four seconds later,
+which is what "a dish repeats this week" is, the household has been told
+something it can no longer re-read. It also has nowhere to go: the phone's
+bottom edge is the [tab bar](#tab-bar-phone), and a floating message would need
+the [elevation](#elevation) this system does not have and the
+[motion](#transition) it forbids.
+
+**Where a message appears.** One region, directly below the screen header,
+holding the inline error above the Notice — nearest-in-time nearest the top,
+the error being about the person's last action and the Notice about the
+screen's standing condition. The region is a **polite live region**
+(`aria-live="polite"`) and is always mounted, empty or not, so a message that
+arrives after a tap is announced without anything moving on screen. Announcing
+is not an attention-getter of the kind [Transition](#transition) bans; it is
+the only one left, and it costs nothing visually.
+
 ### Notice
 
-The short-catalogue notice, in [notice colours](#notice-amber), sits between
-the screen header and the week. Three parts stacked with `6px` gaps: a headline
-(`meta-sans` at weight `600`, `--notice-ink`), an explanation (`body-sm`,
-`--notice-ink-secondary`), and a call to action (`chip` type, `--notice-ink-action`).
+In [notice colours](#notice-amber), in the message region below the screen
+header. It carries **two messages**, one component:
 
-Its compact form — inside the live week screen — is one row: an `!` glyph and a
-single sentence with an underlined action, `12px 16px`, `--radius-control`.
+- **Short catalogue** — a predicate about the *catalogue*: a course holds too
+  few dishes to fill a week. Knowable before a week is drawn.
+- **Repeat drawn** — a predicate about the *week*: a course drew the same dish
+  twice. Knowable only after.
 
-When a specific dish is the repeat, its name is wrapped inline in
-`--notice-ground` at `--radius-tag`, padding `1px 4px`. This is the only place
-the notice colour appears outside a notice.
+They are not the same statement — a nine-dish course can still repeat by
+chance, and a five-dish one may happen not to — but they share a colour, a
+meaning and one call to action, so they share a component.
+
+**Two forms, branching on content, not on width.** The form follows whether
+there is a week on screen to annotate:
+
+| Form | When | What it is |
+| --- | --- | --- |
+| **Full** | No plan for this week yet. The Notice is the screen's subject. | Three parts stacked with `6px` gaps: a headline (`meta-sans` at weight `600`, `--notice-ink`), an explanation (`body-sm`, `--notice-ink-secondary`), and a call to action (`chip` type, `--notice-ink-action`). |
+| **Compact** | A week is drawn. The Notice annotates it. | One row: an `!` glyph and a single sentence with an underlined action, `12px 16px`, `--radius-control`. |
+
+Both forms are the same at both widths. A breakpoint branch here would get the
+density backwards — three lines on a phone, one on a desktop — and this system
+only branches on width where a measurement forces it.
+
+**The call to action** is an underlined text action to the dish catalogue, in
+`--notice-ink-action`, with no course preselected: `All` is the catalogue's
+default chip by decision, and the Notice can name more than one course at once.
+Being amber it does not touch the green/dark rule. On a touch surface it pads
+to a `44px` target and that padding never becomes visible spacing.
+
+**What it names.** When exactly one dish repeats, the Notice names **the
+dish**, wrapped inline in `--notice-ground` at `--radius-tag`, padding
+`1px 4px` — the only place the notice colour appears outside a notice. When
+several dishes repeat, or when the message is the short-catalogue one, it names
+**the course** instead: a short catalogue has no dish to name, and several
+repeats mean the catalogue is thin across the board, which is what the course
+sentence says. One Notice either way, never one per course.
+
+A dish name has no maximum length. The sentence and the pill **wrap**; nothing
+is truncated and no width is fixed, which is the same rule the mono labels are
+held to.
 
 **The repeating-week notice appears where the repeat can still be undone.** It
 warns a household before it lives the week, so it belongs to a *writable* week
@@ -742,6 +810,28 @@ and does not follow a plan into [history](#the-history-screen). An alert with
 no action behind it teaches people to ignore alerts, and the week's own rows
 say "we ate soup twice" in a form that can actually be read. Stated as one rule
 rather than a past-week exception.
+
+**A Notice and a disabled control are not redundant.** Where `Generate week` is
+[disabled](#disabled) because a course is empty, the Notice is the reason
+sitting beside it — the standing rule being that a disabled control keeps its
+own label and the reason sits beside it, never in place of it. The server still
+refuses the call independently; its message is a guard nobody is expected to
+read, not the way the household learns this.
+
+### Inline error
+
+An action failed and the person is standing there. **Plain text, no container,
+no border**: `body-sm` in `--danger`, in the message region below the screen
+header, above any Notice.
+
+It has no ground because [there is no danger ground](#danger) — an error in
+this system is a sentence, not a card. It is cleared by the next action rather
+than by a clock, and it is the *only* thing that speaks for a failure: no
+colour-only signal, no shaking field, no badge.
+
+Where a failure can be prevented rather than reported, it is: a control whose
+precondition is knowable is [disabled](#disabled) instead, and the error path
+survives for the race the client cannot see.
 
 ### Sheet
 
@@ -1262,6 +1352,12 @@ the finger.
 This is unrelated to the draw animation discussed under [Motion](#motion),
 which is a behaviour decision rather than a visual-system one.
 
+**The codebase had exactly one violation of this rule, and it is gone.** The
+plan screen's toast was `position: fixed` with a `box-shadow` and a
+`translateY` keyframe — the only `box-shadow`, the only `@keyframes` and the
+only moving thing in `src/styles.css`. It retires with the
+[message family](#messages-the-family).
+
 ## Motion
 
 The mockup carries one motion cue, in the live artboard `1e`: generating or
@@ -1276,6 +1372,10 @@ value landing.
 Both are recorded here as observations. **Whether the draw animates, and for
 how long, is a behaviour decision, not a visual-system one** — it belongs with
 whichever ticket settles the generate and regenerate interaction.
+
+What is *not* open: motion is never how this system draws attention to a
+message. A message that arrives after a tap announces itself to a screen reader
+and otherwise simply is there; see [Messages](#messages-the-family).
 
 ## Where the mockup contradicts itself
 
@@ -1313,6 +1413,7 @@ spec settles on, and why.
 | 26 | `1i`'s green `See all 7 days →` | A green text action inside a card that is itself a link | **No such control** | Rule 4 for the third time. It is also two controls in one row: the history row *is* the control, so a second action inside it competes with the row for the tap. The peek it opened is gone regardless — see [the history screen](#the-history-screen). |
 | 27 | `1i`'s two row forms | The newest week expanded over three days; every older week one line | **One form, the one line** | Two forms need "newest" to mean something that survives the week rolling over, and it buys nothing: the newest past week is the one the household just stopped looking at on the plan screen. The expanded form also cannot be drawn for a week holding fewer than seven days. |
 | 28 | `1i`'s `21 dishes · 0 repeats` | A per-week summary line | **Not shown** | Not a design disagreement: `listPastWeeks` returns week starts only, and `21` assumes seven days a partial week does not have. `SPEC.md` §11.6 already ruled the canvas's `14 weeks stored` and `used 3× in the last 8 weeks` out of scope; this is the same class. |
+| 29 | `1h`'s dish list | The short-catalogue artboard draws a list of dishes beneath its notice (the `dish-card` role cites "the history and short-catalogue lists") | **Not adopted** | Nothing needs it. The [Notice](#notice) names the repeating dish or the short course, and its call to action is one tap from the catalogue itself, so the list restates in place what the next screen shows in full. Recorded rather than deleted, in case a later effort claims it. |
 
 ## Contrast audit
 
@@ -1397,10 +1498,12 @@ and the glossary. Corrected here:
   two steps with a `STEP 1 OF 2` counter; forced password change reuses the
   `1j` frame and demotes `Sign out` to a text action.
 
-What genuinely remains open sits on the map, not here: what a transient message
-becomes ([#87](https://github.com/lfeq/food-organizer/issues/87)), and what
-the week screen shows with an empty catalogue
+What genuinely remains open sits on the map, not here: what the week screen
+shows with an empty catalogue
 ([#88](https://github.com/lfeq/food-organizer/issues/88)).
+[#87](https://github.com/lfeq/food-organizer/issues/87) has since closed — the
+answer was that a transient message becomes nothing, because
+[this system has no expiring message](#messages-the-family).
 
 **One thing this document can no longer verify.** Its stated source of truth,
 `docs/planificador-semanal-de-comidas/project/Meal Planner Mockups.dc.html`, is
