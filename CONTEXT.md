@@ -188,10 +188,16 @@ not of the catalogue: it is answered by looking at the week itself, so it holds
 whatever caused the repeat — a course below seven dishes,
 [generating](#generating) or [regenerating](#regenerating) alike.
 
-A repeating week is always said out loud, once per repeating course, and the
-household is pointed at the fix: add more dishes. It is stated about the course,
-never about the offending slot — a repeat is an expected consequence of a small
-catalogue, not a mistake in a particular day.
+A repeating week is always said out loud, **once per week**, and the household
+is pointed at the fix: add more dishes. Where a single [dish](#dish) is the
+repeat, the statement names that dish; where several are, it names the
+[courses](#course) instead, because several repeats say something about the
+catalogue rather than about any one dish.
+
+It is never stated about the offending [slot](#slot) — a repeat is an expected
+consequence of a small catalogue, not a mistake in a particular day. Naming the
+dish is not naming the day: the same dish sits in two of them, and neither is
+at fault.
 
 Because it is a property of the plan, a week can *become* repeating after it was
 generated, which is what regenerating into a repeat does.
