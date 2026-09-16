@@ -601,6 +601,7 @@ body {
   margin: 0.15rem 0;
   font-size: 0.875rem;
   color: #856404;
+  overflow-wrap: anywhere;
 }
 
 .plan-empty {

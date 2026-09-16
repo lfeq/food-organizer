@@ -7,10 +7,11 @@ import {
   getWeekPlan,
   generateWeek,
   getPlanSettings,
-  getRepeatingCourses,
+  getRepeatingDishes,
   rerollDay,
   type Course,
 } from "#/plan-fns"
+import { repeatNotice } from "#/repeat-notice"
 
 const COURSE_LABEL_KEY: Record<Course, StringKey> = {
   soup: "courseSoup",
@@ -40,7 +41,6 @@ export const Route = createFileRoute("/plan/$weekStart")({
   loader: async ({ params }) => {
     const settings = await getPlanSettings()
     const plan = await getWeekPlan({ data: { weekStart: params.weekStart } })
-    const repeating = plan ? await getRepeatingCourses({ data: { weeklyPlanId: plan.id } }) : []
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -54,6 +54,12 @@ export const Route = createFileRoute("/plan/$weekStart")({
     const isWritable =
       params.weekStart === currentWeekStr || params.weekStart === nextWeekStr
 
+    // A repeating week is only said where the repeat can still be undone.
+    const repeat =
+      plan && isWritable
+        ? repeatNotice(await getRepeatingDishes({ data: { weeklyPlanId: plan.id } }))
+        : null
+
     const dateRe = /^\d{4}-\d{2}-\d{2}$/
     if (!dateRe.test(params.weekStart)) {
       throw redirect({ to: "/plan/$weekStart", params: { weekStart: currentWeekStr } })
@@ -62,7 +68,7 @@ export const Route = createFileRoute("/plan/$weekStart")({
     return {
       settings,
       plan,
-      repeating,
+      repeat,
       today: toDateStr(today),
       currentWeekStr,
       nextWeekStr,
@@ -91,7 +97,7 @@ function PlanPage() {
     return () => clearTimeout(tid)
   }, [toast])
 
-  const { plan, repeating, today, currentWeekStr, nextWeekStr, isWritable } = loaderData
+  const { plan, repeat, today, currentWeekStr, nextWeekStr, isWritable } = loaderData
 
   async function handleLogout() {
     await doLogout()
@@ -243,13 +249,17 @@ function PlanPage() {
 
         {error && <p className="form-error plan-error">{error}</p>}
 
-        {repeating.length > 0 && (
+        {repeat && (
           <div className="plan-repeat-banner">
-            {repeating.map((c) => (
-              <p key={c} className="plan-repeat-line">
-                {interpolate(t(locale, "planRepeatBanner"), { course: t(locale, COURSE_PLURAL_KEY[c]) })}
-              </p>
-            ))}
+            <p className="plan-repeat-line">
+              {repeat.kind === "dish"
+                ? interpolate(t(locale, "planRepeatDish"), { dish: repeat.dishName })
+                : interpolate(t(locale, "planRepeatCourses"), {
+                    courses: repeat.courses
+                      .map((c) => t(locale, COURSE_PLURAL_KEY[c]))
+                      .join(", "),
+                  })}
+            </p>
           </div>
         )}
 
