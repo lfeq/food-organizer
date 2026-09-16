@@ -6,6 +6,7 @@ import { Runtime } from "#/runtime.server"
 import { ok, err, type Result } from "#/result-codes"
 import { drawN, pickReroll } from "#/generator"
 import { addDays, dayOfWeek, weekStartFor } from "#/plan-dates"
+import type { RepeatingDish } from "#/repeat-notice"
 
 export type Course = "soup" | "side" | "main"
 
@@ -334,22 +335,23 @@ export const listPastWeeks = createServerFn({ method: "GET" }).handler(
   }
 )
 
-/** Returns which courses repeat in the given week (dish_name appears more than once in a course). */
-export const getRepeatingCourses = createServerFn({ method: "GET" })
+/** Returns the dishes that repeat in the given week (dish_name appears more than once in a course). */
+export const getRepeatingDishes = createServerFn({ method: "GET" })
   .validator((data: { weeklyPlanId: string }) => data)
-  .handler(async ({ data }): Promise<Course[]> => {
+  .handler(async ({ data }): Promise<RepeatingDish[]> => {
     const result = await Runtime.runPromiseExit(
       Effect.flatMap(PgClient.PgClient, (sql) =>
         Effect.map(
-          sql<{ course: Course }>`
-            SELECT s.course
+          sql<{ course: Course; dish_name: string }>`
+            SELECT s.course, s.dish_name
             FROM slot s
             JOIN plan_day d ON d.id = s.plan_day_id
             WHERE d.weekly_plan_id = ${data.weeklyPlanId}
             GROUP BY s.course, s.dish_name
             HAVING COUNT(*) > 1
+            ORDER BY s.course, s.dish_name
           `,
-          (rows) => [...new Set(rows.map((r) => r.course))]
+          (rows) => rows.map((r) => ({ course: r.course, dishName: r.dish_name }))
         )
       )
     )
