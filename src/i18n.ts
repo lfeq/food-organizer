@@ -50,6 +50,7 @@ export const strings = {
   planRegenNotice:  { en: "The current plan will be replaced with a new one drawn from the catalogue. This cannot be undone.", es: "El plan actual será reemplazado con uno nuevo sacado del catálogo. Esta acción no se puede deshacer." },
   planErrEmptyCourse:  { en: "Add at least one dish before generating: {courses}", es: "Agrega al menos un platillo antes de generar: {courses}" },
   planErrNotWritable:  { en: "Only the current and next week can be generated.", es: "Solo se puede generar el plan de la semana actual y la siguiente." },
+  planErrDayElapsed:   { en: "That day has already passed and can no longer be changed.", es: "Ese día ya pasó y no se puede cambiar." },
   planErrRerollFailed: { en: "Reroll failed. Try again.", es: "No se pudo cambiar el día. Inténtalo de nuevo." },
 
   // --- Dishes screen ---

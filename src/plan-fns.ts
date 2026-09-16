@@ -6,6 +6,7 @@ import { Runtime } from "#/runtime.server"
 import { ok, err, type Result } from "#/result-codes"
 import { drawN, pickReroll } from "#/generator"
 import { addDays, dayOfWeek, weekStartFor } from "#/plan-dates"
+import { rerollRefusal } from "#/plan-guards"
 import type { RepeatingDish } from "#/repeat-notice"
 
 export type Course = "soup" | "side" | "main"
@@ -224,7 +225,7 @@ export const rerollDay = createServerFn({ method: "POST" })
 
           const dayRow = dayRows[0]
 
-          // Verify the week is writable
+          // Verify the day may be written
           const settings = yield* sql<{ week_start_dow: number; timezone: string }>`
             SELECT week_start_dow, timezone FROM settings LIMIT 1
           `
@@ -235,12 +236,18 @@ export const rerollDay = createServerFn({ method: "POST" })
             SELECT (now() AT TIME ZONE ${timezone})::date::text AS today
           `
           const todayStr = nowRow[0].today
-          const currentWeekStr = weekStartFor(todayStr, week_start_dow)
-          const nextWeekStr = addDays(currentWeekStr, 7)
 
-          if (dayRow.week_start !== currentWeekStr && dayRow.week_start !== nextWeekStr) {
-            return err("WEEK_NOT_WRITABLE") as R
-          }
+          // The week must be writable, and the day itself must not be behind
+          // today (SPEC §6.2). `todayStr` comes from the instance timezone;
+          // the client's notion of today goes stale overnight and is never
+          // trusted here.
+          const refusal = rerollRefusal({
+            dayDate: dayRow.day_date,
+            weekStart: dayRow.week_start,
+            today: todayStr,
+            weekStartDow: week_start_dow,
+          })
+          if (refusal !== null) return err(refusal) as R
 
           // Load all slots for the week
           const allSlots = yield* sql<{ plan_day_id: string; course: Course; dish_name: string; dish_id: string | null }>`
