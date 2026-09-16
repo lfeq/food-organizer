@@ -159,11 +159,11 @@ ground to give it one.
 | `--rule` | `rgba(25,24,23,.1)` | The default hairline: a card's border, a section divider, the tab bar's top edge. |
 | `--rule-inset` | `rgba(25,24,23,.07)` | A separator *between rows inside* one surface. Lighter than `--rule` on purpose: the block already has an outer edge. |
 | `--rule-control` | `rgba(25,24,23,.18)` | The border of an outlined button, an icon button, or an unfocused field. |
-| `--rule-dashed` | `rgba(25,24,23,.22)` | `1px dashed`. A locked or not-yet-real region — the "past days" placeholder tile. |
 | `--rule-strong` | `#191817` | `1px solid`. Emphasis, not decoration: **the today card, and a focused field.** Nothing else takes a full-ink border. |
 
 Border width is `1px` everywhere except the active tab's `2px solid --accent`
-top edge.
+top edge. **There is no dashed border in this system** — see
+[the Placeholder card's retirement](#cards).
 
 ### Elevation
 
@@ -574,7 +574,6 @@ icon asset.
 | **Day card** | `--ground-surface` | `1px --rule` | card | `12px 16px` |
 | **Today card** | `--ground-surface` | **`1px --rule-strong`** | card | `16px` |
 | **Notice** | `--notice-ground` | `1px --notice-rule` | card | `12px 16px` |
-| **Placeholder** | none | `1px dashed --rule-dashed` | card | `12px 16px` |
 | **Sunken note** | `--ground-sunken` | none | card | `12px 16px` |
 | **List block** | `--ground-surface` | top `1px --rule`; rows separated by `1px --rule-inset` | none — full bleed to the screen edges | rows `12px 16px` |
 
@@ -583,16 +582,18 @@ accounts and history lists run edge to edge, and only their *contents* are
 inset by `16px`. Everything else on those screens respects the gutter. This is what
 makes a long list read as a continuous sheet rather than a stack of cards.
 
-**The Placeholder card has no user left.** `--rule-dashed`'s only documented
-use is the "past days" placeholder tile, and both readings of that tile have
-since been decided away: if it drew elapsed days,
-[#32](https://github.com/lfeq/food-organizer/issues/32) made those visible and
-dimmed rather than dashed; if it drew never-planned dates,
-[#72](https://github.com/lfeq/food-organizer/issues/72) made them absent from
-the screen entirely. Both rows are left standing rather than deleted, because
-[#88](https://github.com/lfeq/food-organizer/issues/88) may still claim them
-for the week screen's own empty state. Same shape as `--ground-accent-soft`
-losing its only user in
+**The Placeholder card and `--rule-dashed` are deleted**, and this paragraph is
+their only remaining record. The card's one documented use was the "past days"
+placeholder tile, and every reading of that tile has been decided away: elapsed
+days are visible and dimmed rather than dashed
+([#32](https://github.com/lfeq/food-organizer/issues/32)), never-planned dates
+are absent from the screen entirely
+([#72](https://github.com/lfeq/food-organizer/issues/72)), and the last reading
+left — a ghost week drawn where a week cannot be generated — was declined by
+[#88](https://github.com/lfeq/food-organizer/issues/88), which
+[replaced that area with nothing](#a-week-that-cannot-be-generated). A dashed
+outline draws a thing that is not there; this system says an absence in words.
+Same shape as `--ground-accent-soft` losing its only user in
 [#84](https://github.com/lfeq/food-organizer/issues/84).
 
 A catalogue row's trailing `⋯` is `--ink-secondary`, not `--ink-faint`: it is
@@ -646,6 +647,47 @@ and that is true of the inline group exactly as it was of the `···`.
 **There is no table in this design.** A four-column table was the obvious
 desktop form for accounts and it does not fit; the measurement is in
 [Bilingual fit](#bilingual-fit).
+
+### The empty line
+
+A region that draws rows or cards and has none to draw renders **one line of
+plain text in `--ink-secondary`**, `body-sm`, inset to the region's `16px`
+gutter, with no ground, no border and no container. It is that region's zero
+form, not something placed beside it: a [list block](#cards)'s top rule and
+full bleed go with its rows, so an empty list has no visible edge at all.
+
+**Nothing is ever drawn as a ghost.** No dashed outline, no greyed card, no
+skeleton of the thing that is missing — which is what retired the
+[Placeholder card](#cards). An absence in this system is a sentence.
+
+**It carries no action of its own.** Where something can be added, the screen
+header already holds that control — `Add dish` on the
+[catalogue](#the-dish-catalogue) — and a second copy of it inside the empty
+line would be the only place in this design where one action appears twice on
+one screen. [History](#the-history-screen) has nothing to add at all.
+
+**An empty line is not a [message](#messages-the-family).** The distinction is
+what the text is *about*: a message is the app speaking about a condition
+somewhere else, or about what just happened, and it appears in the message
+region below the header. An empty line is the list answering the question the
+screen was opened to ask — *what is in here?* — in the place the answer would
+have been. It therefore takes no notice ground, no amber and no `!`: those
+belong to the [Notice](#notice), which is reserved. The message family stays
+closed at three.
+
+**Where it is used**, and what each one says:
+
+| Screen | When | What it says |
+| --- | --- | --- |
+| [History](#the-history-screen) | No past weeks yet | That no week has been lived yet. |
+| [Catalogue](#the-dish-catalogue) | No dishes at all | That the catalogue is empty. |
+| [Catalogue](#the-dish-catalogue) | A course chip is selected and that course is empty | That **this course** is empty — it names the filter, not the catalogue, because `All` would still show rows. |
+| [Week](#a-week-that-cannot-be-generated) | No plan drawn for this week yet | That there is no plan for this week yet — today's `planNoWeek` string, in its new form. |
+
+The week screen is the one use that is not a list block, and it is the reason
+this is stated as a rule about *regions* rather than about lists: the day area
+draws cards, has the same zero case, and had already answered it the same way
+before this spec existed.
 
 ### Chips
 
@@ -743,6 +785,12 @@ of them:
 | **[Inline error](#inline-error)** | An action just failed, with the person standing there. | When the next action supersedes it. |
 | **[Sheet](#sheet)** | Something that needs a decision or a dismissal. | When the person dismisses it. |
 
+**A list's [empty line](#the-empty-line) is not a fourth member.** It is true
+while a condition holds, which is the test the table applies, but it is not the
+app speaking *about* the screen: it is the list's own zero form, standing where
+the rows would be rather than in the message region. Three members still, and
+nothing in amber that the Notice did not put there.
+
 A timed message fails the two tests this design is held to. It is invisible to
 whoever looked away — and when the statement is still true four seconds later,
 which is what "a dish repeats this week" is, the household has been told
@@ -766,7 +814,8 @@ In [notice colours](#notice-amber), in the message region below the screen
 header. It carries **two messages**, one component:
 
 - **Short catalogue** — a predicate about the *catalogue*: a course holds too
-  few dishes to fill a week. Knowable before a week is drawn.
+  few dishes to fill a week, **zero included**. Knowable before a week is
+  drawn.
 - **Repeat drawn** — a predicate about the *week*: a course drew the same dish
   twice. Knowable only after.
 
@@ -810,6 +859,38 @@ and does not follow a plan into [history](#the-history-screen). An alert with
 no action behind it teaches people to ignore alerts, and the week's own rows
 say "we ate soup twice" in a form that can actually be read. Stated as one rule
 rather than a past-week exception.
+
+**Zero is the far end of short, not a third message.** The predicate is the
+same one — *this course does not hold enough dishes* — and it keeps the same
+colour, the same call to action and the same component. What changes is the
+consequence, and the consequence is not the Notice's to state: a short course
+draws a week that repeats, an empty course draws no week at all, and the
+`Generate week` button beside the Notice is already
+[disabled](#disabled) in the second case and live in the first.
+
+So **one message, two copies**, branching on whether the course's count is
+zero:
+
+| Count | What the sentence says |
+| --- | --- |
+| **1 or more, short** | The course has too few dishes to fill a week without repeating one. |
+| **Zero** | The course has no dishes, so a week cannot be drawn. |
+
+Both name the **course**, per [what it names](#notice) — a course with no
+dishes has no dish to name, exactly like a short one. Both carry the same
+underlined action to the catalogue. Where courses are in both conditions at
+once, the zero copy wins and names every course that is empty: the empty ones
+are what actually stop the week, and a sentence that mixes "no dishes" with
+"too few" in one breath states two consequences the household cannot act on
+separately anyway.
+
+**The whole catalogue being empty is not a state of its own.** The app's
+predicate is per course — the server returns the empty courses by name
+(`GENERATE_EMPTY_COURSE`) — so three empty courses is the zero copy naming
+three courses, and nothing else on screen changes. There is no screen, no
+message and no token in this system that means "the catalogue is empty": there
+is a [catalogue with an empty line](#the-empty-line) in it, and a week that
+[cannot be generated](#a-week-that-cannot-be-generated).
 
 **A Notice and a disabled control are not redundant.** Where `Generate week` is
 [disabled](#disabled) because a course is empty, the Notice is the reason
@@ -1004,6 +1085,42 @@ above `900px`).
   `Generar semana` overruns `390px` and the group wraps), and
   [Bilingual fit](#bilingual-fit) forbids a layout that branches on locale.
 
+#### A week that cannot be generated
+
+A writable week with no plan drawn holds, in order: the header with its range
+and `Generate week`, the [stepper](#the-week-stepper) beneath the range, the
+message region, and — where the seven day cards would be — **one
+[empty line](#the-empty-line)** and nothing else. No ghost cards, no dashed
+outlines, no seven-day scaffold: the day area's zero form is a sentence, like
+every other region's.
+
+That covers three conditions that look alike and are not:
+
+| | What is true | What the screen does |
+| --- | --- | --- |
+| **No week drawn yet** | The catalogue is fine; nobody has pressed the button. | Empty line. `Generate week` live. No Notice. |
+| **A course is short** | A week can be drawn but will repeat a dish. | Empty line. `Generate week` live. [Notice](#notice), full form, short copy. |
+| **A course is empty** | No week can be drawn at all. | Empty line. `Generate week` **[disabled](#disabled)**. [Notice](#notice), full form, zero copy. |
+
+**The line and the Notice are not saying the same thing.** The line states the
+absence — *there is no plan for this week yet* — and the Notice states the
+reason there cannot be one. That is
+[a disabled control keeping its own label while the reason sits beside it](#a-disabled-control-keeps-its-own-label),
+applied to a screen rather than a button, and it is why the empty line does not
+change its words when a Notice appears above it: a region that reworded itself
+whenever something else on the screen changed would have to know about that
+other thing.
+
+**None of this is a first-run state.** `SPEC.md` §10 seeds 27 dishes, nine per
+course, at setup, so a new instance can draw a week the moment it arrives. An
+empty course is reached only by a household deleting its way to one, which is
+why it gets no welcome mat, no illustration and no onboarding copy — it is a
+catalogue that used to have dishes, being told what it now lacks.
+
+**A past week is not this state.** It has a plan by definition, and what it
+looks like is settled in
+[What a past week opens into](#what-a-past-week-opens-into).
+
 No navigation chrome appears on sign-in, first-run setup, or forced password
 change: there is either no session, or a session deliberately pinned to one
 screen.
@@ -1035,7 +1152,19 @@ that control is the only place a course is set. `dishAddTitle` loses its
 `{course}` interpolation.
 
 **Deleting** happens twice over: as the destructive row of the action sheet,
-and inside the form. Both are `--danger`; neither is a bare glyph.
+and inside the form. Both are `--danger`; neither is a bare glyph. It is
+unguarded — a household can delete its way to an empty course, and what that
+does to the week screen is
+[settled there](#a-week-that-cannot-be-generated).
+
+**With no rows to show**, the list renders an [empty line](#the-empty-line),
+and which line depends on the selected chip: with `All` selected it says the
+catalogue is empty; with a course chip selected it says **that course** is
+empty, because `All` would still show rows and a line blaming the catalogue
+would be false. The chips stay on screen and keep their counts either way —
+they are the screen's controls, not part of the list, and a `SOUPS 0` chip is
+how the household sees which course is the empty one without tapping through
+all four.
 
 ### The accounts screen
 
@@ -1195,7 +1324,10 @@ wrong for any partial week, and `SPEC.md` §11.6 already ruled the canvas's
 other two derived numbers out of scope. History exists to answer "what did we
 eat" (§11.4), and the rows answer it.
 
-The empty state is a plain line in `--ink-secondary`, no container.
+The empty state is an [empty line](#the-empty-line) — plain text in
+`--ink-secondary`, no container. It was decided here first and is now the
+rule for every empty region in this system
+([#88](https://github.com/lfeq/food-organizer/issues/88)).
 
 #### What a past week opens into
 
@@ -1498,12 +1630,16 @@ and the glossary. Corrected here:
   two steps with a `STEP 1 OF 2` counter; forced password change reuses the
   `1j` frame and demotes `Sign out` to a text action.
 
-What genuinely remains open sits on the map, not here: what the week screen
-shows with an empty catalogue
-([#88](https://github.com/lfeq/food-organizer/issues/88)).
-[#87](https://github.com/lfeq/food-organizer/issues/87) has since closed — the
-answer was that a transient message becomes nothing, because
-[this system has no expiring message](#messages-the-family).
+- ~~**What the week screen shows with an empty catalogue.**~~ Settled in
+  [#88](https://github.com/lfeq/food-organizer/issues/88): there is no
+  empty-catalogue state — the predicate is per course, zero is the far end of
+  the [Notice](#notice)'s short-catalogue message, and every empty region in
+  this system says so with [one line](#the-empty-line).
+  [#87](https://github.com/lfeq/food-organizer/issues/87) closed alongside it —
+  a transient message becomes nothing, because
+  [this system has no expiring message](#messages-the-family).
+
+Nothing in this document is now waiting on a decision elsewhere.
 
 **One thing this document can no longer verify.** Its stated source of truth,
 `docs/planificador-semanal-de-comidas/project/Meal Planner Mockups.dc.html`, is

@@ -22,6 +22,13 @@ dish outlives its author: if that [member](#member) is removed, the dish stays
 in the catalogue with no author rather than being reassigned to someone who did
 not write it.
 
+**The catalogue has no minimum.** Any dish can be deleted, including the last
+one of its [course](#course) and including a dish a past [weekly plan](#weekly-plan)
+used. Nothing guards the count: a household that deletes its way to an empty
+course is told what that costs — [generating](#generating) stops being possible
+— rather than prevented from getting there. The [seed catalogue](#seed-catalogue)
+means no instance *starts* in that state; it is only ever arrived at.
+
 ## Course
 
 _(Spanish UI: "tiempo")_
