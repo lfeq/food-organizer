@@ -5,6 +5,7 @@ import { uuidv7 } from "uuidv7"
 import { Runtime } from "#/runtime.server"
 import { ok, err, type Result } from "#/result-codes"
 import { drawN, pickReroll } from "#/generator"
+import { addDays, dayOfWeek, weekStartFor } from "#/plan-dates"
 
 export type Course = "soup" | "side" | "main"
 
@@ -116,25 +117,15 @@ export const generateWeek = createServerFn({ method: "POST" })
             SELECT (now() AT TIME ZONE ${timezone})::date::text AS today
           `
           const todayStr = nowRow[0].today
-          const todayDate = new Date(todayStr + "T00:00:00")
-          const todayDow = todayDate.getDay()
-          const daysBack = (todayDow - week_start_dow + 7) % 7
-          const currentWeekStart = new Date(todayDate)
-          currentWeekStart.setDate(todayDate.getDate() - daysBack)
-          const nextWeekStart = new Date(currentWeekStart)
-          nextWeekStart.setDate(currentWeekStart.getDate() + 7)
-
-          const toDateStr = (d: Date) => d.toISOString().slice(0, 10)
-          const currentWeekStr = toDateStr(currentWeekStart)
-          const nextWeekStr = toDateStr(nextWeekStart)
+          const currentWeekStr = weekStartFor(todayStr, week_start_dow)
+          const nextWeekStr = addDays(currentWeekStr, 7)
 
           if (data.weekStart !== currentWeekStr && data.weekStart !== nextWeekStr) {
             return err("WEEK_NOT_WRITABLE") as Result<WeekPlan>
           }
 
           // Validate week_start matches week_start_dow
-          const reqDate = new Date(data.weekStart + "T00:00:00")
-          if (reqDate.getDay() !== week_start_dow) {
+          if (dayOfWeek(data.weekStart) !== week_start_dow) {
             return err("WEEK_NOT_WRITABLE") as Result<WeekPlan>
           }
 
@@ -178,9 +169,7 @@ export const generateWeek = createServerFn({ method: "POST" })
 
           const planDays: PlanDayRow[] = []
           for (let i = 0; i < 7; i++) {
-            const dayDate = new Date(reqDate)
-            dayDate.setDate(reqDate.getDate() + i)
-            const dayDateStr = toDateStr(dayDate)
+            const dayDateStr = addDays(data.weekStart, i)
 
             const dayId = uuidv7()
             yield* sql`
@@ -245,18 +234,10 @@ export const rerollDay = createServerFn({ method: "POST" })
             SELECT (now() AT TIME ZONE ${timezone})::date::text AS today
           `
           const todayStr = nowRow[0].today
-          const todayDate = new Date(todayStr + "T00:00:00")
-          const daysBack = (todayDate.getDay() - week_start_dow + 7) % 7
-          const currentWeekStart = new Date(todayDate)
-          currentWeekStart.setDate(todayDate.getDate() - daysBack)
-          const nextWeekStart = new Date(currentWeekStart)
-          nextWeekStart.setDate(currentWeekStart.getDate() + 7)
-          const toDateStr = (d: Date) => d.toISOString().slice(0, 10)
+          const currentWeekStr = weekStartFor(todayStr, week_start_dow)
+          const nextWeekStr = addDays(currentWeekStr, 7)
 
-          if (
-            dayRow.week_start !== toDateStr(currentWeekStart) &&
-            dayRow.week_start !== toDateStr(nextWeekStart)
-          ) {
+          if (dayRow.week_start !== currentWeekStr && dayRow.week_start !== nextWeekStr) {
             return err("WEEK_NOT_WRITABLE") as R
           }
 
@@ -337,11 +318,7 @@ export const listPastWeeks = createServerFn({ method: "GET" }).handler(
             SELECT (now() AT TIME ZONE ${timezone})::date::text AS today
           `
           const todayStr = nowRow[0].today
-          const todayDate = new Date(todayStr + "T00:00:00")
-          const daysBack = (todayDate.getDay() - week_start_dow + 7) % 7
-          const currentWeekStart = new Date(todayDate)
-          currentWeekStart.setDate(todayDate.getDate() - daysBack)
-          const currentWeekStr = currentWeekStart.toISOString().slice(0, 10)
+          const currentWeekStr = weekStartFor(todayStr, week_start_dow)
 
           return yield* sql<{ week_start: string }>`
             SELECT week_start::text AS week_start
