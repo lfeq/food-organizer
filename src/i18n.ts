@@ -88,12 +88,30 @@ export const strings = {
   dishesH1:        { en: "Dishes",                       es: "Platillos" },
   dishesAddBtn:    { en: "+ Add dish",                   es: "+ Agregar platillo" },
   dishRemovedMember: { en: "removed member",             es: "miembro eliminado" },
-  dishAddTitle:    { en: "Add dish — {course}",          es: "Agregar platillo — {course}" },
+  // Adding is course-neutral: the course is chosen inside the form, in the one
+  // segmented control, so this title carries no `{course}` interpolation
+  // (SPEC.md §11.3, visual-system.md → "The dish catalogue").
+  dishAddTitle:    { en: "Add dish",                     es: "Agregar platillo" },
   dishEditTitle:   { en: "Edit dish",                    es: "Editar platillo" },
   dishEditNotice:  { en: "Renaming a dish updates the catalogue and every future plan, but leaves past weeks unchanged.", es: "Renombrar un platillo actualiza el catálogo y los planes futuros, pero no modifica las semanas pasadas." },
   dishDeleteTitle: { en: "Delete \"{name}\"?",           es: "¿Eliminar \"{name}\"?" },
   dishDeleteNotice: { en: "Past weeks keep this dish — only future plans are affected.", es: "Las semanas pasadas conservan este platillo — solo los planes futuros se ven afectados." },
   dishErrNameTaken: { en: "A dish with that name already exists in this course.", es: "Ya existe un platillo con ese nombre en este curso." },
+  // The row's `···` is an unlabelled control, so it needs an accessible name,
+  // and the name has to say which row it belongs to.
+  dishRowActions:  { en: "Actions for {name}",           es: "Acciones para {name}" },
+  dishAddedBy:     { en: "added by {name}",              es: "agregado por {name}" },
+  // The field label above the form's segmented control — the only place in the
+  // app a course is set.
+  dishCourseLabel: { en: "Course",                       es: "Curso" },
+  // The chips. `All` comes first and is selected by default, so the catalogue
+  // opens whole and the courses narrow it. The count is part of the label.
+  dishesChipAll:   { en: "All",                          es: "Todos" },
+  dishesChipLabel: { en: "{label} {count}",              es: "{label} {count}" },
+  // The two empty lines. Which one shows depends on the selected chip: with
+  // `All` the catalogue is empty, with a course chip only that course is.
+  dishesEmptyAll:    { en: "The catalogue has no dishes yet.", es: "El catálogo aún no tiene platillos." },
+  dishesEmptyCourse: { en: "No dishes in {course} yet.",  es: "Aún no hay platillos en {course}." },
 
   // --- History screen ---
   historyH1:   { en: "History",              es: "Historial" },

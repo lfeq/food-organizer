@@ -2,6 +2,7 @@ import { createFileRoute, useRouter, redirect } from "@tanstack/react-router"
 import { useState, useContext } from "react"
 import { Navigation } from "#/components/navigation"
 import { Button } from "#/components/button"
+import { Sheet } from "#/components/sheet"
 import { DayCard, type DayCardSlot } from "#/components/day-card"
 import { TodayCard } from "#/components/today-card"
 import { EmptyLine } from "#/components/empty-line"
@@ -294,21 +295,24 @@ function PlanPage() {
           )}
         </div>
 
+        {/*
+          The regenerate confirmation is the shared Sheet: a sheet below 900px,
+          a centred Panel above, with the week visible behind it in both. #108
+          left it on the legacy `.modal-*` classes because the Sheet was not
+          its to create; #109 created it. The header's `Cancel` is the way out,
+          so the body carries the destructive action alone.
+        */}
         {confirmRegen && (
-          <div className="modal-backdrop" onClick={() => setConfirmRegen(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <h2 className="modal-title type-title-sheet">{t(locale, "planRegenTitle")}</h2>
-              <p className="modal-notice type-body-sm">{t(locale, "planRegenNotice")}</p>
-              <div className="modal-actions">
-                <Button variant="secondary" disabled={busy} onClick={() => setConfirmRegen(false)}>
-                  {t(locale, "cancel")}
-                </Button>
-                <Button variant="destructive" disabled={busy} onClick={() => void doGenerate()}>
-                  {t(locale, "planRegenerate")}
-                </Button>
-              </div>
-            </div>
-          </div>
+          <Sheet
+            title={t(locale, "planRegenTitle")}
+            dismiss="cancel"
+            onDismiss={() => setConfirmRegen(false)}
+          >
+            <p className="sunken-note type-body-sm">{t(locale, "planRegenNotice")}</p>
+            <Button variant="destructive" fullWidth disabled={busy} onClick={() => void doGenerate()}>
+              {t(locale, "planRegenerate")}
+            </Button>
+          </Sheet>
         )}
       </main>
     </div>

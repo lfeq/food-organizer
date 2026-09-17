@@ -1,0 +1,18 @@
+/*
+ * The sunken note — a paragraph the app has to say next to a control, on a
+ * ground rather than in the message region.
+ *
+ * It is not a message: the message family is closed at three (Notice, inline
+ * error, Sheet) and this carries no amber, no `!` and no action. It is what a
+ * sheet uses to say a consequence out loud — that deleting a dish leaves past
+ * weeks holding it, and that renaming one changes every future plan but no
+ * past one. visual-system.md → "Cards".
+ */
+
+.sunken-note {
+  margin: 0;
+  border-radius: var(--radius-card);
+  padding: var(--space-2) var(--space-3);
+  background: var(--ground-sunken);
+  color: var(--ink-secondary);
+}
