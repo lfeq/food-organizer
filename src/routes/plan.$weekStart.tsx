@@ -24,6 +24,7 @@ import {
   type PlanDayRow,
 } from "#/plan-fns"
 import { repeatNotice } from "#/repeat-notice"
+import { weekRange } from "#/week-range"
 
 /** Soup, side, main — the order every card lays its courses out in. */
 const COURSE_ORDER: readonly Course[] = ["soup", "side", "main"]
@@ -178,7 +179,11 @@ function PlanPage() {
     ? t(locale, "thisWeek")
     : isNextWeek
       ? t(locale, "nextWeek")
-      : interpolate(t(locale, "historyWeekOf"), { date: formatDay(weekStart, locale).long })
+      : // A past week has no `This week` / `Next week` name to fall back on, so
+        // the title is the week range — the same seven-day range the history
+        // row it was opened from carries (visual-system.md → "What a past week
+        // opens into").
+        weekRange(weekStart, locale)
 
   const notice = noticeFor({
     locale,
@@ -329,14 +334,14 @@ function slotsOf(day: PlanDayRow, locale: Locale): DayCardSlot[] {
   })
 }
 
-/** The three shapes a date is said in on this screen. */
+/** The two shapes a day is said in on this screen. The week range above them
+ *  is the shared `weekRange` (src/week-range.ts). */
 function formatDay(date: IsoDate, locale: Locale) {
   const d = new Date(date + "T00:00:00")
   const intl = INTL_LOCALE[locale]
   return {
     weekday: d.toLocaleDateString(intl, { weekday: "short" }),
     number: d.toLocaleDateString(intl, { day: "numeric" }),
-    long: d.toLocaleDateString(intl, { month: "short", day: "numeric" }),
   }
 }
 

@@ -115,8 +115,9 @@ export const strings = {
 
   // --- History screen ---
   historyH1:   { en: "History",              es: "Historial" },
-  historyNone: { en: "No past weeks yet.",   es: "Aún no hay semanas anteriores." },
-  historyWeekOf: { en: "Week of {date}",     es: "Semana del {date}" },
+  // The empty line says that no week has been lived yet — the absence itself,
+  // not the reason for it (visual-system.md → "The empty line").
+  historyNone: { en: "No week has been lived yet.", es: "Aún no se ha vivido ninguna semana." },
 
   // --- Accounts screen ---
   accountsH1:          { en: "Accounts",         es: "Integrantes" },
