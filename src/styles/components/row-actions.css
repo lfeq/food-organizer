@@ -1,0 +1,80 @@
+/*
+ * A list block row's actions — the second of the only two components with two
+ * forms across the breakpoint, after the Sheet/Panel pair.
+ *
+ * Below 900px the row's actions sit behind a `···` and an action sheet; at or
+ * above it they sit inline at the end of the row as Small outline buttons in a
+ * right-aligned group, 6px apart, no wrap. **Nothing else changes** — the
+ * ground, the full bleed, the 16px inset and the --rule-inset between rows all
+ * belong to components/list-block.css and are untouched here, which is what
+ * makes this the smallest branch a two-formed component can have.
+ * visual-system.md → "The list block at width", "The accounts screen".
+ *
+ * Every class here begins `row-actions-`, matching the file name. The `···`
+ * keeps the list block's own `.list-block-action` paint and only gains
+ * `.row-actions-menu`, which decides at which widths it is drawn — this file
+ * positions that control, it never repaints it.
+ */
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  /* Wider than the group's own 6px: the reason is a note about the controls,
+     not another control. */
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/*
+ * The reason a control is unavailable, beside it and never in place of its
+ * label. `meta` mono in --ink-muted: this is the app talking about the
+ * member, not the member's own words.
+ *
+ * It is the one part of this component allowed to give: `Último
+ * administrador` is 19 mono characters, and when the row is tight the note
+ * wraps to a second line rather than pushing the controls out of the content
+ * column.
+ */
+.row-actions-reason {
+  min-width: 0;
+  color: var(--ink-muted);
+  text-align: right;
+}
+
+/* ── Phone: the `···` ──────────────────────────────────────────────────── */
+
+/*
+ * Mobile-first, so the inline group is the form that has to be asked for. The
+ * hidden form is `display: none` rather than visually hidden — a second copy
+ * of three controls in the accessibility tree would be worse than no branch
+ * at all.
+ */
+.row-actions-inline {
+  display: none;
+}
+
+/* ── Desktop: the inline group ─────────────────────────────────────────── */
+
+@media (min-width: 900px) {
+  .row-actions-menu {
+    display: none;
+  }
+
+  /*
+   * Right-aligned, 6px apart, and it never wraps: three is the measured limit
+   * at the threshold in Spanish, and a group that may wrap is a group with no
+   * limit. `white-space` is set on the group rather than on the buttons so
+   * that a squeezed label pushes the group wider instead of breaking inside a
+   * control — the row's name column is the thing that gives.
+   */
+  .row-actions-inline {
+    display: flex;
+    /* Three Small outline buttons are a fixed cost the row column pays; what
+       gives at the threshold is the username beside them, never this group. */
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: var(--space-05);
+    white-space: nowrap;
+  }
+}

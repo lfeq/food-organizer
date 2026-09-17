@@ -153,6 +153,8 @@ export const strings = {
   accountsRemoveTitle: { en: "Remove \"{username}\"?", es: "¿Eliminar a \"{username}\"?" },
   accountsRemoveNotice: { en: "Their sessions will be signed out. Their dishes stay in the catalogue, and the weeks they generated remain in history.", es: "Sus sesiones se cerrarán. Sus platillos permanecen en el catálogo y las semanas que generó quedan en el historial." },
   accountsRemoveMemberBtn: { en: "Remove member",   es: "Eliminar miembro" },
+  accountsRowActions:  { en: "Actions for {username}", es: "Acciones para {username}" },
+  accountsAdminNote:   { en: "Both roles have identical rights over the catalogue and the weekly plan. The admin role covers account management only, and an instance never has fewer than one admin.", es: "Ambos roles tienen los mismos derechos sobre el catálogo y el plan semanal. El rol de administrador solo cubre la gestión de cuentas, y una instancia nunca tiene menos de un administrador." },
   accountsErrLastAdmin:       { en: "The instance must keep at least one admin.", es: "La instancia debe conservar al menos un administrador." },
   accountsErrUsernameTaken:   { en: "That username is already taken.", es: "Ese nombre de usuario ya está en uso." },
   accountsErrUsernameInvalid: { en: "Username may only contain letters, digits, - and _.", es: "El nombre de usuario solo puede contener letras, dígitos, - y _." },

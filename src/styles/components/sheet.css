@@ -96,6 +96,27 @@
   border-top: 1px solid var(--rule-inset);
 }
 
+/*
+ * The reason an action is unavailable, after its label rather than instead of
+ * it. `meta` mono in --ink-muted: the app talking about the member.
+ */
+.sheet-action-note {
+  color: var(--ink-muted);
+}
+
+.sheet-action-note::before {
+  content: " — ";
+}
+
+/*
+ * A ghost control, so disabled thins its ink rather than fading a fill, and it
+ * takes no hover, pressed or focus state.
+ */
+.sheet-action:disabled {
+  color: var(--ink-muted);
+  cursor: not-allowed;
+}
+
 /* The destructive action is last and in --danger. No icons, anywhere. */
 .sheet-action--destructive {
   color: var(--danger);
@@ -106,22 +127,22 @@
  * inset leading rule rather than a ground wash, because a rule is how this
  * design marks emphasis.
  */
-.sheet-action--default:hover,
-.sheet-action--default:active {
+.sheet-action--default:not(:disabled):hover,
+.sheet-action--default:not(:disabled):active {
   box-shadow: inset 2px 0 0 var(--rule-strong);
 }
 
-.sheet-action--destructive:hover,
-.sheet-action--destructive:active {
+.sheet-action--destructive:not(:disabled):hover,
+.sheet-action--destructive:not(:disabled):active {
   box-shadow: inset 2px 0 0 var(--danger);
 }
 
-.sheet-action:active {
+.sheet-action:not(:disabled):active {
   background: var(--ground-sunken);
 }
 
 .sheet-dismiss:focus-visible,
-.sheet-action:focus-visible {
+.sheet-action:not(:disabled):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

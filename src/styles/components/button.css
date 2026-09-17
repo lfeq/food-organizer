@@ -124,18 +124,34 @@
 }
 
 /*
+ * The same action at Small outline's size, for a row's inline action group:
+ * that group is Small outline throughout and `Remove` is --danger in both of
+ * the accounts row's forms, and those two statements only meet here.
+ * visual-system.md → "The accounts screen", "The list block at width".
+ */
+.button--small-destructive {
+  background: none;
+  border-color: var(--danger-rule);
+  color: var(--danger);
+  padding: var(--space-05) var(--space-2);
+}
+
+/*
  * The one control whose border promotes to its own colour rather than to ink:
  * a destructive action must not look like an ordinary one at the moment of
  * pressing it.
  */
 .button--destructive:not(:disabled):hover,
-.button--destructive:not(:disabled):active {
+.button--destructive:not(:disabled):active,
+.button--small-destructive:not(:disabled):hover,
+.button--small-destructive:not(:disabled):active {
   border-color: var(--danger);
 }
 
 /* The pressed wash the visual system names inline; the palette gives it no
    token, so it is written here as the sidebar's active ground is. */
-.button--destructive:not(:disabled):active {
+.button--destructive:not(:disabled):active,
+.button--small-destructive:not(:disabled):active {
   background: rgba(138, 35, 35, 0.08);
 }
 
@@ -223,6 +239,7 @@
 .button--small-outline:disabled,
 .button--icon:disabled,
 .button--destructive:disabled,
+.button--small-destructive:disabled,
 .button--text-action:disabled {
   border-color: var(--rule-inset);
   color: var(--ink-muted);
