@@ -179,7 +179,7 @@ function PlanPage() {
 
   return (
     <div className="app-layout">
-      <Navigation active={isCurrentWeek ? "thisWeek" : isNextWeek ? "nextWeek" : undefined} />
+      <Navigation />
 
       <main className="main-content">
         <div className="plan-header">

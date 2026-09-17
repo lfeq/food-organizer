@@ -5,16 +5,34 @@ export type Locale = "en" | "es"
 type Entry = { en: string; es: string }
 
 export const strings = {
-  // --- Sidebar nav ---
+  // --- Navigation ---
+  // The product's own name. It is a proper noun and is not translated, but it
+  // still lives here: the invariant worth keeping is that no visible string is
+  // written into JSX, not that every string differs between locales.
+  brand:       { en: "Food Organizer", es: "Food Organizer" },
   thisWeek:    { en: "This week",    es: "Esta semana" },
+  // `Next week` is no longer a destination (SPEC.md §11.1). The key stays for
+  // the week stepper's forward affordance on the plan screen.
   nextWeek:    { en: "Next week",    es: "La semana que viene" },
   dishes:      { en: "Dishes",       es: "Platillos" },
   history:     { en: "History",      es: "Historial" },
   accounts:    { en: "Accounts",     es: "Integrantes" },
+  settings:    { en: "Settings",     es: "Configuración" },
   signOut:     { en: "Sign out",     es: "Cerrar sesión" },
+  // The tab bar's two labels that are not a sidebar item's: the week screen is
+  // `Plan` on a four-cell bar, and `More` is the drawer, not a destination.
+  navPlan:     { en: "Plan",         es: "Plan" },
+  navMore:     { en: "More",         es: "Más" },
+  // Locale tags, deliberately identical in both locales: the switcher names
+  // the languages it switches to, so it must read the same whichever one is on.
+  localeEn:    { en: "EN",           es: "EN" },
+  localeEs:    { en: "ES",           es: "ES" },
 
   // --- Common UI ---
   cancel:      { en: "Cancel",       es: "Cancelar" },
+  // A sheet's dismiss word depends on what it holds: `Cancel` where work would
+  // be abandoned, `Close` where nothing is at stake (the `More` sheet).
+  closeBtn:    { en: "Close",        es: "Cerrar" },
   save:        { en: "Save",         es: "Guardar" },
   add:         { en: "Add",          es: "Agregar" },
   editBtn:     { en: "Edit",         es: "Editar" },

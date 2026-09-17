@@ -47,7 +47,7 @@ function HistoryPage() {
 
   return (
     <div className="app-layout">
-      <Navigation active="history" />
+      <Navigation />
 
       <main className="main-content">
         <div className="plan-header">
