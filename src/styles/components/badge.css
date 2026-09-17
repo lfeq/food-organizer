@@ -1,0 +1,12 @@
+/*
+ * Badge — a filled tag: `TODAY`, `ADMIN`. visual-system.md → "Badges and tags".
+ * Filled means *this one, now*.
+ */
+
+.badge {
+  display: inline-block;
+  border-radius: var(--radius-tag);
+  padding: var(--space-025) var(--space-05);
+  background: var(--ground-inverse);
+  color: var(--ink-on-inverse);
+}

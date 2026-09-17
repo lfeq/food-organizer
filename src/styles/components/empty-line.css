@@ -1,0 +1,14 @@
+/*
+ * The empty line — a region's zero form.
+ *
+ * No ground, no border, no container, no ghost. An absence in this system is
+ * a sentence. visual-system.md → "The empty line".
+ *
+ * The 16px inset is the region's own gutter and belongs to the screen file
+ * that places this line, not here.
+ */
+
+.empty-line {
+  margin: 0;
+  color: var(--ink-secondary);
+}

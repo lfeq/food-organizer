@@ -1,0 +1,115 @@
+/*
+ * The plan screen — the front door.
+ *
+ * This file **positions** components and repaints none of them: what a day
+ * card, a Notice or a button looks like is decided in components/, and a
+ * screen file may never reach into one. Every class here begins `plan-`,
+ * matching the file name, which is what makes that rule checkable by reading
+ * a filename. docs/design/css-structure.md → "Files".
+ *
+ * One responsive screen, not two designs: what changes across 900px is the
+ * density of a day (owned by day-card.css) and the week becoming two columns
+ * (owned here). SPEC.md §11.2.
+ */
+
+.plan {
+  display: flex;
+  min-height: 100vh;
+}
+
+/*
+ * The phone's tab bar is `position: fixed` and reserves no flow space, so the
+ * screen buys its own clearance. Written from the spacing ladder rather than
+ * as a literal: tokens.css is the only file allowed a literal spacing value.
+ */
+.plan-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-5) var(--space-3);
+  padding-bottom: calc(var(--space-7) + var(--space-6));
+}
+
+/* ── Header: the range, the stepper beneath it, one control ────────────── */
+
+.plan-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+/*
+ * The stepper sits beneath the range, left-aligned under it, at both widths.
+ * Its own 44px hit area is padding pulled back by an equal negative margin in
+ * button.css, so it adds no visible spacing here — which is why this block
+ * needs no compensating gap.
+ */
+.plan-week {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.plan-range {
+  margin: 0;
+  color: var(--ink);
+}
+
+/* The action group. It holds exactly one control at both widths; the stepper
+   is never admitted to it. */
+.plan-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── The day area ──────────────────────────────────────────────────────── */
+
+.plan-days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.plan-week-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (min-width: 900px) {
+  .plan-main {
+    padding: var(--space-6) var(--space-6);
+    /* The sidebar is in flow at this width; nothing is fixed over the screen. */
+    padding-bottom: var(--space-6);
+  }
+
+  /*
+   * The week range is the one thing on this screen that changes size across
+   * the breakpoint: `title-page` on the phone, `title-page-desktop` above it.
+   * The stepper beneath it does not — one component, no breakpoint branch.
+   *
+   * The size is written here rather than swapped as a `type-*` class because
+   * which role the range carries is a width question and CSS is the only
+   * place a width question can be answered without measuring in JS. This is
+   * the type scale being *selected*, not a component being repainted: the
+   * weight still comes from `.type-title-page`, and no component's paint is
+   * touched. visual-system.md → "The week stepper".
+   */
+  .plan-range {
+    font-size: 26px;
+    line-height: 1.1;
+  }
+
+  /* The rest of the week, in two columns. */
+  .plan-week-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+}

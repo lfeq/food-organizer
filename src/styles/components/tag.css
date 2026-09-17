@@ -1,0 +1,13 @@
+/*
+ * Tag — an outlined tag: `READ ONLY`. visual-system.md → "Badges and tags".
+ * Outlined means *a state this thing is in*.
+ */
+
+.tag {
+  display: inline-block;
+  border: 1px solid var(--rule-control);
+  border-radius: var(--radius-tag);
+  padding: var(--space-025) var(--space-05);
+  background: none;
+  color: var(--ink-muted);
+}

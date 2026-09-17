@@ -1,7 +1,18 @@
 import { createFileRoute, useRouter, redirect } from "@tanstack/react-router"
-import { useState, useEffect, useContext } from "react"
+import { useState, useContext } from "react"
 import { Navigation } from "#/components/navigation"
-import { LocaleContext, t, interpolate, INTL_LOCALE, type StringKey } from "#/i18n"
+import { Button } from "#/components/button"
+import { DayCard, type DayCardSlot } from "#/components/day-card"
+import { TodayCard } from "#/components/today-card"
+import { EmptyLine } from "#/components/empty-line"
+import { InlineError } from "#/components/inline-error"
+import { MessageRegion } from "#/components/message-region"
+import { Notice, type NoticeForm, type NoticeProps } from "#/components/notice"
+import { Tag } from "#/components/tag"
+import { LocaleContext, t, interpolate, INTL_LOCALE, type Locale, type StringKey } from "#/i18n"
+import { catalogueNotice, countByCourse } from "#/catalogue-notice"
+import { listDishes } from "#/dishes-fns"
+import { addDays, hasElapsed, weekStartFor, type IsoDate } from "#/plan-dates"
 import {
   getWeekPlan,
   generateWeek,
@@ -9,8 +20,12 @@ import {
   getRepeatingDishes,
   rerollDay,
   type Course,
+  type PlanDayRow,
 } from "#/plan-fns"
 import { repeatNotice } from "#/repeat-notice"
+
+/** Soup, side, main — the order every card lays its courses out in. */
+const COURSE_ORDER: readonly Course[] = ["soup", "side", "main"]
 
 const COURSE_LABEL_KEY: Record<Course, StringKey> = {
   soup: "courseSoup",
@@ -24,16 +39,19 @@ const COURSE_PLURAL_KEY: Record<Course, StringKey> = {
   main: "courseMainPlural",
 }
 
-function computeWeekStart(dow: number, refDate: Date): Date {
-  const d = new Date(refDate)
-  d.setHours(0, 0, 0, 0)
-  const daysBack = (d.getDay() - dow + 7) % 7
-  d.setDate(d.getDate() - daysBack)
-  return d
-}
-
-function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10)
+/**
+ * Today, as the calendar on the wall reads it.
+ *
+ * Built from the local date parts rather than from `toISOString()`, which
+ * would answer UTC and therefore hand back yesterday for most of the evening
+ * in `America/Mexico_City`. Deriving today from the *instance* timezone is the
+ * server's job (SPEC.md §6.1) and stays out of this file.
+ */
+function todayIso(): IsoDate {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, "0")
+  const day = String(now.getDate()).padStart(2, "0")
+  return `${now.getFullYear()}-${month}-${day}`
 }
 
 export const Route = createFileRoute("/plan/$weekStart")({
@@ -41,14 +59,9 @@ export const Route = createFileRoute("/plan/$weekStart")({
     const settings = await getPlanSettings()
     const plan = await getWeekPlan({ data: { weekStart: params.weekStart } })
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const currentWeekStart = computeWeekStart(settings.week_start_dow, today)
-    const nextWeekStart = new Date(currentWeekStart)
-    nextWeekStart.setDate(currentWeekStart.getDate() + 7)
-
-    const currentWeekStr = toDateStr(currentWeekStart)
-    const nextWeekStr = toDateStr(nextWeekStart)
+    const today = todayIso()
+    const currentWeekStr = weekStartFor(today, settings.week_start_dow)
+    const nextWeekStr = addDays(currentWeekStr, 7)
 
     const isWritable =
       params.weekStart === currentWeekStr || params.weekStart === nextWeekStr
@@ -59,6 +72,12 @@ export const Route = createFileRoute("/plan/$weekStart")({
         ? repeatNotice(await getRepeatingDishes({ data: { weeklyPlanId: plan.id } }))
         : null
 
+    // What the catalogue makes true about a week that could be drawn. Only a
+    // writable week can be generated, so only a writable week is annotated.
+    const catalogue = isWritable
+      ? catalogueNotice(countByCourse(await listDishes()))
+      : null
+
     const dateRe = /^\d{4}-\d{2}-\d{2}$/
     if (!dateRe.test(params.weekStart)) {
       throw redirect({ to: "/plan/$weekStart", params: { weekStart: currentWeekStr } })
@@ -68,7 +87,8 @@ export const Route = createFileRoute("/plan/$weekStart")({
       settings,
       plan,
       repeat,
-      today: toDateStr(today),
+      catalogue,
+      today,
       currentWeekStr,
       nextWeekStr,
       isWritable,
@@ -78,7 +98,8 @@ export const Route = createFileRoute("/plan/$weekStart")({
 })
 
 function PlanPage() {
-  const loaderData = Route.useLoaderData()
+  const { plan, repeat, catalogue, today, currentWeekStr, nextWeekStr, isWritable } =
+    Route.useLoaderData()
   const { weekStart } = Route.useParams()
   const router = useRouter()
   const locale = useContext(LocaleContext)
@@ -86,15 +107,10 @@ function PlanPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmRegen, setConfirmRegen] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!toast) return
-    const tid = setTimeout(() => setToast(null), 4000)
-    return () => clearTimeout(tid)
-  }, [toast])
-
-  const { plan, repeat, today, currentWeekStr, nextWeekStr, isWritable } = loaderData
+  const isPastWeek = weekStart < currentWeekStr
+  const isCurrentWeek = weekStart === currentWeekStr
+  const isNextWeek = weekStart === nextWeekStr
 
   async function doGenerate() {
     setBusy(true)
@@ -146,178 +162,150 @@ function PlanPage() {
       }
       return
     }
-    if (res.data.causedRepeat) {
-      setToast(t(locale, "planRerollToast"))
-    }
+    // A reroll that lands on a repeat says nothing of its own: the Notice is
+    // not a report of what just happened but a statement of what is true, and
+    // it is there when the screen settles (SPEC §9.3). There is no toast.
     await router.invalidate()
   }
 
-  const todayDayDate = today
-  const todayDay = plan?.days.find((d) => d.day_date === todayDayDate)
-  const otherDays = plan?.days.filter((d) => d.day_date !== todayDayDate) ?? []
-  const featuredDay = todayDay ?? plan?.days[0] ?? null
-  const sidebarDays = todayDay ? otherDays : (plan?.days.slice(1) ?? [])
-
-  const isPastWeek = weekStart < currentWeekStr
-  const isCurrentWeek = weekStart === currentWeekStr
-  const isNextWeek = weekStart === nextWeekStr
-
-  function formatDate(dateStr: string) {
-    const d = new Date(dateStr + "T00:00:00")
-    return d.toLocaleDateString(INTL_LOCALE[locale], { weekday: "short", month: "short", day: "numeric" })
-  }
-
-  function isElapsed(dateStr: string) {
-    return dateStr < todayDayDate
-  }
+  // Today is featured — and only today. A next week holds no today, and a past
+  // week is the same screen with no featured day and no dimming (SPEC §11.4).
+  const featured = isPastWeek ? undefined : plan?.days.find((d) => d.day_date === today)
+  const rows = (plan?.days ?? []).filter((d) => d !== featured)
 
   const weekLabel = isCurrentWeek
     ? t(locale, "thisWeek")
     : isNextWeek
       ? t(locale, "nextWeek")
-      : formatDate(weekStart)
+      : interpolate(t(locale, "historyWeekOf"), { date: formatDay(weekStart, locale).long })
+
+  const notice = noticeFor({
+    locale,
+    hasPlan: Boolean(plan),
+    repeat,
+    catalogue,
+  })
+
+  // A course with no dishes is the one case where the precondition is knowable
+  // from the client, so the control is disabled rather than the failure
+  // reported. The Notice beside it is the reason; the button keeps its label.
+  const generateBlocked = catalogue?.kind === "empty"
+
+  function rerollFor(day: PlanDayRow, labelled: boolean) {
+    // Absent, not disabled: an elapsed day loses its control entirely.
+    if (!isWritable || isPastWeek || hasElapsed(day.day_date, today)) return undefined
+    return labelled ? (
+      <Button
+        variant="small-outline"
+        disabled={busy}
+        onClick={() => void handleReroll(day.id)}
+      >
+        {t(locale, "planRerollDay")}
+      </Button>
+    ) : (
+      <Button
+        variant="icon"
+        disabled={busy}
+        aria-label={t(locale, "planRerollDay")}
+        onClick={() => void handleReroll(day.id)}
+      >
+        {t(locale, "planRerollIcon")}
+      </Button>
+    )
+  }
 
   return (
-    <div className="app-layout">
+    <div className="plan">
       <Navigation />
 
-      <main className="main-content">
-        <div className="plan-header">
-          <h1 className="plan-title">{weekLabel}</h1>
-          {isWritable && !isPastWeek && (
-            <button
-              className="btn-primary"
-              onClick={handleGenerateClick}
-              disabled={busy}
-            >
-              {plan ? t(locale, "planRegenerate") : t(locale, "planGenerate")}
-            </button>
-          )}
-          {isPastWeek && (
-            <span className="plan-readonly-badge">{t(locale, "planPastReadOnly")}</span>
+      <main className="plan-main">
+        <header className="plan-header">
+          <div className="plan-week">
+            <h1 className="plan-range type-title-page">{weekLabel}</h1>
+            {isCurrentWeek || isNextWeek ? (
+              <Button
+                variant="text-action"
+                onClick={() =>
+                  void router.navigate({
+                    to: "/plan/$weekStart",
+                    params: { weekStart: isCurrentWeek ? nextWeekStr : currentWeekStr },
+                  })
+                }
+              >
+                {t(locale, isCurrentWeek ? "planStepNext" : "planStepThis")}
+              </Button>
+            ) : null}
+          </div>
+
+          {/* Exactly one control, at both widths. The stepper is not in it. */}
+          <div className="plan-actions">
+            {isWritable && !isPastWeek ? (
+              <Button
+                variant="primary-plan"
+                shape="pill"
+                disabled={busy || generateBlocked}
+                onClick={handleGenerateClick}
+              >
+                {t(locale, plan ? "planRegenerate" : "planGenerate")}
+              </Button>
+            ) : null}
+            {isPastWeek ? <Tag>{t(locale, "planPastReadOnly")}</Tag> : null}
+          </div>
+        </header>
+
+        <MessageRegion>
+          {error ? <InlineError>{error}</InlineError> : null}
+          {notice ? <Notice {...notice} /> : null}
+        </MessageRegion>
+
+        <div className="plan-days">
+          {!plan ? (
+            // The day area's zero form is one sentence, not a seven-day
+            // scaffold. It states the absence; the Notice above states the
+            // reason, and this line never rewords itself because of it.
+            <EmptyLine>{t(locale, "planNoWeek")}</EmptyLine>
+          ) : (
+            <>
+              {featured ? (
+                <TodayCard
+                  dayName={formatDay(featured.day_date, locale).weekday}
+                  dayNumber={formatDay(featured.day_date, locale).number}
+                  badgeLabel={t(locale, "planToday")}
+                  slots={slotsOf(featured, locale)}
+                  action={rerollFor(featured, true)}
+                />
+              ) : null}
+
+              {/* A weekly plan may hold fewer than seven plan days. The missing
+                  dates draw nothing at all — no placeholders, no ghosts. */}
+              <div className="plan-week-grid">
+                {rows.map((day) => (
+                  <DayCard
+                    key={day.id}
+                    dayName={formatDay(day.day_date, locale).weekday}
+                    dayNumber={formatDay(day.day_date, locale).number}
+                    slots={slotsOf(day, locale)}
+                    elapsed={!isPastWeek && hasElapsed(day.day_date, today)}
+                    action={rerollFor(day, false)}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </div>
-
-        {error && <p className="form-error plan-error">{error}</p>}
-
-        {repeat && (
-          <div className="plan-repeat-banner">
-            <p className="plan-repeat-line">
-              {repeat.kind === "dish"
-                ? interpolate(t(locale, "planRepeatDish"), { dish: repeat.dishName })
-                : interpolate(t(locale, "planRepeatCourses"), {
-                    courses: repeat.courses
-                      .map((c) => t(locale, COURSE_PLURAL_KEY[c]))
-                      .join(", "),
-                  })}
-            </p>
-          </div>
-        )}
-
-        {!plan && (
-          <div className="plan-empty">
-            <p>{t(locale, "planNoWeek")}</p>
-            {isWritable && (
-              <button className="btn-primary" onClick={handleGenerateClick} disabled={busy}>
-                {t(locale, "planGenerate")}
-              </button>
-            )}
-          </div>
-        )}
-
-        {plan && (
-          <div className="plan-columns">
-            {featuredDay && (
-              <div
-                className={[
-                  "plan-today-col",
-                  featuredDay.day_date === todayDayDate ? "plan-day--today" : "",
-                  isElapsed(featuredDay.day_date) && featuredDay.day_date !== todayDayDate
-                    ? "plan-day--elapsed"
-                    : "",
-                ].filter(Boolean).join(" ")}
-              >
-                <div className="plan-day-header">
-                  <span className="plan-day-date">{formatDate(featuredDay.day_date)}</span>
-                  {featuredDay.day_date === todayDayDate && (
-                    <span className="plan-today-tag">{t(locale, "planToday")}</span>
-                  )}
-                  {isWritable && !isElapsed(featuredDay.day_date) && (
-                    <button
-                      className="plan-reroll-btn plan-reroll-btn--labeled"
-                      onClick={() => void handleReroll(featuredDay.id)}
-                      disabled={busy}
-                      title={t(locale, "planRerollDay")}
-                    >
-                      {t(locale, "planRerollDay")}
-                    </button>
-                  )}
-                </div>
-                <ul className="plan-today-slots">
-                  {featuredDay.slots.map((slot) => (
-                    <li key={slot.course} className="plan-today-slot">
-                      <span className="plan-slot-course">{t(locale, COURSE_LABEL_KEY[slot.course])}</span>
-                      <span className="plan-slot-dish">{slot.dish_name}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="plan-others-col">
-              {sidebarDays.map((day) => (
-                <div
-                  key={day.id}
-                  className={[
-                    "plan-day-card",
-                    isElapsed(day.day_date) ? "plan-day--elapsed" : "",
-                  ].filter(Boolean).join(" ")}
-                >
-                  <div className="plan-day-header">
-                    <span className="plan-day-date">{formatDate(day.day_date)}</span>
-                    {isWritable && !isElapsed(day.day_date) && (
-                      <button
-                        className="plan-reroll-btn"
-                        onClick={() => void handleReroll(day.id)}
-                        disabled={busy}
-                        title={t(locale, "planRerollDay")}
-                      >
-                        {t(locale, "planRerollIcon")}
-                      </button>
-                    )}
-                  </div>
-                  <ul className="plan-compact-slots">
-                    {day.slots.map((slot) => (
-                      <li key={slot.course} className="plan-compact-slot">
-                        <span className="plan-slot-course plan-slot-course--compact">{t(locale, COURSE_LABEL_KEY[slot.course])}</span>
-                        <span className="plan-slot-dish plan-slot-dish--compact">{slot.dish_name}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {toast && (
-          <div className="plan-toast" role="status">
-            {toast}
-          </div>
-        )}
 
         {confirmRegen && (
           <div className="modal-backdrop" onClick={() => setConfirmRegen(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <h2 className="modal-title">{t(locale, "planRegenTitle")}</h2>
-              <p className="modal-notice">{t(locale, "planRegenNotice")}</p>
+              <h2 className="modal-title type-title-sheet">{t(locale, "planRegenTitle")}</h2>
+              <p className="modal-notice type-body-sm">{t(locale, "planRegenNotice")}</p>
               <div className="modal-actions">
-                <button className="btn-secondary" onClick={() => setConfirmRegen(false)} disabled={busy}>
+                <Button variant="secondary" disabled={busy} onClick={() => setConfirmRegen(false)}>
                   {t(locale, "cancel")}
-                </button>
-                <button className="btn-danger" onClick={() => void doGenerate()} disabled={busy}>
+                </Button>
+                <Button variant="destructive" disabled={busy} onClick={() => void doGenerate()}>
                   {t(locale, "planRegenerate")}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -325,4 +313,85 @@ function PlanPage() {
       </main>
     </div>
   )
+}
+
+/** A plan day's three courses in soup/side/main order, labelled for the reader. */
+function slotsOf(day: PlanDayRow, locale: Locale): DayCardSlot[] {
+  return COURSE_ORDER.flatMap((course) => {
+    const slot = day.slots.find((s) => s.course === course)
+    return slot
+      ? [{ course, label: t(locale, COURSE_LABEL_KEY[course]), dishName: slot.dish_name }]
+      : []
+  })
+}
+
+/** The three shapes a date is said in on this screen. */
+function formatDay(date: IsoDate, locale: Locale) {
+  const d = new Date(date + "T00:00:00")
+  const intl = INTL_LOCALE[locale]
+  return {
+    weekday: d.toLocaleDateString(intl, { weekday: "short" }),
+    number: d.toLocaleDateString(intl, { day: "numeric" }),
+    long: d.toLocaleDateString(intl, { month: "short", day: "numeric" }),
+  }
+}
+
+/**
+ * The one Notice this screen carries, or nothing.
+ *
+ * Its **form** follows whether there is a week on screen to annotate — full
+ * where the Notice is the screen's subject, compact where it annotates a drawn
+ * week — and never the width.
+ *
+ * Its **message** is the repeat where there is one, because a repeat is a
+ * statement about the week the household is looking at; otherwise the
+ * catalogue's, which is a statement about what can still be drawn. One Notice
+ * either way, said once per week, never one per slot.
+ */
+function noticeFor({
+  locale,
+  hasPlan,
+  repeat,
+  catalogue,
+}: {
+  locale: Locale
+  hasPlan: boolean
+  repeat: ReturnType<typeof repeatNotice>
+  catalogue: ReturnType<typeof catalogueNotice>
+}): NoticeProps | null {
+  const form: NoticeForm = hasPlan ? "compact" : "full"
+  const actionLabel = t(locale, "planNoticeAction")
+
+  if (repeat) {
+    return {
+      form,
+      headline: t(locale, "planNoticeRepeatTitle"),
+      sentence:
+        repeat.kind === "dish"
+          ? t(locale, "planRepeatDish")
+          : interpolate(t(locale, "planRepeatCourses"), {
+              courses: coursesIn(repeat.courses, locale),
+            }),
+      dishName: repeat.kind === "dish" ? repeat.dishName : undefined,
+      actionLabel,
+    }
+  }
+
+  if (catalogue) {
+    const isEmpty = catalogue.kind === "empty"
+    return {
+      form,
+      headline: t(locale, isEmpty ? "planNoticeEmptyTitle" : "planNoticeShortTitle"),
+      sentence: interpolate(t(locale, isEmpty ? "planNoticeEmpty" : "planNoticeShort"), {
+        courses: coursesIn(catalogue.courses, locale),
+      }),
+      actionLabel,
+    }
+  }
+
+  return null
+}
+
+function coursesIn(courses: readonly Course[], locale: Locale): string {
+  return courses.map((c) => t(locale, COURSE_PLURAL_KEY[c])).join(", ")
 }
