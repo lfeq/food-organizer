@@ -1,69 +1,76 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router"
 import { useState, useContext } from "react"
+import { Badge } from "#/components/badge"
+import { Button } from "#/components/button"
+import { Field } from "#/components/field"
+import { InlineError } from "#/components/inline-error"
+import { MessageRegion } from "#/components/message-region"
 import { Navigation } from "#/components/navigation"
-import { LocaleContext, t, interpolate, INTL_LOCALE } from "#/i18n"
+import { RowActions, type RowAction } from "#/components/row-actions"
+import { Sheet, SheetAction, SheetActions } from "#/components/sheet"
+import { Tag } from "#/components/tag"
+import { LocaleContext, t, interpolate } from "#/i18n"
 import {
   listMembers,
   createMember,
   resetMemberPassword,
   removeMember,
   setMemberRole,
-  getInstanceSettings,
-  updateInstanceSettings,
-  exportData,
   type Member,
 } from "#/accounts-fns"
 
+/**
+ * Accounts — the member list, and nothing else.
+ *
+ * `Instance settings` and `Export data` left for `/settings` (SPEC.md §11.5):
+ * a member list and an instance's week start are not two views of one thing.
+ * One screen, one subject — so this loader asks for members alone.
+ */
 export const Route = createFileRoute("/accounts")({
   beforeLoad: ({ context }) => {
     if (context.authState.member?.role !== "admin") {
       throw redirect({ to: "/" })
     }
   },
-  loader: () => Promise.all([listMembers(), getInstanceSettings()]),
+  loader: () => listMembers(),
   component: AccountsPage,
 })
 
-type ModalState =
+/**
+ * Every sheet this screen can open, and nothing else. The list stays mounted
+ * behind all of them — a sheet dims the screen, it does not replace it.
+ *
+ * `actions` is what a member row's `···` opens below `900px`; above it the
+ * same three actions are inline and this state is never reached.
+ */
+type SheetState =
   | { kind: "none" }
+  | { kind: "actions"; member: Member }
   | { kind: "create" }
   | { kind: "created"; username: string; tempPassword: string }
   | { kind: "reset"; member: Member }
   | { kind: "reset-done"; username: string; tempPassword: string }
   | { kind: "remove"; member: Member }
 
-function getWeekdayName(intlLocale: string, dow: number): string {
-  const d = new Date(2000, 0, 2 + dow)
-  return new Intl.DateTimeFormat(intlLocale, { weekday: "long" }).format(d)
-}
-
 function AccountsPage() {
   const { authState } = Route.useRouteContext()
-  const [members, instanceSettings] = Route.useLoaderData()
+  const members = Route.useLoaderData()
   const router = useRouter()
   const locale = useContext(LocaleContext)
-  const intlLocale = INTL_LOCALE[locale]
-  const [modal, setModal] = useState<ModalState>({ kind: "none" })
+  const [sheet, setSheet] = useState<SheetState>({ kind: "none" })
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [settingsError, setSettingsError] = useState<string | null>(null)
-  const [settingsBusy, setSettingsBusy] = useState(false)
-  const [exportBusy, setExportBusy] = useState(false)
-  const [exportError, setExportError] = useState<string | null>(null)
-  const [weekStartDow, setWeekStartDow] = useState(instanceSettings.week_start_dow)
-  const [timezone, setTimezone] = useState(instanceSettings.timezone)
-  const [instanceDisplayName, setInstanceDisplayName] = useState(instanceSettings.display_name ?? "")
 
   const adminCount = members.filter((m) => m.role === "admin").length
   const me = authState.member!
 
-  function openModal(m: ModalState) {
-    setModal(m)
+  function open(next: SheetState) {
+    setSheet(next)
     setError(null)
   }
 
-  function closeModal() {
-    setModal({ kind: "none" })
+  function close() {
+    setSheet({ kind: "none" })
     setError(null)
   }
 
@@ -78,11 +85,13 @@ function AccountsPage() {
           ? t(locale, "accountsErrUsernameTaken")
           : res.code === "USERNAME_INVALID"
             ? t(locale, "accountsErrUsernameInvalid")
-            : t(locale, "errGeneric")
+            : t(locale, "errGeneric"),
       )
       return
     }
-    setModal({ kind: "created", username: res.data.username, tempPassword: res.data.tempPassword })
+    // The generated password is shown **once** (SPEC.md §7.5): straight from
+    // the create sheet into the reveal sheet, never back to the list first.
+    setSheet({ kind: "created", username: res.data.username, tempPassword: res.data.tempPassword })
     await router.invalidate()
   }
 
@@ -95,22 +104,25 @@ function AccountsPage() {
       setError(t(locale, "errGeneric"))
       return
     }
-    setModal({ kind: "reset-done", username: member.username, tempPassword: res.data.tempPassword })
+    setSheet({ kind: "reset-done", username: member.username, tempPassword: res.data.tempPassword })
     await router.invalidate()
   }
 
+  /**
+   * The last admin's `Remove` is disabled, so `LAST_ADMIN` is the database
+   * floor answering a race rather than the everyday path — it is still
+   * translated, because a refusal the household cannot read is not a refusal.
+   */
   async function handleRemove(member: Member) {
     setBusy(true)
     setError(null)
     const res = await removeMember({ data: { memberId: member.id } })
     setBusy(false)
     if (!res.ok) {
-      setError(
-        t(locale, res.code === "LAST_ADMIN" ? "accountsErrLastAdmin" : "errGeneric")
-      )
+      setError(t(locale, res.code === "LAST_ADMIN" ? "accountsErrLastAdmin" : "errGeneric"))
       return
     }
-    closeModal()
+    close()
     await router.invalidate()
     if (member.id === me.id) {
       await router.navigate({ to: "/login" })
@@ -119,392 +131,281 @@ function AccountsPage() {
 
   async function handleSetRole(member: Member, role: "admin" | "member") {
     setBusy(true)
+    setError(null)
     const res = await setMemberRole({ data: { memberId: member.id, role } })
     setBusy(false)
-    if (!res.ok) return
-    await router.invalidate()
-  }
-
-  async function handleExport() {
-    setExportBusy(true)
-    setExportError(null)
-    const data = await exportData()
-    setExportBusy(false)
-    if (!data) {
-      setExportError(t(locale, "exportErrFailed"))
-      return
-    }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    const datePart = new Date().toISOString().slice(0, 10)
-    a.download = `food-organizer-export-${datePart}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  async function handleSaveSettings(e: React.FormEvent) {
-    e.preventDefault()
-    setSettingsBusy(true)
-    setSettingsError(null)
-    const updates: { week_start_dow?: number; timezone?: string; display_name?: string | null } = {}
-    if (!instanceSettings.has_plans) {
-      updates.week_start_dow = weekStartDow
-    }
-    updates.timezone = timezone.trim()
-    updates.display_name = instanceDisplayName.trim() || null
-    const res = await updateInstanceSettings({ data: updates })
-    setSettingsBusy(false)
     if (!res.ok) {
-      setSettingsError(
-        res.code === "WEEK_START_FROZEN"
-          ? t(locale, "settingsErrFrozen")
-          : res.code === "AUTH_INVALID_CREDENTIALS"
-            ? t(locale, "errGeneric")
-            : t(locale, "errGeneric")
-      )
+      setError(t(locale, res.code === "LAST_ADMIN" ? "accountsErrLastAdmin" : "errGeneric"))
       return
     }
+    close()
     await router.invalidate()
   }
+
+  /**
+   * The three verbs a member row carries, in the order both forms draw them:
+   * reset a password, change a role, remove the account — destructive last.
+   *
+   * On the last remaining admin the role control and `Remove` are unavailable
+   * (an instance never has fewer than one admin, CONTEXT.md), and they are
+   * **disabled with their own labels intact**; `Last admin` is the reason
+   * beside them, not a replacement for what they say.
+   */
+  function actionsFor(member: Member, isLastAdmin: boolean): readonly RowAction[] {
+    return [
+      {
+        label: t(locale, "accountsResetPw"),
+        disabled: busy,
+        onClick: () => open({ kind: "reset", member }),
+      },
+      {
+        label: t(
+          locale,
+          member.role === "admin" ? "accountsMakeMember" : "accountsMakeAdmin",
+        ),
+        disabled: busy || isLastAdmin,
+        onClick: () =>
+          void handleSetRole(member, member.role === "admin" ? "member" : "admin"),
+      },
+      {
+        label: t(locale, "accountsRemoveBtn"),
+        tone: "destructive",
+        disabled: busy || isLastAdmin,
+        onClick: () => open({ kind: "remove", member }),
+      },
+    ]
+  }
+
+  const openMember =
+    sheet.kind === "actions" || sheet.kind === "reset" || sheet.kind === "remove"
+      ? sheet.member
+      : null
+  const openMemberIsLastAdmin =
+    openMember !== null && openMember.role === "admin" && adminCount <= 1
 
   return (
-    <div className="app-layout">
+    <div className="accounts">
       <Navigation />
 
-      <main className="main-content">
+      <main className="accounts-main">
         <div className="accounts-header">
-          <h1>{t(locale, "accountsH1")}</h1>
-          <button className="btn-primary" onClick={() => openModal({ kind: "create" })}>
+          <h1 className="accounts-title type-title-page">{t(locale, "accountsH1")}</h1>
+          {/* Dark, not green: adding a member acts on accounts. */}
+          <Button
+            variant="primary-catalogue"
+            shape="pill"
+            onClick={() => open({ kind: "create" })}
+          >
             {t(locale, "accountsAddMember")}
-          </button>
+          </Button>
         </div>
 
-        <table className="members-table">
-          <thead>
-            <tr>
-              <th>{t(locale, "accountsColUsername")}</th>
-              <th>{t(locale, "accountsColRole")}</th>
-              <th>{t(locale, "accountsColStatus")}</th>
-              <th>{t(locale, "accountsColActions")}</th>
-            </tr>
-          </thead>
-          <tbody>
+        {/*
+          A refusal raised by a control that opens no sheet — a role change —
+          has nowhere else to go. While a sheet is open the same string is
+          shown inside it instead, so it is never said twice.
+        */}
+        <MessageRegion>
+          {error && sheet.kind === "none" ? <InlineError>{error}</InlineError> : null}
+        </MessageRegion>
+
+        {/*
+          One list block at both widths. There is no table and no column of
+          tags: a four-column `Member · Role · Status ·` actions table measures
+          ≈801px in Spanish at the threshold against the 684px the content
+          column offers, and a column is the expensive way to show a tag —
+          as wide as its widest tag on every row. Role and status fold under
+          the username, where the phone already puts them.
+          visual-system.md → "Bilingual fit", "The accounts screen".
+        */}
+        <div className="accounts-list">
+          <ul className="list-block">
             {members.map((m) => {
               const isLastAdmin = m.role === "admin" && adminCount <= 1
+              const showsBadge = m.role === "admin"
+              const showsTag = m.must_change_password
               return (
-                <tr key={m.id}>
-                  <td className="member-username">
-                    {m.username}
-                    {m.id === me.id && <span className="member-you"> {t(locale, "accountsYou")}</span>}
-                  </td>
-                  <td>
-                    <span className={`role-badge role-badge--${m.role}`}>
-                      {t(locale, m.role === "admin" ? "accountsRoleAdmin" : "accountsRoleMember")}
+                <li key={m.id} className="list-block-row">
+                  <div className="list-block-row-main">
+                    <span className="list-block-row-name type-item-name">
+                      {m.username}
+                      {m.id === me.id && (
+                        <span className="accounts-you type-meta">
+                          {t(locale, "accountsYou")}
+                        </span>
+                      )}
                     </span>
-                  </td>
-                  <td>
-                    {m.must_change_password && (
-                      <span className="status-badge">{t(locale, "accountsMustChange")}</span>
+                    {/*
+                      Filled badge for `ADMIN`, outlined tag for a state the
+                      member is in. Everyone else carries nothing: with two
+                      roles a `MEMBER` tag on most rows is noise, and absence
+                      already says it. No `last seen` line — there is no such
+                      data (visual-system.md, rule 25).
+                    */}
+                    {(showsBadge || showsTag) && (
+                      <span className="accounts-tags">
+                        {showsBadge && <Badge>{t(locale, "accountsRoleAdmin")}</Badge>}
+                        {showsTag && <Tag>{t(locale, "accountsMustChange")}</Tag>}
+                      </span>
                     )}
-                  </td>
-                  <td className="member-actions">
-                    {isLastAdmin ? (
-                      <button
-                        className="btn-secondary"
-                        disabled
-                        title={t(locale, "accountsLastAdmin")}
-                      >
-                        {t(locale, "accountsLastAdmin")}
-                      </button>
-                    ) : (
-                      <button
-                        className="btn-secondary"
-                        onClick={() =>
-                          handleSetRole(m, m.role === "admin" ? "member" : "admin")
-                        }
-                        disabled={busy}
-                      >
-                        {m.role === "admin" ? t(locale, "accountsMakeMember") : t(locale, "accountsMakeAdmin")}
-                      </button>
-                    )}
-                    <button
-                      className="btn-secondary"
-                      onClick={() => openModal({ kind: "reset", member: m })}
-                      disabled={busy}
-                    >
-                      {t(locale, "accountsResetPw")}
-                    </button>
-                    <button
-                      className="btn-danger"
-                      onClick={() => openModal({ kind: "remove", member: m })}
-                      disabled={busy}
-                    >
-                      {t(locale, "accountsRemoveBtn")}
-                    </button>
-                  </td>
-                </tr>
+                  </div>
+
+                  <RowActions
+                    menuLabel={interpolate(t(locale, "accountsRowActions"), {
+                      username: m.username,
+                    })}
+                    onOpenMenu={() => open({ kind: "actions", member: m })}
+                    actions={actionsFor(m, isLastAdmin)}
+                    reason={isLastAdmin ? t(locale, "accountsLastAdmin") : undefined}
+                  />
+                </li>
               )
             })}
-          </tbody>
-        </table>
+          </ul>
+        </div>
 
-        <section className="instance-settings">
-          <h2 className="instance-settings-title">{t(locale, "instanceSettingsTitle")}</h2>
-          <form onSubmit={handleSaveSettings} className="instance-settings-form">
-            <label className="settings-label">
-              {t(locale, "settingsWeekStart")}
-              {instanceSettings.has_plans ? (
-                <span className="settings-locked">
-                  {getWeekdayName(intlLocale, instanceSettings.week_start_dow)}
-                  <span className="settings-locked-reason"> {t(locale, "settingsLockedReason")}</span>
-                </span>
-              ) : (
-                <select
-                  className="settings-select"
-                  value={weekStartDow}
-                  onChange={(e) => setWeekStartDow(parseInt(e.target.value, 10))}
-                >
-                  {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                    <option key={i} value={i}>{getWeekdayName(intlLocale, i)}</option>
-                  ))}
-                </select>
-              )}
-            </label>
-            <label className="settings-label">
-              {t(locale, "settingsTimezone")}
-              <input
-                className="settings-input"
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                placeholder="America/Mexico_City"
-                required
-              />
-            </label>
-            <label className="settings-label">
-              {t(locale, "settingsDisplayName")}
-              <input
-                className="settings-input"
-                value={instanceDisplayName}
-                onChange={(e) => setInstanceDisplayName(e.target.value)}
-                placeholder={t(locale, "settingsDisplayNamePlaceholder")}
-              />
-            </label>
-            {settingsError && <p className="form-error">{settingsError}</p>}
-            <div className="instance-settings-actions">
-              <button type="submit" className="btn-primary" disabled={settingsBusy}>
-                {t(locale, "settingsSave")}
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <section className="instance-settings">
-          <h2 className="instance-settings-title">{t(locale, "exportTitle")}</h2>
-          <p className="export-desc">{t(locale, "exportDesc")}</p>
-          {exportError && <p className="form-error">{exportError}</p>}
-          <div className="instance-settings-actions">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={handleExport}
-              disabled={exportBusy}
-            >
-              {t(locale, "exportBtn")}
-            </button>
-          </div>
-        </section>
+        {/*
+          The admin role's reach, said once on the screen it is about, on a
+          ground rather than in the message region: it is not a message, it
+          carries no amber, no `!` and no action.
+        */}
+        <p className="accounts-note sunken-note type-body-sm">
+          {t(locale, "accountsAdminNote")}
+        </p>
       </main>
 
-      {modal.kind !== "none" && (
-        <div
-          className="modal-backdrop"
-          onClick={modal.kind === "created" || modal.kind === "reset-done" ? undefined : closeModal}
+      {sheet.kind === "actions" && openMember && (
+        <Sheet title={openMember.username} dismiss="cancel" onDismiss={close}>
+          <SheetActions>
+            {actionsFor(openMember, openMemberIsLastAdmin).map((action) => (
+              <SheetAction
+                key={action.label}
+                tone={action.tone}
+                disabled={action.disabled}
+                note={
+                  action.disabled && openMemberIsLastAdmin
+                    ? t(locale, "accountsLastAdmin")
+                    : undefined
+                }
+                onClick={action.onClick}
+              >
+                {action.label}
+              </SheetAction>
+            ))}
+          </SheetActions>
+        </Sheet>
+      )}
+
+      {sheet.kind === "create" && (
+        <Sheet title={t(locale, "accountsCreateTitle")} dismiss="cancel" onDismiss={close}>
+          <CreateForm busy={busy} error={error} onSubmit={handleCreate} />
+        </Sheet>
+      )}
+
+      {(sheet.kind === "created" || sheet.kind === "reset-done") && (
+        <Sheet
+          title={interpolate(
+            t(locale, sheet.kind === "created" ? "accountsCreatedTitle" : "accountsResetDoneTitle"),
+            { username: sheet.username },
+          )}
+          dismiss="close"
+          onDismiss={close}
         >
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            {modal.kind === "create" && (
-              <CreateModal
-                busy={busy}
-                error={error}
-                onSubmit={handleCreate}
-                onCancel={closeModal}
-              />
-            )}
-            {(modal.kind === "created" || modal.kind === "reset-done") && (
-              <PasswordRevealModal
-                username={modal.username}
-                tempPassword={modal.tempPassword}
-                isNew={modal.kind === "created"}
-                onDone={closeModal}
-              />
-            )}
-            {modal.kind === "reset" && (
-              <ResetModal
-                member={modal.member}
-                busy={busy}
-                error={error}
-                onConfirm={() => handleReset(modal.member)}
-                onCancel={closeModal}
-              />
-            )}
-            {modal.kind === "remove" && (
-              <RemoveModal
-                member={modal.member}
-                busy={busy}
-                error={error}
-                onConfirm={() => handleRemove(modal.member)}
-                onCancel={closeModal}
-              />
-            )}
-          </div>
-        </div>
+          <p className="sunken-note type-body-sm">{t(locale, "accountsPasswordNotice")}</p>
+          {/* The app's own generated string, so Mono — and selectable whole. */}
+          <p className="accounts-password type-note">{sheet.tempPassword}</p>
+          <Button variant="primary-catalogue" fullWidth onClick={close}>
+            {t(locale, "accountsDoneBtn")}
+          </Button>
+        </Sheet>
+      )}
+
+      {sheet.kind === "reset" && (
+        <Sheet
+          title={interpolate(t(locale, "accountsResetTitle"), {
+            username: sheet.member.username,
+          })}
+          dismiss="cancel"
+          onDismiss={close}
+        >
+          <p className="sunken-note type-body-sm">{t(locale, "accountsResetNotice")}</p>
+          {error && <InlineError>{error}</InlineError>}
+          <Button
+            variant="primary-catalogue"
+            fullWidth
+            disabled={busy}
+            onClick={() => void handleReset(sheet.member)}
+          >
+            {t(locale, "accountsResetPw")}
+          </Button>
+        </Sheet>
+      )}
+
+      {sheet.kind === "remove" && (
+        <Sheet
+          title={interpolate(t(locale, "accountsRemoveTitle"), {
+            username: sheet.member.username,
+          })}
+          dismiss="cancel"
+          onDismiss={close}
+        >
+          <p className="sunken-note type-body-sm">{t(locale, "accountsRemoveNotice")}</p>
+          {error && <InlineError>{error}</InlineError>}
+          <Button
+            variant="destructive"
+            fullWidth
+            disabled={busy}
+            onClick={() => void handleRemove(sheet.member)}
+          >
+            {t(locale, "accountsRemoveMemberBtn")}
+          </Button>
+        </Sheet>
       )}
     </div>
   )
 }
 
-function CreateModal({
+/**
+ * Adding a member: a username, and a promise about the password.
+ *
+ * The notice is said **before** the fact rather than after it — the admin has
+ * to know a temporary password is coming and that they will have to pass it
+ * on themselves, because there is no email to fall back on.
+ */
+function CreateForm({
   busy,
   error,
   onSubmit,
-  onCancel,
 }: {
   busy: boolean
   error: string | null
   onSubmit: (username: string) => void
-  onCancel: () => void
 }) {
+  const locale = useContext(LocaleContext)
   const [username, setUsername] = useState("")
-  const locale = useContext(LocaleContext)
+
   return (
-    <>
-      <h2 className="modal-title">{t(locale, "accountsCreateTitle")}</h2>
-      <p className="modal-notice">{t(locale, "accountsCreateNotice")}</p>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          onSubmit(username)
-        }}
+    <div className="accounts-form">
+      <Field
+        label={t(locale, "usernameLabel")}
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        autoComplete="off"
+        autoFocus
+      />
+
+      <p className="sunken-note type-body-sm">{t(locale, "accountsCreateNotice")}</p>
+
+      {error && <InlineError>{error}</InlineError>}
+
+      <Button
+        variant="primary-catalogue"
+        fullWidth
+        disabled={busy || !username.trim()}
+        onClick={() => onSubmit(username)}
       >
-        <label className="modal-label">
-          {t(locale, "usernameLabel")}
-          <input
-            className="modal-input"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoFocus
-            required
-            autoComplete="off"
-          />
-        </label>
-        {error && <p className="form-error">{error}</p>}
-        <div className="modal-actions">
-          <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
-            {t(locale, "cancel")}
-          </button>
-          <button type="submit" className="btn-primary" disabled={busy || !username.trim()}>
-            {t(locale, "createBtn")}
-          </button>
-        </div>
-      </form>
-    </>
-  )
-}
-
-function PasswordRevealModal({
-  username,
-  tempPassword,
-  isNew,
-  onDone,
-}: {
-  username: string
-  tempPassword: string
-  isNew: boolean
-  onDone: () => void
-}) {
-  const locale = useContext(LocaleContext)
-  return (
-    <>
-      <h2 className="modal-title">
-        {interpolate(
-          t(locale, isNew ? "accountsCreatedTitle" : "accountsResetDoneTitle"),
-          { username }
-        )}
-      </h2>
-      <p className="modal-notice">{t(locale, "accountsPasswordNotice")}</p>
-      <div className="temp-password">{tempPassword}</div>
-      <div className="modal-actions">
-        <button className="btn-primary" onClick={onDone}>
-          {t(locale, "accountsDoneBtn")}
-        </button>
-      </div>
-    </>
-  )
-}
-
-function ResetModal({
-  member,
-  busy,
-  error,
-  onConfirm,
-  onCancel,
-}: {
-  member: Member
-  busy: boolean
-  error: string | null
-  onConfirm: () => void
-  onCancel: () => void
-}) {
-  const locale = useContext(LocaleContext)
-  return (
-    <>
-      <h2 className="modal-title">
-        {interpolate(t(locale, "accountsResetTitle"), { username: member.username })}
-      </h2>
-      <p className="modal-notice">{t(locale, "accountsResetNotice")}</p>
-      {error && <p className="form-error">{error}</p>}
-      <div className="modal-actions">
-        <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
-          {t(locale, "cancel")}
-        </button>
-        <button type="button" className="btn-primary" onClick={onConfirm} disabled={busy}>
-          {t(locale, "accountsResetPw")}
-        </button>
-      </div>
-    </>
-  )
-}
-
-function RemoveModal({
-  member,
-  busy,
-  error,
-  onConfirm,
-  onCancel,
-}: {
-  member: Member
-  busy: boolean
-  error: string | null
-  onConfirm: () => void
-  onCancel: () => void
-}) {
-  const locale = useContext(LocaleContext)
-  return (
-    <>
-      <h2 className="modal-title">
-        {interpolate(t(locale, "accountsRemoveTitle"), { username: member.username })}
-      </h2>
-      <p className="modal-notice">{t(locale, "accountsRemoveNotice")}</p>
-      {error && <p className="form-error">{error}</p>}
-      <div className="modal-actions">
-        <button type="button" className="btn-secondary" onClick={onCancel} disabled={busy}>
-          {t(locale, "cancel")}
-        </button>
-        <button type="button" className="btn-danger" onClick={onConfirm} disabled={busy}>
-          {t(locale, "accountsRemoveMemberBtn")}
-        </button>
-      </div>
-    </>
+        {t(locale, "createBtn")}
+      </Button>
+    </div>
   )
 }

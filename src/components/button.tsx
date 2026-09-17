@@ -26,6 +26,14 @@ export type ButtonVariant =
   /** A glyph alone. `aria-label` is required — see `ButtonProps`. */
   | "icon"
   | "destructive"
+  /**
+   * The destructive action *inside a row's inline action group*: Small
+   * outline's size, `--danger`'s ink and rule. `Remove` on the accounts row
+   * is `--danger` in both forms and is a Small outline button in the inline
+   * one (visual-system.md → "The accounts screen"), and the full-width
+   * `destructive` is the wrong size to say so in a row.
+   */
+  | "small-destructive"
   /** A bare text action: the week stepper, `Reset password`. */
   | "text-action"
 
@@ -49,6 +57,7 @@ const TYPE_CLASS: Record<ButtonVariant, string> = {
   "small-outline": "type-button-sm",
   icon: "",
   destructive: "type-button-lg",
+  "small-destructive": "type-button-sm",
   "text-action": "type-link-inline",
 }
 

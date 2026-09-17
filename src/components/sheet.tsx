@@ -90,6 +90,14 @@ export function SheetActions({ children }: { children: ReactNode }) {
 export type SheetActionProps = {
   tone?: SheetActionTone
   onClick: () => void
+  /**
+   * An unavailable action is disabled rather than missing, and it keeps its
+   * own label — the reason goes in `note`, beside it and never in place of it
+   * (visual-system.md → "A disabled control keeps its own label").
+   */
+  disabled?: boolean
+  /** `meta` mono, after the label. Why the action is unavailable. */
+  note?: string
   children: ReactNode
 }
 
@@ -98,14 +106,22 @@ export type SheetActionProps = {
  * control, so it takes the list-row treatment — visual-system.md →
  * "Interactive states".
  */
-export function SheetAction({ tone = "default", onClick, children }: SheetActionProps) {
+export function SheetAction({
+  tone = "default",
+  onClick,
+  disabled = false,
+  note,
+  children,
+}: SheetActionProps) {
   return (
     <button
       type="button"
       className={`sheet-action sheet-action--${tone} type-body`}
       onClick={onClick}
+      disabled={disabled}
     >
       {children}
+      {note ? <span className="sheet-action-note type-meta">{note}</span> : null}
     </button>
   )
 }

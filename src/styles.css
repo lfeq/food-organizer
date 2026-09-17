@@ -473,17 +473,6 @@ body {
 
 /* ── Accounts screen ── */
 
-.accounts-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.accounts-header h1 {
-  margin: 0;
-}
-
 .members-table {
   width: 100%;
   border-collapse: collapse;
