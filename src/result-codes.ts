@@ -13,6 +13,7 @@ export type ResultCode =
   | "DAY_ELAPSED"
   | "PLAN_NOT_FOUND"
   | "WEEK_START_FROZEN"
+  | "TIMEZONE_INVALID"
   | "DB_UNREACHABLE"
 
 export type OkResult<T> = { ok: true; data: T }

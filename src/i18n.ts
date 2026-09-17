@@ -135,11 +135,14 @@ export const strings = {
   accountsMakeAdmin:   { en: "Make admin",        es: "Hacer administrador" },
   accountsResetPw:     { en: "Reset password",    es: "Restablecer contraseña" },
   accountsRemoveBtn:   { en: "Remove",            es: "Eliminar" },
-  instanceSettingsTitle: { en: "Instance settings", es: "Configuración" },
+  // The section eyebrow, not the screen's `<h1>` — on `/settings` both are on
+  // screen at once, so the Spanish says which configuration it means.
+  instanceSettingsTitle: { en: "Instance settings", es: "Configuración de la instancia" },
   settingsWeekStart:   { en: "Week start",        es: "Inicio de semana" },
   settingsTimezone:    { en: "Timezone",          es: "Zona horaria" },
   settingsDisplayName: { en: "Display name",      es: "Nombre del hogar" },
   settingsDisplayNamePlaceholder: { en: "e.g. Casa Hernández", es: "ej. Casa Hernández" },
+  settingsTimezoneHelp: { en: "An IANA name, e.g. America/Mexico_City", es: "Un nombre IANA, ej. America/Mexico_City" },
   settingsSave:        { en: "Save settings",     es: "Guardar configuración" },
   settingsLockedReason: { en: "(locked — a plan already exists)", es: "(bloqueado — ya existe un plan)" },
   accountsCreateTitle:  { en: "Add member",       es: "Agregar miembro" },
@@ -158,6 +161,7 @@ export const strings = {
   accountsErrLastAdmin:       { en: "The instance must keep at least one admin.", es: "La instancia debe conservar al menos un administrador." },
   accountsErrUsernameTaken:   { en: "That username is already taken.", es: "Ese nombre de usuario ya está en uso." },
   accountsErrUsernameInvalid: { en: "Username may only contain letters, digits, - and _.", es: "El nombre de usuario solo puede contener letras, dígitos, - y _." },
+  settingsErrTimezone: { en: "That is not a timezone name. Use an IANA name, e.g. America/Mexico_City.", es: "Ese no es un nombre de zona horaria. Usa un nombre IANA, ej. America/Mexico_City." },
   settingsErrFrozen: { en: "Week start cannot change once a plan exists.", es: "El inicio de semana no puede cambiar una vez que existe un plan." },
   exportTitle:       { en: "Export data",         es: "Exportar datos" },
   exportDesc:        { en: "Download a machine-readable backup of the catalogue, all weekly plans, members, and settings. Password hashes are never included.", es: "Descarga una copia de seguridad legible por máquina del catálogo, todos los planes semanales, integrantes y configuración. Las contraseñas nunca se incluyen." },
