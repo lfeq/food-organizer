@@ -221,10 +221,13 @@ export const updateInstanceSettings = createServerFn({ method: "POST" })
     if (!callerId) return err("AUTH_INVALID_CREDENTIALS")
 
     if (data.timezone !== undefined) {
+      // An unknown IANA zone is the admin mistyping, not the database being
+      // gone: it needs a code of its own, or the screen says `Something went
+      // wrong` about a field the household can fix.
       try {
         Intl.DateTimeFormat(undefined, { timeZone: data.timezone })
       } catch {
-        return err("DB_UNREACHABLE")
+        return err("TIMEZONE_INVALID")
       }
     }
 
