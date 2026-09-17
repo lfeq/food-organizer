@@ -1,6 +1,7 @@
 import { Link, useRouteContext, useRouter, useRouterState } from "@tanstack/react-router"
-import { useContext, useEffect, useState } from "react"
+import { useContext, useState } from "react"
 import { doLogout } from "#/auth-fns"
+import { Sheet } from "#/components/sheet"
 import { setLocale } from "#/locale-fns"
 import { LocaleContext, t, type Locale, type StringKey } from "#/i18n"
 
@@ -93,17 +94,6 @@ export function Navigation() {
   const visible = ENTRIES.filter((entry) => !entry.adminOnly || isAdmin)
   const sheetEntries = isAdmin ? SHEET_ENTRIES : []
 
-  // A sheet is dismissible from the keyboard as well as from `Close` and the
-  // scrim. Nothing here animates; the listener only exists while it is open.
-  useEffect(() => {
-    if (!sheetOpen) return
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setSheetOpen(false)
-    }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [sheetOpen])
-
   return (
     <nav className="navigation">
       <div className="navigation-sidebar">
@@ -155,43 +145,35 @@ export function Navigation() {
       </div>
 
       {sheetOpen ? (
-        <>
-          <div className="navigation-scrim" aria-hidden="true" onClick={() => setSheetOpen(false)} />
-          <div className="navigation-sheet" role="dialog" aria-modal="true" aria-label={t(locale, "navMore")}>
-            <div className="navigation-sheet-header">
-              <span className="navigation-sheet-title type-title-sheet">{t(locale, "navMore")}</span>
-              <button
-                type="button"
-                className="navigation-sheet-dismiss type-meta"
-                onClick={() => setSheetOpen(false)}
-              >
-                {t(locale, "closeBtn")}
-              </button>
-            </div>
+        /*
+          The `More` sheet is the shared Sheet used for navigation, rising from
+          the bottom edge like any other. Its dismiss word is `Close`, not
+          `Cancel`: nothing is at stake in a navigation sheet.
+        */
+        <Sheet title={t(locale, "navMore")} dismiss="close" onDismiss={() => setSheetOpen(false)}>
+          {sheetEntries.length > 0 ? (
+            <>
+              <ul className="navigation-sheet-list">
+                {sheetEntries.map((entry) => (
+                  <li key={entry.item}>
+                    <Link
+                      to={entry.to}
+                      className="navigation-sheet-link"
+                      onClick={() => setSheetOpen(false)}
+                    >
+                      {t(locale, entry.labelKey)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <hr className="navigation-sheet-rule" />
+            </>
+          ) : null}
 
-            {sheetEntries.length > 0 ? (
-              <>
-                <ul className="navigation-sheet-list">
-                  {sheetEntries.map((entry) => (
-                    <li key={entry.item}>
-                      <Link
-                        to={entry.to}
-                        className="navigation-sheet-link"
-                        onClick={() => setSheetOpen(false)}
-                      >
-                        {t(locale, entry.labelKey)}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-                <hr className="navigation-sheet-rule" />
-              </>
-            ) : null}
-
-            <SessionBlock on="surface" locale={locale} username={member.username} role={member.role} />
-          </div>
-        </>
+          <SessionBlock on="surface" locale={locale} username={member.username} role={member.role} />
+        </Sheet>
       ) : null}
+
     </nav>
   )
 }

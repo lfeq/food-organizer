@@ -1,0 +1,79 @@
+/*
+ * Segmented control — used once, for course selection.
+ *
+ * **Selected is dark, not green.** The mockup draws it in the accent and that
+ * is a mockup error rather than an exemption: the green/dark rule governs what
+ * an action acts on, and choosing a dish's course acts on the catalogue, which
+ * is dark territory. The two standing green exemptions — the tab bar's active
+ * marker and the week stepper — are both navigation, which acts on nothing.
+ *
+ * Because the catalogue's `Add dish` is course-neutral, this control is the
+ * only place in the app a course is chosen. visual-system.md → "Segmented
+ * control".
+ */
+
+/*
+ * The control and the label above it. This group is the segmented control's
+ * own — it is not a `Field`, which is a label wrapped around an `<input>` or a
+ * `<select>` and owns its own id wiring.
+ */
+.segmented-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-05);
+}
+
+.segmented-control-label {
+  color: var(--ink-muted);
+}
+
+.segmented-control {
+  display: grid;
+  /* Equal-width cells: the three course names differ in length in both
+     languages and a content-sized row would jitter as the locale toggles. */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--space-05);
+}
+
+.segmented-control-cell {
+  border: 1px solid var(--rule-control);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) 0;
+  background: none;
+  color: var(--ink-secondary);
+  font-family: inherit;
+  font-weight: var(--weight-row);
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 120ms, border-color 120ms, color 120ms;
+}
+
+.segmented-control-cell--selected {
+  border-color: var(--rule-strong);
+  background: var(--ground-inverse-soft);
+  color: var(--ink);
+  font-weight: var(--weight-emphasis);
+}
+
+.segmented-control-cell:not(.segmented-control-cell--selected):hover,
+.segmented-control-cell:not(.segmented-control-cell--selected):active {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+.segmented-control-cell:not(.segmented-control-cell--selected):active {
+  background: var(--ground-sunken);
+}
+
+/*
+ * The selected cell takes no hover and no pressed state: it already sits at
+ * --rule-strong, there is nowhere for the border to promote to, and moving its
+ * ground would contradict the rule that the ground holds still. It is a state,
+ * not an invitation.
+ */
+
+.segmented-control-cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

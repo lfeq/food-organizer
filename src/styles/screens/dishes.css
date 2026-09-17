@@ -1,0 +1,103 @@
+/*
+ * The dish catalogue.
+ *
+ * This file **positions** components and repaints none of them: what a chip, a
+ * list block, a Sheet, a field or a segmented control looks like is decided in
+ * components/. Every class here begins `dishes-`, matching the file name.
+ * docs/design/css-structure.md → "Files".
+ *
+ * One list at both widths, filtered by chips. The three-column by-course grid
+ * is retired — a filter and a by-course grid cannot both be the way this
+ * screen is read, and the filter is what survives a 390px screen. The desktop
+ * is the same list in a wider content column, not a second composition, so
+ * this file's only media query changes the gutter and nothing else.
+ * SPEC.md §11.3, visual-system.md → "The dish catalogue".
+ */
+
+.dishes {
+  display: flex;
+  min-height: 100vh;
+}
+
+/*
+ * The phone's tab bar is `position: fixed` and reserves no flow space, so the
+ * screen buys its own clearance, from the spacing ladder rather than as a
+ * literal.
+ */
+.dishes-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-5) var(--space-3);
+  padding-bottom: calc(var(--space-7) + var(--space-6));
+}
+
+/* ── Header: the screen's name and its one course-neutral action ───────── */
+
+.dishes-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.dishes-title {
+  margin: 0;
+  min-width: 0;
+  color: var(--ink);
+}
+
+/* ── The filter row ────────────────────────────────────────────────────── */
+
+/*
+ * The chips are the screen's controls, not part of the list: they stay on
+ * screen with their counts even when the list below them is empty, which is
+ * how the household sees which course is the empty one without tapping through
+ * all four.
+ */
+.dishes-chips {
+  margin-bottom: var(--space-4);
+}
+
+/* ── The list ──────────────────────────────────────────────────────────── */
+
+/*
+ * The list block is the one surface that ignores the gutter. Escaping it is
+ * the screen's job — the block itself knows nothing about this screen's
+ * padding — so the wrapper pulls back exactly the gutter `.dishes-main` set,
+ * on both sides, at each width.
+ */
+.dishes-list {
+  margin-inline: calc(-1 * var(--space-3));
+}
+
+/* ── The form, inside the Sheet or the Panel ───────────────────────────── */
+
+.dishes-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/*
+ * Deleting happens twice over: as the destructive row of the action sheet, and
+ * here inside the edit form. A rule separates it from the rename it undoes.
+ */
+.dishes-form-danger {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule-inset);
+}
+
+@media (min-width: 900px) {
+  .dishes-main {
+    padding: var(--space-6) var(--space-6);
+    /* The sidebar is in flow at this width; nothing is fixed over the screen. */
+    padding-bottom: var(--space-6);
+  }
+
+  .dishes-list {
+    margin-inline: calc(-1 * var(--space-6));
+  }
+}

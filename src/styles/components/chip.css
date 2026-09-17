@@ -1,0 +1,73 @@
+/*
+ * Chips — the catalogue's filter row.
+ *
+ * The chips **filter; they do not group**: exactly one is selected at any
+ * time, and the list below shows only that selection. The count is part of the
+ * label (`SOPAS 7`), not a separate element, which is why there is no
+ * `chip-count` class here.
+ *
+ * Chips carry the plural course names, the widest strings in the system
+ * (`GUARNICIONES 12`). They size to content and the row scrolls horizontally
+ * on a phone rather than truncating or wrapping. visual-system.md → "Chips".
+ */
+
+.chip-row {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  /* The row is a scroller, not a wrapper: the fourth chip is what makes this
+     the tightest row in the system at 390px in Spanish. */
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+}
+
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  /* Sized to content: never truncated, never given a share of the row. */
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  padding: var(--space-05) var(--space-2);
+  background: var(--ground-chip);
+  color: var(--ink-secondary);
+  /* No `font-family: inherit` here: a chip is mono (`type-chip`), and this
+     file loads after base.css, so an inherit would quietly undo it. */
+  font-weight: var(--weight-row);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 120ms, border-color 120ms, color 120ms;
+}
+
+.chip--selected {
+  background: var(--ground-inverse);
+  color: var(--ink-on-inverse);
+  font-weight: var(--weight-emphasis);
+}
+
+/* Idle: the ground holds still and the border and the ink move. */
+.chip:not(.chip--selected):hover,
+.chip:not(.chip--selected):active {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+.chip:not(.chip--selected):active {
+  background: var(--ground-sunken);
+}
+
+/* Selected is an inverse fill; it behaves like one. */
+.chip--selected:hover {
+  background: var(--inverse-hover);
+}
+
+.chip--selected:active {
+  background: var(--inverse-pressed);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

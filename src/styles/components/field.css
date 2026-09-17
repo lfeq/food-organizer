@@ -1,0 +1,64 @@
+/*
+ * Field — label, input, help text.
+ *
+ * The one component whose state is focus and nothing else: no hover, no ring,
+ * no shadow. The border promotes to `--rule-strong` and the ground holds
+ * still, which is the same rule every other control follows
+ * (visual-system.md → "Interactive states").
+ *
+ * Every class begins `field`, matching the file name.
+ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  /* 6px under the label and 6px above the help text — the spec's own two
+     measurements, which happen to be the same step. */
+  gap: var(--space-05);
+}
+
+.field-label {
+  color: var(--ink-muted);
+}
+
+.field-input,
+.field-select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--rule-control);
+  border-radius: var(--radius-control);
+  padding: var(--space-2);
+  background: var(--ground-surface);
+  color: var(--ink);
+  /* The one coloured caret in the system. */
+  caret-color: var(--accent);
+  transition: border-color 120ms;
+}
+
+/*
+ * A password field uses Mono for its value; every other field uses Sans. That
+ * follows the split rule — a masked password is not the household's words —
+ * and it is written here rather than swapped as a `type-*` class because the
+ * password keeps `body`'s size and weight and changes only its family. The
+ * stack ends `ui-monospace, monospace`: bare `monospace` resolves to a slab
+ * serif on some platforms.
+ */
+.field-input[type="password"] {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/*
+ * Focus promotes the border and does nothing else. The outline is removed on
+ * purpose: the border *is* the indicator here, and the system's accent focus
+ * ring would be the "ring" the spec rules out for this one component.
+ */
+.field-input:focus,
+.field-select:focus {
+  border-color: var(--rule-strong);
+  outline: none;
+}
+
+.field-help {
+  margin: 0;
+  color: var(--ink-muted);
+}
