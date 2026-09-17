@@ -8,27 +8,13 @@
  *
  * One list block at both widths, and the only thing that changes across 900px
  * is where a member's three actions sit — which is components/row-actions.css's
- * business, not this file's. So this screen's own media query changes the
- * gutter and nothing else, exactly as the catalogue's does.
+ * business, not this file's. So this file has no media query at all.
  * SPEC.md §11.5, visual-system.md → "The accounts screen".
+ *
+ * The screen's frame — the flex root, the content column's gutter and
+ * tab-bar clearance, and a list block's escape from that gutter — is
+ * `components/screen-shell.css`, applied here rather than restated.
  */
-
-.accounts {
-  display: flex;
-  min-height: 100vh;
-}
-
-/*
- * The phone's tab bar is `position: fixed` and reserves no flow space, so the
- * screen buys its own clearance, from the spacing ladder rather than as a
- * literal.
- */
-.accounts-main {
-  flex: 1;
-  min-width: 0;
-  padding: var(--space-5) var(--space-3);
-  padding-bottom: calc(var(--space-7) + var(--space-6));
-}
 
 /* ── Header: the screen's name and its one action ──────────────────────── */
 
@@ -44,18 +30,6 @@
   margin: 0;
   min-width: 0;
   color: var(--ink);
-}
-
-/* ── The list ──────────────────────────────────────────────────────────── */
-
-/*
- * The list block is the one surface that ignores the gutter. Escaping it is
- * the screen's job — the block itself knows nothing about this screen's
- * padding — so the wrapper pulls back exactly the gutter `.accounts-main` set,
- * on both sides, at each width.
- */
-.accounts-list {
-  margin-inline: calc(-1 * var(--space-3));
 }
 
 /* `(you)` after the username: the app pointing, so `meta` mono and muted. */
@@ -106,16 +80,4 @@
   text-align: center;
   user-select: all;
   overflow-wrap: anywhere;
-}
-
-@media (min-width: 900px) {
-  .accounts-main {
-    padding: var(--space-6) var(--space-6);
-    /* The sidebar is in flow at this width; nothing is fixed over the screen. */
-    padding-bottom: var(--space-6);
-  }
-
-  .accounts-list {
-    margin-inline: calc(-1 * var(--space-6));
-  }
 }

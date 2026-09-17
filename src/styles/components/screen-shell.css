@@ -1,0 +1,60 @@
+/*
+ * The screen shell — the frame every navigated screen sits in.
+ *
+ * Five screens (plan, dishes, accounts, history, settings) were built in
+ * parallel and each wrote the same three rules out for itself: the flex row
+ * that makes room for the navigation, the content column's gutter and its
+ * tab-bar clearance, and the negative margin a full-bleed list block uses to
+ * escape that gutter. Five copies of one layout is five places for the gutter
+ * to drift, so it is one file.
+ *
+ * It is a component rather than a shared screen file because a class's block
+ * segment must equal its file name (docs/design/css-structure.md → "Files"):
+ * a screen may apply `screen-shell*`, and no screen reaches into another
+ * screen's block to do it. The screens keep their own files for what is
+ * actually theirs — a header, a filter row, a grid.
+ */
+
+/*
+ * `Navigation` is `display: contents` below 900px and a 184px column above it,
+ * so the root of every screen is a flex row of full viewport height.
+ */
+.screen-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/*
+ * The content column. The phone's tab bar is `position: fixed` and reserves no
+ * flow space, so the screen buys its own clearance, from the spacing ladder
+ * rather than as a literal: tokens.css is the only file allowed a literal
+ * spacing value.
+ */
+.screen-shell-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-5) var(--space-3);
+  padding-bottom: calc(var(--space-7) + var(--space-6));
+}
+
+/*
+ * The list block is the one surface that ignores the gutter. Escaping it is
+ * the screen's job — the block itself knows nothing about the padding around
+ * it — so this wrapper pulls back exactly the gutter `.screen-shell-main` set,
+ * on both sides, at each width.
+ */
+.screen-shell-list {
+  margin-inline: calc(-1 * var(--space-3));
+}
+
+@media (min-width: 900px) {
+  .screen-shell-main {
+    padding: var(--space-6) var(--space-6);
+    /* The sidebar is in flow at this width; nothing is fixed over the screen. */
+    padding-bottom: var(--space-6);
+  }
+
+  .screen-shell-list {
+    margin-inline: calc(-1 * var(--space-6));
+  }
+}

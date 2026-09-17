@@ -1,3 +1,4 @@
+import { COURSE_ORDER } from "#/courses"
 import type { Course } from "#/plan-fns"
 
 /**
@@ -25,8 +26,6 @@ export type CatalogueNotice = {
   /** The courses the sentence names, in `soup, side, main` order. */
   courses: Course[]
 }
-
-const COURSE_ORDER: readonly Course[] = ["soup", "side", "main"]
 
 /**
  * Derives the one Notice the catalogue puts on the week screen, or `null`

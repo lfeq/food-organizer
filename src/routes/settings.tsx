@@ -12,6 +12,7 @@ import { MessageRegion } from "#/components/message-region"
 import { Navigation } from "#/components/navigation"
 import { LocaleContext, t, INTL_LOCALE, type StringKey } from "#/i18n"
 import type { ResultCode } from "#/result-codes"
+import { weekdayName } from "#/week-range"
 
 /**
  * Settings — the fifth destination, admin-only.
@@ -39,12 +40,6 @@ export const Route = createFileRoute("/settings")({
 
 /** §6.1: `week_start_dow` holds `0..6` on Postgres's `dow` convention. */
 const WEEK_START_DAYS = [0, 1, 2, 3, 4, 5, 6] as const
-
-/** A weekday name is a date, not a translation (SPEC.md §12.4). */
-function getWeekdayName(intlLocale: string, dow: number): string {
-  const d = new Date(2000, 0, 2 + dow)
-  return new Intl.DateTimeFormat(intlLocale, { weekday: "long" }).format(d)
-}
 
 /**
  * Every refusal `updateInstanceSettings` can return, said in the household's
@@ -125,10 +120,10 @@ function SettingsPage() {
   }
 
   return (
-    <div className="settings">
+    <div className="screen-shell">
       <Navigation />
 
-      <main className="settings-main">
+      <main className="screen-shell-main">
         <h1 className="settings-title type-title-page">{t(locale, "settings")}</h1>
 
         {/* ── Instance settings ───────────────────────────────────────── */}
@@ -151,7 +146,7 @@ function SettingsPage() {
                   {t(locale, "settingsWeekStart")}
                 </span>
                 <p className="settings-frozen-value type-body">
-                  {getWeekdayName(intlLocale, instance.week_start_dow)}{" "}
+                  {weekdayName(intlLocale, instance.week_start_dow)}{" "}
                   <span className="settings-frozen-reason type-meta">
                     {t(locale, "settingsLockedReason")}
                   </span>
@@ -169,7 +164,7 @@ function SettingsPage() {
                 onChange={(e) => setWeekStartDow(Number(e.target.value))}
                 options={WEEK_START_DAYS.map((dow) => ({
                   value: String(dow),
-                  label: getWeekdayName(intlLocale, dow),
+                  label: weekdayName(intlLocale, dow),
                 }))}
               />
             )}

@@ -7,15 +7,15 @@ import { InlineError } from "#/components/inline-error"
 import { Navigation } from "#/components/navigation"
 import { Sheet, SheetAction, SheetActions } from "#/components/sheet"
 import { LocaleContext, t, interpolate, type Locale, type StringKey } from "#/i18n"
+import { COURSE_ORDER, COURSE_LABEL_KEY, COURSE_PLURAL_KEY } from "#/courses"
 import { listDishes, addDish, editDish, deleteDish, type Dish } from "#/dishes-fns"
+import type { Course } from "#/plan-fns"
+import type { ErrResult, ResultCode } from "#/result-codes"
 
 export const Route = createFileRoute("/dishes")({
   component: DishesPage,
   loader: () => listDishes(),
 })
-
-const COURSES = ["soup", "side", "main"] as const
-type Course = (typeof COURSES)[number]
 
 /** `All` first and selected by default; the three courses narrow it. */
 type Filter = "all" | Course
@@ -35,16 +35,13 @@ type SheetState =
   | { kind: "edit"; dish: Dish }
   | { kind: "delete"; dish: Dish }
 
-const COURSE_PLURAL_KEY: Record<Course, StringKey> = {
-  soup: "courseSoupPlural",
-  side: "courseSidePlural",
-  main: "courseMainPlural",
-}
-
-const COURSE_LABEL_KEY: Record<Course, StringKey> = {
-  soup: "courseSoup",
-  side: "courseSide",
-  main: "courseMain",
+/**
+ * Every refusal this screen can be handed, said in the household's own
+ * language. The same shape every route uses: a `Partial<Record<…>>` map read
+ * by code, with `errGeneric` for a code that has no sentence of its own.
+ */
+const DISH_ERROR_KEY: Partial<Record<ResultCode, StringKey>> = {
+  DISH_NAME_TAKEN: "dishErrNameTaken",
 }
 
 /** A chip's label: the count is part of it, never a separate element. */
@@ -75,17 +72,13 @@ function DishesPage() {
     setError(null)
   }
 
-  async function run(action: () => Promise<{ ok: true } | { ok: false; code: string }>) {
+  async function run(action: () => Promise<{ ok: true } | ErrResult>) {
     setBusy(true)
     setError(null)
     const res = await action()
     setBusy(false)
     if (!res.ok) {
-      setError(
-        res.code === "DISH_NAME_TAKEN"
-          ? t(locale, "dishErrNameTaken")
-          : t(locale, "errGeneric"),
-      )
+      setError(t(locale, DISH_ERROR_KEY[res.code] ?? "errGeneric"))
       return
     }
     close()
@@ -101,10 +94,10 @@ function DishesPage() {
   const handleDelete = (id: string) => run(() => deleteDish({ data: { id } }))
 
   return (
-    <div className="dishes">
+    <div className="screen-shell">
       <Navigation />
 
-      <main className="dishes-main">
+      <main className="screen-shell-main">
         <div className="dishes-header">
           <h1 className="dishes-title type-title-page">{t(locale, "dishesH1")}</h1>
           {/*
@@ -131,7 +124,7 @@ function DishesPage() {
           >
             {chipLabel(locale, t(locale, "dishesChipAll"), dishes.length)}
           </button>
-          {COURSES.map((course) => (
+          {COURSE_ORDER.map((course) => (
             <button
               key={course}
               type="button"
@@ -163,7 +156,7 @@ function DishesPage() {
                 })}
           </EmptyLine>
         ) : (
-          <div className="dishes-list">
+          <div className="screen-shell-list">
             <ul className="list-block">
               {rows.map((dish) => (
                 <li key={dish.id} className="list-block-row">
@@ -291,7 +284,7 @@ function AddForm({
           {t(locale, "dishCourseLabel")}
         </span>
         <div className="segmented-control" role="group" aria-label={t(locale, "dishCourseLabel")}>
-          {COURSES.map((c) => (
+          {COURSE_ORDER.map((c) => (
             <button
               key={c}
               type="button"

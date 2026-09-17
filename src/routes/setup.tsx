@@ -14,6 +14,7 @@ import {
   type StringKey,
 } from "#/i18n"
 import type { ResultCode } from "#/result-codes"
+import { weekdayName } from "#/week-range"
 
 export const Route = createFileRoute("/setup")({
   component: SetupPage,
@@ -39,12 +40,6 @@ const ERROR_KEY: Partial<Record<ResultCode, StringKey>> = {
   USERNAME_TAKEN: "setupErrUsernameTaken",
   AUTH_PASSWORD_TOO_SHORT: "setupErrPasswordTooShort",
   DB_UNREACHABLE: "setupErrDb",
-}
-
-/** A weekday name is a date, not a translation (SPEC.md §12.4). */
-function getWeekdayName(intlLocale: string, dow: number): string {
-  const d = new Date(2000, 0, 2 + dow)
-  return new Intl.DateTimeFormat(intlLocale, { weekday: "long" }).format(d)
 }
 
 const USERNAME_RE = /^[a-zA-Z0-9_-]+$/
@@ -178,7 +173,7 @@ function SetupPage() {
                 onChange={(e) => setWeekStart(Number(e.target.value))}
                 options={WEEK_STARTS.map((dow) => ({
                   value: String(dow),
-                  label: getWeekdayName(intlLocale, dow),
+                  label: weekdayName(intlLocale, dow),
                 }))}
               />
               <Field

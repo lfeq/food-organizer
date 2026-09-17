@@ -9,7 +9,7 @@
  * date that arrived from the client is never the authority here (SPEC §6.2).
  */
 import { addDays, hasElapsed, weekStartFor, type IsoDate } from "#/plan-dates"
-import type { ResultCode } from "#/result-codes"
+import type { PlainResultCode } from "#/result-codes"
 
 /**
  * Why a reroll of `dayDate` must be refused, or `null` when it may proceed.
@@ -26,7 +26,7 @@ export function rerollRefusal(args: {
   weekStart: IsoDate
   today: IsoDate
   weekStartDow: number
-}): ResultCode | null {
+}): PlainResultCode | null {
   const { dayDate, weekStart, today, weekStartDow } = args
   const currentWeekStart = weekStartFor(today, weekStartDow)
   const nextWeekStart = addDays(currentWeekStart, 7)

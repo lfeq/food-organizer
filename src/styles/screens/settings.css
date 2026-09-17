@@ -8,27 +8,14 @@
  *
  * There is no second layout above 900px. The screen is a short column of
  * fields; two columns would put `Export data` beside `Instance settings` and
- * make a backup look like half of a settings form. So this screen's only media
- * query changes the gutter, exactly as accounts' and the catalogue's do.
+ * make a backup look like half of a settings form. So this file has no media
+ * query at all.
  * SPEC.md §11.5, visual-system.md → "The settings screen".
+ *
+ * The screen's frame — the flex root, the content column's gutter and
+ * tab-bar clearance, and a list block's escape from that gutter — is
+ * `components/screen-shell.css`, applied here rather than restated.
  */
-
-.settings {
-  display: flex;
-  min-height: 100vh;
-}
-
-/*
- * The phone's tab bar is `position: fixed` and reserves no flow space, so the
- * screen buys its own clearance, from the spacing ladder rather than as a
- * literal.
- */
-.settings-main {
-  flex: 1;
-  min-width: 0;
-  padding: var(--space-5) var(--space-3);
-  padding-bottom: calc(var(--space-7) + var(--space-6));
-}
 
 .settings-title {
   margin: 0 0 var(--space-5);
@@ -95,12 +82,4 @@
 .settings-export-desc {
   margin: 0 0 var(--space-3);
   color: var(--ink-secondary);
-}
-
-@media (min-width: 900px) {
-  .settings-main {
-    padding: var(--space-6) var(--space-6);
-    /* The sidebar is in flow at this width; nothing is fixed over the screen. */
-    padding-bottom: var(--space-6);
-  }
 }

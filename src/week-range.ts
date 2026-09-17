@@ -32,3 +32,19 @@ export function weekRange(weekStart: IsoDate, locale: Locale): string {
   })
   return format.formatRange(start, end)
 }
+
+/**
+ * A weekday's name in the reader's locale: `Monday`, `lunes`.
+ *
+ * A weekday name is a date, not a translation (SPEC.md §12.4), so it is
+ * formatted rather than looked up in `i18n.ts`. `dow` is `0..6` on Postgres's
+ * convention, Sunday first (§6.1); 2000-01-02 was a Sunday, so adding `dow` to
+ * it lands on the weekday asked for.
+ *
+ * `intlLocale` is an `INTL_LOCALE` value rather than a `Locale`, because both
+ * callers already hold one for the other dates on their screen.
+ */
+export function weekdayName(intlLocale: string, dow: number): string {
+  const d = new Date(2000, 0, 2 + dow)
+  return new Intl.DateTimeFormat(intlLocale, { weekday: "long" }).format(d)
+}

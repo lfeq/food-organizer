@@ -1,3 +1,4 @@
+import { COURSE_ORDER } from "#/courses"
 import type { Course } from "#/plan-fns"
 
 /** One dish that appears more than once in one course of a weekly plan. */
@@ -10,8 +11,6 @@ export type RepeatingDish = { course: Course; dishName: string }
 export type RepeatNotice =
   | { kind: "dish"; dishName: string }
   | { kind: "courses"; courses: Course[] }
-
-const COURSE_ORDER: readonly Course[] = ["soup", "side", "main"]
 
 /** Derives the single notice a week carries, or null when the week does not repeat. */
 export function repeatNotice(repeats: readonly RepeatingDish[]): RepeatNotice | null {
