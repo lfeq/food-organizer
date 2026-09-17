@@ -28,6 +28,7 @@
 @import "./components/today-card.css";
 @import "./screens/change-password.css";
 @import "./screens/dishes.css";
+@import "./screens/history.css";
 @import "./screens/login.css";
 @import "./screens/plan.css";
 @import "./screens/setup.css";
