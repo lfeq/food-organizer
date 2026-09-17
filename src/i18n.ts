@@ -143,7 +143,19 @@ export const strings = {
   exportBtn:         { en: "Download my data",     es: "Descargar mis datos" },
   exportErrFailed:   { en: "Export failed. Try again.", es: "No se pudo exportar. Inténtalo de nuevo." },
 
+  // --- The session screens (sign in, first-run setup, forced password change) ---
+  // The three screens carry no navigation chrome, so what little they say has
+  // to carry the whole explanation. SPEC.md §11.7.
+  sessionSelfHosted:   { en: "Self-hosted instance", es: "Instancia propia" },
+  // Said beside both password fields that accept a new password. §7.4 puts the
+  // floor at 8 characters; `AUTH_PASSWORD_TOO_SHORT` says the same thing after
+  // the fact, and this says it before.
+  passwordMinHelp:     { en: "at least 8 characters", es: "al menos 8 caracteres" },
+
   // --- Login screen ---
+  // The host line under the wordmark: what this instance is, and why there is
+  // no way in other than an account somebody in the household made.
+  loginHostLine:       { en: "Your household runs this instance itself. There is no sign-up and no reset link — ask whoever set it up for an account.", es: "Tu hogar administra esta instancia. No hay registro ni enlace para restablecer la contraseña — pídele una cuenta a quien la configuró." },
   loginSignIn:         { en: "Sign in",          es: "Iniciar sesión" },
   loginSigningIn:      { en: "Signing in…",      es: "Iniciando sesión…" },
   loginErrInvalidCreds: { en: "Incorrect username or password.", es: "Usuario o contraseña incorrectos." },
@@ -151,11 +163,18 @@ export const strings = {
   loginErrDb:          { en: "Database error. Please try again.", es: "Error de base de datos. Inténtalo de nuevo." },
 
   // --- Setup screen ---
-  setupTitle:          { en: "Welcome to Food Organizer", es: "Bienvenido a Food Organizer" },
-  setupSubtitle:       { en: "Create the household account to get started.", es: "Crea la cuenta del hogar para empezar." },
+  // Stepped, one question per screen, two steps (SPEC.md §7.4, §11.7). The
+  // counter is written upper-case here rather than uppercased in CSS: `meta`
+  // mono carries no text-transform, and the words are the indicator.
+  setupStepCounter:    { en: "STEP {step} OF {total}", es: "PASO {step} DE {total}" },
+  setupAccountTitle:   { en: "Make the admin account", es: "Crea la cuenta de administrador" },
+  setupAccountBlurb:   { en: "This one can add everybody else. Pick something you will remember — there is no email on this instance, so there is no reset link.", es: "Esta cuenta puede agregar a todas las demás. Elige algo que vayas a recordar: esta instancia no tiene correo, así que no hay enlace para restablecer la contraseña." },
+  setupWeekTitle:      { en: "When does your week start?", es: "¿Cuándo empieza tu semana?" },
+  setupWeekBlurb:      { en: "Every plan, every history entry and every “today” is measured from this.", es: "Cada plan, cada entrada del historial y cada “hoy” se miden a partir de esto." },
   setupWeekStartsOn:   { en: "Week starts on",   es: "La semana empieza el" },
   setupTimezone:       { en: "Timezone",          es: "Zona horaria" },
-  setupCreateAccount:  { en: "Create account",    es: "Crear cuenta" },
+  setupContinue:       { en: "Continue",          es: "Continuar" },
+  setupFinishBtn:      { en: "Finish setup",      es: "Terminar configuración" },
   setupSettingUp:      { en: "Setting up…",       es: "Configurando…" },
   setupErrUsernameInvalid: { en: "Username may only contain letters, digits, - and _.", es: "El nombre de usuario solo puede contener letras, dígitos, - y _." },
   setupErrUsernameTaken: { en: "Setup has already been completed.", es: "La configuración ya ha sido completada." },
@@ -170,6 +189,9 @@ export const strings = {
   changePwSetBtn:      { en: "Set password",       es: "Establecer contraseña" },
   changePwErrMismatch: { en: "Passwords do not match.", es: "Las contraseñas no coinciden." },
   changePwErrTooShort: { en: "Password must be at least 8 characters.", es: "La contraseña debe tener al menos 8 caracteres." },
+  // Where sign-in puts its host line, this screen says whose session is pinned.
+  changePwSignedInAs:  { en: "Signed in as {name}", es: "Sesión iniciada como {name}" },
+  changePwNoEmailNote: { en: "There is no email on this instance, so nobody can send you a reset link. If you forget this one, ask an admin to reset it again.", es: "Esta instancia no tiene correo, así que nadie puede enviarte un enlace para restablecer la contraseña. Si la olvidas, pídele a un administrador que la restablezca otra vez." },
 } as const satisfies Record<string, Entry>
 
 export type StringKey = keyof typeof strings

@@ -1,0 +1,21 @@
+/*
+ * Sign in — the `1j` frame.
+ *
+ * This file **positions** and repaints nothing: the column and the head come
+ * from session-frame.css, the two fields from field.css, the one dark button
+ * from button.css. All that is left is how far apart they sit.
+ *
+ * Every class begins `login-`, matching the file name.
+ */
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
