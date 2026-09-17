@@ -1,0 +1,322 @@
+/*
+ * Navigation — one component, two forms.
+ *
+ * Below 900px: a four-cell bottom tab bar plus the `More` sheet. At or above
+ * it: the persistent dark sidebar. Both forms are always in the markup; this
+ * file decides which one is drawn, using the one media query the codebase
+ * permits.
+ *
+ * Mobile-first: the sidebar is *added* at width rather than the tab bar being
+ * undone. See docs/design/visual-system.md → "Tab bar (phone)",
+ * "Sidebar (desktop)", "Navigation across the breakpoint".
+ *
+ * Every class here begins `navigation-`, matching the file name — the block
+ * segment rule from docs/design/css-structure.md.
+ */
+
+/*
+ * The root is a seam, not a box. Below the breakpoint both forms position
+ * themselves (the bar is fixed, the sidebar is hidden), so it takes no size;
+ * at width it becomes the sidebar's column.
+ */
+.navigation {
+  display: contents;
+}
+
+/* ── The tab bar (phone) ───────────────────────────────────────────────── */
+
+/*
+ * Fixed to the bottom edge and full width: on a wide phone or a tablet below
+ * the breakpoint the cells simply grow rather than capping and centring.
+ *
+ * Screens reserve clearance for it themselves — the bar is out of flow, and a
+ * screen file is the only place that may add padding to a screen.
+ */
+.navigation-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  background: var(--ground-surface);
+  border-top: 1px solid var(--rule);
+}
+
+/*
+ * Four equal cells. The accent underline is on the *top* edge; an idle cell
+ * carries it transparent so that going active moves no text.
+ */
+.navigation-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) 0;
+  border: 0;
+  border-top: 2px solid transparent;
+  background: none;
+  color: var(--ink-muted);
+  font-weight: var(--weight-body);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 120ms, color 120ms;
+}
+
+/*
+ * Green marks every cell, including `Dishes`, `History` and `More`. This is
+ * the one documented exemption to the green/dark rule: that rule governs what
+ * an action acts on, and a navigation indicator acts on nothing.
+ */
+.navigation-cell--active {
+  border-top-color: var(--accent);
+  color: var(--ink);
+  font-weight: var(--weight-emphasis);
+}
+
+.navigation-cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── The `More` sheet (phone) ──────────────────────────────────────────── */
+
+/*
+ * The scrim covers the bar — z-index 20 against the bar's 10 — so an edit in
+ * progress cannot be navigated away from by a stray tap.
+ */
+.navigation-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: var(--scrim);
+}
+
+.navigation-sheet {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-3) var(--space-5);
+  background: var(--ground-surface);
+  border-radius: var(--radius-sheet);
+}
+
+.navigation-sheet-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.navigation-sheet-title {
+  color: var(--ink);
+}
+
+/* `Close`, not `Cancel`: nothing is at stake in a navigation sheet. */
+.navigation-sheet-dismiss {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.navigation-sheet-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navigation-sheet-link {
+  display: block;
+  padding: var(--space-2) var(--space-025);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.navigation-sheet-rule {
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--rule);
+}
+
+.navigation-sheet-dismiss:focus-visible,
+.navigation-sheet-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── The session block (both forms) ────────────────────────────────────── */
+
+.navigation-session {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.navigation-locale {
+  display: flex;
+  align-items: center;
+  gap: var(--space-05);
+}
+
+.navigation-locale-btn,
+.navigation-signout {
+  border: 0;
+  padding: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: var(--weight-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.navigation-locale-btn--active {
+  font-weight: var(--weight-emphasis);
+}
+
+/* On --ground-surface: ordinary ink, accent focus ring. */
+.navigation-session--surface .navigation-session-member {
+  color: var(--ink-muted);
+}
+
+.navigation-session--surface .navigation-locale-btn,
+.navigation-session--surface .navigation-locale-sep,
+.navigation-session--surface .navigation-signout {
+  color: var(--ink);
+}
+
+.navigation-session--surface .navigation-locale-btn:focus-visible,
+.navigation-session--surface .navigation-signout:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/*
+ * On --ground-inverse the accent ring measures 2.77:1 and misses the 3:1
+ * floor, so every control on the dark sidebar takes a white ring instead
+ * (17.58:1). See visual-system.md → "Focus ring".
+ */
+.navigation-session--inverse .navigation-session-member {
+  /* The footer's one lift out of --ink-on-inverse-faint; the member's own
+     name reads a step brighter than the metadata around it. */
+  color: rgba(255, 254, 251, 0.75);
+}
+
+.navigation-session--inverse .navigation-locale-btn,
+.navigation-session--inverse .navigation-locale-sep,
+.navigation-session--inverse .navigation-signout {
+  color: var(--ink-on-inverse-faint);
+}
+
+.navigation-session--inverse .navigation-locale-btn--active,
+.navigation-session--inverse .navigation-signout:hover,
+.navigation-session--inverse .navigation-locale-btn:hover {
+  color: var(--ink-on-inverse);
+}
+
+.navigation-session--inverse .navigation-locale-btn:focus-visible,
+.navigation-session--inverse .navigation-signout:focus-visible {
+  outline: 2px solid var(--ink-on-inverse);
+  outline-offset: 2px;
+}
+
+/* ── The sidebar (desktop) ─────────────────────────────────────────────── */
+
+/*
+ * Hidden below the breakpoint. A tablet in portrait (768px) is on the phone
+ * side: the two-column week grid needs the width.
+ */
+.navigation-sidebar {
+  display: none;
+}
+
+.navigation-brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-025);
+}
+
+.navigation-brand-name {
+  font-size: 13px;
+  font-weight: var(--weight-emphasis);
+  color: var(--ink-on-inverse);
+}
+
+.navigation-brand-instance {
+  color: var(--ink-on-inverse-faint);
+}
+
+.navigation-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-025);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navigation-item {
+  display: block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-control);
+  font-size: 12px;
+  font-weight: var(--weight-body);
+  color: var(--ink-on-inverse-muted);
+  text-decoration: none;
+  transition: background-color 120ms, color 120ms;
+}
+
+/* Hover moves the ink only: the item's own ground stays reserved for active,
+   so hover and active never look alike. */
+.navigation-item:hover {
+  color: var(--ink-on-inverse);
+}
+
+.navigation-item--active {
+  background: rgba(255, 254, 251, 0.12);
+  font-weight: var(--weight-emphasis);
+  color: var(--ink-on-inverse);
+}
+
+.navigation-item:focus-visible {
+  outline: 2px solid var(--ink-on-inverse);
+  outline-offset: 2px;
+}
+
+.navigation-footer {
+  margin-top: auto;
+}
+
+@media (min-width: 900px) {
+  /* The sidebar's column. 184px is a component dimension, not a step on the
+     spacing ladder, and a component may not declare a custom property — so it
+     is written here, once. visual-system.md → "Sidebar (desktop)". */
+  .navigation {
+    display: block;
+    flex-shrink: 0;
+    width: 184px;
+  }
+
+  .navigation-bar {
+    display: none;
+  }
+
+  .navigation-sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    height: 100vh;
+    padding: var(--space-5) var(--space-3);
+    background: var(--ground-inverse);
+  }
+}

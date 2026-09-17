@@ -171,7 +171,7 @@ function AccountsPage() {
 
   return (
     <div className="app-layout">
-      <Navigation active="accounts" />
+      <Navigation />
 
       <main className="main-content">
         <div className="accounts-header">

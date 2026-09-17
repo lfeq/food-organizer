@@ -91,7 +91,7 @@ function DishesPage() {
 
   return (
     <div className="app-layout">
-      <Navigation active="dishes" />
+      <Navigation />
 
       <main className="main-content">
         <h1>{t(locale, "dishesH1")}</h1>
