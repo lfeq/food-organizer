@@ -1,0 +1,169 @@
+/*
+ * Sheet (phone) and Panel (desktop) — one component, two forms.
+ *
+ * The first of the only two components two-formed across the breakpoint. Below
+ * 900px the surface rises from the bottom edge; at or above it the same
+ * content is centred on the same scrim and takes a border, because this design
+ * has no elevation to separate a floating surface from the scrim and a panel
+ * is the only floating surface wide enough to need one. A sheet is anchored to
+ * an edge and does not. visual-system.md → "Sheet", "Panel (desktop)".
+ *
+ * Every class here begins `sheet-`, matching the file name — the Panel is this
+ * same block above the breakpoint, not a second one.
+ */
+
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  /* Above the phone tab bar (10) and its own `More` scrim (20), so an edit in
+     progress cannot be navigated away from by a stray tap. */
+  z-index: 30;
+  background: var(--scrim);
+}
+
+.sheet {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-3) var(--space-5);
+  background: var(--ground-surface);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sheet);
+}
+
+.sheet-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.sheet-title {
+  min-width: 0;
+  color: var(--ink);
+}
+
+/* The dismiss word is `meta` mono in --ink-muted; which word it is belongs to
+   the caller's `dismiss` prop, not to this file. */
+.sheet-dismiss {
+  flex-shrink: 0;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--ink-muted);
+  /* No `font-family: inherit`: the dismiss word is mono (`type-meta`), and
+     this file loads after base.css. */
+  cursor: pointer;
+  transition: color 120ms;
+}
+
+.sheet-dismiss:hover,
+.sheet-dismiss:active {
+  color: var(--ink);
+}
+
+/* ── The action sheet's body ───────────────────────────────────────────── */
+
+.sheet-actions {
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * One action per row, separated by a 1px --rule-inset. The visual system draws
+ * these at `15px 4px`; both are off the spacing ladder, so the nearest rungs
+ * are used rather than a literal — tokens.css is the only file allowed one.
+ */
+.sheet-action {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: var(--space-3) var(--space-025);
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms, box-shadow 120ms;
+}
+
+.sheet-action + .sheet-action {
+  border-top: 1px solid var(--rule-inset);
+}
+
+/*
+ * The reason an action is unavailable, after its label rather than instead of
+ * it. `meta` mono in --ink-muted: the app talking about the member.
+ */
+.sheet-action-note {
+  color: var(--ink-muted);
+}
+
+.sheet-action-note::before {
+  content: " — ";
+}
+
+/*
+ * A ghost control, so disabled thins its ink rather than fading a fill, and it
+ * takes no hover, pressed or focus state.
+ */
+.sheet-action:disabled {
+  color: var(--ink-muted);
+  cursor: not-allowed;
+}
+
+/* The destructive action is last and in --danger. No icons, anywhere. */
+.sheet-action--destructive {
+  color: var(--danger);
+}
+
+/*
+ * An action row **is** the control, so it takes the list-row treatment: an
+ * inset leading rule rather than a ground wash, because a rule is how this
+ * design marks emphasis.
+ */
+.sheet-action--default:not(:disabled):hover,
+.sheet-action--default:not(:disabled):active {
+  box-shadow: inset 2px 0 0 var(--rule-strong);
+}
+
+.sheet-action--destructive:not(:disabled):hover,
+.sheet-action--destructive:not(:disabled):active {
+  box-shadow: inset 2px 0 0 var(--danger);
+}
+
+.sheet-action:not(:disabled):active {
+  background: var(--ground-sunken);
+}
+
+.sheet-dismiss:focus-visible,
+.sheet-action:not(:disabled):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Panel (desktop) ───────────────────────────────────────────────────── */
+
+@media (min-width: 900px) {
+  /*
+   * The same content, centred on the same scrim instead of rising from the
+   * bottom edge. `max-width: 420px` is a component dimension rather than a
+   * step on the spacing ladder, so it is written here once — the same
+   * exception the icon button's 32x32 and the sidebar's 184px take.
+   */
+  .sheet {
+    inset: 0;
+    width: calc(100% - var(--space-6));
+    max-width: 420px;
+    height: fit-content;
+    margin: auto;
+    padding: var(--space-5);
+    border-color: var(--rule);
+    border-radius: var(--radius-card);
+  }
+}

@@ -1,0 +1,116 @@
+/*
+ * The list block — the catalogue, accounts and history lists.
+ *
+ * The one surface that ignores the gutter: it runs full bleed to the screen
+ * edges and only its *contents* are inset by 16px, which is what makes a long
+ * list read as a continuous sheet rather than a stack of cards. Escaping the
+ * screen's own gutter is the screen's job, not this file's — a screen
+ * positions the block, it never repaints it.
+ *
+ * The top rule and the full bleed go **with the rows**: a region with no rows
+ * renders an empty line instead of this block, so an empty list has no visible
+ * edge at all. visual-system.md → "Cards", "The empty line".
+ */
+
+.list-block {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--ground-surface);
+  border-top: 1px solid var(--rule);
+}
+
+.list-block-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+/*
+ * The row is a surface that *contains* a control, so it takes no hover, no
+ * pressed state and no focus ring — the same rule the day card follows. What
+ * is interactive inside it carries the whole affordance.
+ *
+ * **Unless the row itself is the control.** History is the one documented
+ * exception: its rows are links, with nothing inside them to carry the
+ * affordance instead. That row undoes the link paint and takes the treatment
+ * the visual system gives a row that *is* a control — an inset leading rule on
+ * hover, the sunken ground when pressed. It is a modifier of the row rather
+ * than a screen's own class because it repaints the row, and only the
+ * component may do that. visual-system.md → "A surface that contains a control
+ * is not itself a control", "Per component";
+ * docs/design/css-structure.md → "Files".
+ */
+.list-block-row--linked {
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow 120ms, background-color 120ms;
+}
+
+.list-block-row--linked:hover {
+  box-shadow: inset 2px 0 0 var(--rule-strong);
+}
+
+.list-block-row--linked:active {
+  box-shadow: inset 2px 0 0 var(--rule-strong);
+  background: var(--ground-sunken);
+}
+
+.list-block-row--linked:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.list-block-row + .list-block-row {
+  border-top: 1px solid var(--rule-inset);
+}
+
+.list-block-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-025);
+}
+
+.list-block-row-name {
+  color: var(--ink);
+}
+
+.list-block-row-meta {
+  color: var(--ink-muted);
+}
+
+/*
+ * The trailing `···`. It is --ink-secondary, not --ink-faint: a glyph that is
+ * the whole control is not decoration. (A history row's `→` *is* --ink-faint,
+ * because there the whole row is the control and the arrow only repeats that.)
+ * Being unlabelled it carries an accessible name from its caller.
+ */
+.list-block-action {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  padding: var(--space-05) var(--space-1);
+  background: none;
+  color: var(--ink-secondary);
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 120ms, color 120ms;
+}
+
+.list-block-action:hover {
+  color: var(--ink);
+}
+
+.list-block-action:active {
+  background: var(--ground-sunken);
+  color: var(--ink);
+}
+
+.list-block-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

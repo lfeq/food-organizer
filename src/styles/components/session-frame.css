@@ -1,0 +1,51 @@
+/*
+ * Session frame — the centred column the three chrome-free screens sit in.
+ *
+ * No card, no border, no surface: the column sits directly on the page
+ * ground, which is what the `1j` artboard draws. The only measurement here
+ * that is not on the spacing ladder is the column's own width, a component
+ * dimension of the same kind as the sidebar's 184px and the icon button's
+ * 32×32 — a reading measure, not a step on a scale.
+ *
+ * Every class begins `session-frame-`, matching the file name.
+ */
+
+.session-frame {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-7) var(--space-3);
+}
+
+.session-frame-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 100%;
+  max-width: 380px;
+}
+
+/* ── The 1j head: eyebrow, wordmark, host line ─────────────────────────── */
+
+.session-frame-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.session-frame-eyebrow {
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+.session-frame-title {
+  margin: 0;
+  color: var(--ink);
+}
+
+/* Mono, so it is the app's own voice rather than the household's words. */
+.session-frame-note {
+  margin: 0;
+  color: var(--ink-muted);
+}

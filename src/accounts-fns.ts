@@ -159,6 +159,19 @@ export const removeMember = createServerFn({ method: "POST" })
     const result = await Runtime.runPromiseExit(
       Effect.flatMap(PgClient.PgClient, (sql) =>
         Effect.gen(function* () {
+          // App-layer last-admin guard (DB trigger is the enforcement safety net)
+          const target = yield* sql<{ role: string }>`
+            SELECT role FROM member WHERE id = ${data.memberId}
+          `
+          if (target.length > 0 && target[0].role === "admin") {
+            const adminCount = yield* sql<{ count: string }>`
+              SELECT COUNT(*)::text AS count FROM member WHERE role = 'admin'
+            `
+            if (parseInt(adminCount[0].count, 10) <= 1) {
+              return err("LAST_ADMIN") as Result<void>
+            }
+          }
+
           // Sessions deleted by FK cascade when member is deleted
           yield* sql`DELETE FROM member WHERE id = ${data.memberId}`
           return ok(undefined) as Result<void>
@@ -208,10 +221,13 @@ export const updateInstanceSettings = createServerFn({ method: "POST" })
     if (!callerId) return err("AUTH_INVALID_CREDENTIALS")
 
     if (data.timezone !== undefined) {
+      // An unknown IANA zone is the admin mistyping, not the database being
+      // gone: it needs a code of its own, or the screen says `Something went
+      // wrong` about a field the household can fix.
       try {
         Intl.DateTimeFormat(undefined, { timeZone: data.timezone })
       } catch {
-        return err("DB_UNREACHABLE")
+        return err("TIMEZONE_INVALID")
       }
     }
 

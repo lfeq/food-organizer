@@ -1,0 +1,51 @@
+/*
+ * Today card — the featured day.
+ *
+ * `1px --rule-strong` rather than `--rule`: `--rule-strong` already means
+ * *emphasis, not decoration* in this system, and it is what marks the today
+ * card and what a focused field becomes. There is no elevation to lift it
+ * with. visual-system.md → "Cards".
+ *
+ * One form at both widths. Every class begins `today-card-`.
+ */
+
+.today-card {
+  background: var(--ground-surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-card);
+  padding: var(--space-3);
+  cursor: default;
+}
+
+.today-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.today-card-gutter {
+  color: var(--ink-muted);
+}
+
+/* The labelled reroll sits at the end of the header, away from the badge. */
+.today-card-action {
+  margin-left: auto;
+}
+
+.today-card-slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+}
+
+/* The label stacks above its dish, so no column is shared and nothing has to
+   be measured in either language. */
+.today-card-label {
+  color: var(--ink-muted);
+}
+
+.today-card-dish {
+  margin: var(--space-025) 0 0;
+  color: var(--ink);
+}

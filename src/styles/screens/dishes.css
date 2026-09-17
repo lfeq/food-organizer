@@ -1,0 +1,66 @@
+/*
+ * The dish catalogue.
+ *
+ * This file **positions** components and repaints none of them: what a chip, a
+ * list block, a Sheet, a field or a segmented control looks like is decided in
+ * components/. Every class here begins `dishes-`, matching the file name.
+ * docs/design/css-structure.md → "Files".
+ *
+ * One list at both widths, filtered by chips. The three-column by-course grid
+ * is retired — a filter and a by-course grid cannot both be the way this
+ * screen is read, and the filter is what survives a 390px screen. The desktop
+ * is the same list in a wider content column, not a second composition, so
+ * this file has no media query at all: the gutter is the shell's.
+ * SPEC.md §11.3, visual-system.md → "The dish catalogue".
+ *
+ * The screen's frame — the flex root, the content column's gutter and
+ * tab-bar clearance, and a list block's escape from that gutter — is
+ * `components/screen-shell.css`, applied here rather than restated.
+ */
+
+/* ── Header: the screen's name and its one course-neutral action ───────── */
+
+.dishes-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.dishes-title {
+  margin: 0;
+  min-width: 0;
+  color: var(--ink);
+}
+
+/* ── The filter row ────────────────────────────────────────────────────── */
+
+/*
+ * The chips are the screen's controls, not part of the list: they stay on
+ * screen with their counts even when the list below them is empty, which is
+ * how the household sees which course is the empty one without tapping through
+ * all four.
+ */
+.dishes-chips {
+  margin-bottom: var(--space-4);
+}
+
+/* ── The form, inside the Sheet or the Panel ───────────────────────────── */
+
+.dishes-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/*
+ * Deleting happens twice over: as the destructive row of the action sheet, and
+ * here inside the edit form. A rule separates it from the rename it undoes.
+ */
+.dishes-form-danger {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule-inset);
+}

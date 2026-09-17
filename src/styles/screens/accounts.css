@@ -1,0 +1,83 @@
+/*
+ * The accounts screen — the member list, and nothing else.
+ *
+ * This file **positions** components and repaints none of them: what a list
+ * block row, a badge, a tag, a Button, a Sheet or the row's two-formed actions
+ * look like is decided in components/. Every class here begins `accounts-`,
+ * matching the file name. docs/design/css-structure.md → "Files".
+ *
+ * One list block at both widths, and the only thing that changes across 900px
+ * is where a member's three actions sit — which is components/row-actions.css's
+ * business, not this file's. So this file has no media query at all.
+ * SPEC.md §11.5, visual-system.md → "The accounts screen".
+ *
+ * The screen's frame — the flex root, the content column's gutter and
+ * tab-bar clearance, and a list block's escape from that gutter — is
+ * `components/screen-shell.css`, applied here rather than restated.
+ */
+
+/* ── Header: the screen's name and its one action ──────────────────────── */
+
+.accounts-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.accounts-title {
+  margin: 0;
+  min-width: 0;
+  color: var(--ink);
+}
+
+/* `(you)` after the username: the app pointing, so `meta` mono and muted. */
+.accounts-you {
+  margin-left: var(--space-05);
+  color: var(--ink-muted);
+}
+
+/*
+ * Role and status ride the row's second line at both widths. They wrap rather
+ * than truncate: no mono label element is ever given a fixed width, and a row
+ * carrying both an `ADMIN` badge and a `DEBE CAMBIAR CONTRASEÑA` tag is the
+ * widest case on a 390px screen. visual-system.md → "Bilingual fit".
+ */
+.accounts-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-05);
+  margin-top: var(--space-025);
+}
+
+/* ── The admin-rights note ─────────────────────────────────────────────── */
+
+.accounts-note {
+  margin-top: var(--space-4);
+}
+
+/* ── The create form, inside the Sheet or the Panel ────────────────────── */
+
+.accounts-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/*
+ * The temporary password, shown once. Selectable whole so that it is copied
+ * rather than retyped, and centred because it is a value to read out, not a
+ * sentence to read through.
+ */
+.accounts-password {
+  margin: 0;
+  border-radius: var(--radius-card);
+  padding: var(--space-3);
+  background: var(--ground-sunken);
+  color: var(--ink);
+  text-align: center;
+  user-select: all;
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,42 @@
+/*
+ * History — a list block of past weeks, most recent first, and nothing else.
+ *
+ * This file **positions** components and repaints none of them: the rows are
+ * the shared list block, the empty state is the shared empty line. Every class
+ * here begins `history-`, matching the file name.
+ * docs/design/css-structure.md → "Files".
+ *
+ * There is **no media query in this file**, and that is the design rather than
+ * an omission: a history row carries no actions, so it has nothing to put
+ * behind a `···` and no inline group to grow at width. Apart from the gutter
+ * every screen shares, history looks the same at both widths.
+ * SPEC.md §11.4, visual-system.md → "The history screen".
+ *
+ * The screen's frame — the flex root, the content column's gutter and
+ * tab-bar clearance, and a list block's escape from that gutter — is
+ * `components/screen-shell.css`, applied here rather than restated.
+ *
+ * The row **is** the control here, which is the one exception the visual
+ * system names — and the treatment that goes with it belongs to the row, so
+ * it is `.list-block-row--linked` in components/list-block.css, not a repaint
+ * from this file. docs/design/css-structure.md → "Files".
+ */
+
+.history-header {
+  margin-bottom: var(--space-3);
+}
+
+.history-title {
+  margin: 0;
+  color: var(--ink);
+}
+
+/*
+ * The `→` is the one genuine decoration in this system: it repeats what the
+ * row already says, which is why it may sit at `--ink-faint`.
+ */
+.history-arrow {
+  flex-shrink: 0;
+  color: var(--ink-faint);
+  line-height: 1;
+}

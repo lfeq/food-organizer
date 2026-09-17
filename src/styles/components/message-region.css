@@ -1,0 +1,17 @@
+/*
+ * The message region — always mounted, empty or not.
+ *
+ * An always-present live region is what lets a message be announced without
+ * anything moving; it collapses to nothing when it holds nothing, so an empty
+ * region costs no space. visual-system.md → "Messages: the family".
+ */
+
+.message-region {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.message-region:empty {
+  display: none;
+}

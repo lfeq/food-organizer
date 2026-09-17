@@ -1,0 +1,118 @@
+/*
+ * Day card — a three-part row: a fixed day gutter, the content column, and an
+ * optional trailing affordance.
+ *
+ * The card takes **no** interactive state: no hover, no pressed, no focus
+ * ring. It holds a control; it is not one. visual-system.md →
+ * "A surface that contains a control is not itself a control".
+ *
+ * Both densities are in the markup and this file chooses between them at the
+ * one breakpoint the codebase permits. Every class begins `day-card-`.
+ */
+
+.day-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  background: var(--ground-surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  padding: var(--space-2) var(--space-3);
+  cursor: default;
+}
+
+/*
+ * The gutter is fixed at 44px so that day labels align down the whole week,
+ * and it is safe to fix because day labels are the same width in both
+ * languages. A component dimension, not a step on the spacing ladder.
+ */
+.day-card-gutter {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 44px;
+  color: var(--ink-muted);
+}
+
+.day-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Below 900px: the dish names alone ─────────────────────────────────── */
+
+.day-card-headline {
+  margin: 0;
+  color: var(--ink);
+}
+
+.day-card-beneath {
+  margin: var(--space-025) 0 0;
+  color: var(--ink-secondary);
+}
+
+/* The labelled form does not exist below the breakpoint. */
+.day-card-grid {
+  display: none;
+}
+
+.day-card-action {
+  flex-shrink: 0;
+}
+
+/* ── Elapsed: dimmed and read-only ─────────────────────────────────────── */
+
+/*
+ * Dimmed by ink and border, never by opacity: the contrast audit claims no
+ * large-text exemption anywhere, and a translucent card would push 9px mono
+ * labels under the 4.5:1 floor. An elapsed day stays part of the week and
+ * stays readable; it has simply stopped being a decision still open. Its
+ * reroll control is absent rather than disabled, which the component handles.
+ */
+.day-card--elapsed {
+  border-color: var(--rule-inset);
+}
+
+.day-card--elapsed .day-card-headline,
+.day-card--elapsed .day-card-dish {
+  color: var(--ink-secondary);
+}
+
+@media (min-width: 900px) {
+  /* At width the same row expands to labelled SOUP / SIDE / MAIN rows. */
+  .day-card-compact {
+    display: none;
+  }
+
+  /*
+   * `max-content` rather than a fixed width: every day card grids the same
+   * three labels, so the column resolves to the same width on every card and
+   * alignment is preserved for free — while re-measuring itself when the
+   * locale toggles, which a fixed width could not do.
+   *
+   * The grid is the whole block, not one row: three independent row grids
+   * would each resolve their own `max-content` and the three labels inside
+   * one card would not line up with each other.
+   */
+  .day-card-grid {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    align-items: baseline;
+    column-gap: var(--space-2);
+    row-gap: var(--space-05);
+    margin: 0;
+  }
+
+  .day-card-row {
+    display: contents;
+  }
+
+  .day-card-label {
+    color: var(--ink-muted);
+  }
+
+  .day-card-dish {
+    margin: 0;
+    color: var(--ink);
+  }
+}

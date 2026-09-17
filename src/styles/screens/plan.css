@@ -1,0 +1,80 @@
+/*
+ * The plan screen — the front door.
+ *
+ * This file **positions** components and repaints none of them: what a day
+ * card, a Notice or a button looks like is decided in components/, and a
+ * screen file may never reach into one. Every class here begins `plan-`,
+ * matching the file name, which is what makes that rule checkable by reading
+ * a filename. docs/design/css-structure.md → "Files".
+ *
+ * The screen's frame — the flex root, the content column's gutter and
+ * tab-bar clearance, and a list block's escape from that gutter — is
+ * `components/screen-shell.css`, applied here rather than restated.
+ *
+ * One responsive screen, not two designs: what changes across 900px is the
+ * density of a day (owned by day-card.css), the week becoming two columns
+ * (owned here), and the week range taking its desktop type role (owned by
+ * base.css, the type layer). SPEC.md §11.2.
+ */
+
+/* ── Header: the range, the stepper beneath it, one control ────────────── */
+
+.plan-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+/*
+ * The stepper sits beneath the range, left-aligned under it, at both widths.
+ * Its own 44px hit area is padding pulled back by an equal negative margin in
+ * button.css, so it adds no visible spacing here — which is why this block
+ * needs no compensating gap.
+ */
+.plan-week {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.plan-range {
+  margin: 0;
+  color: var(--ink);
+}
+
+/* The action group. It holds exactly one control at both widths; the stepper
+   is never admitted to it. */
+.plan-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── The day area ──────────────────────────────────────────────────────── */
+
+.plan-days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.plan-week-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (min-width: 900px) {
+  /* The rest of the week, in two columns. */
+  .plan-week-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+}

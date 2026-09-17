@@ -1,0 +1,85 @@
+/*
+ * The settings screen — two sections down one column at both widths.
+ *
+ * This file **positions** components and repaints none of them: what a field,
+ * a Button, an inline error or the message region look like is decided in
+ * components/. Every class here begins `settings-`, matching the file name.
+ * docs/design/css-structure.md → "Files".
+ *
+ * There is no second layout above 900px. The screen is a short column of
+ * fields; two columns would put `Export data` beside `Instance settings` and
+ * make a backup look like half of a settings form. So this file has no media
+ * query at all.
+ * SPEC.md §11.5, visual-system.md → "The settings screen".
+ *
+ * The screen's frame — the flex root, the content column's gutter and
+ * tab-bar clearance, and a list block's escape from that gutter — is
+ * `components/screen-shell.css`, applied here rather than restated.
+ */
+
+.settings-title {
+  margin: 0 0 var(--space-5);
+  color: var(--ink);
+}
+
+/* ── The two sections ──────────────────────────────────────────────────── */
+
+.settings-section + .settings-section {
+  margin-top: var(--space-6);
+}
+
+/* An `eyebrow` titles each section: mono, muted, and the section's only head. */
+.settings-section-title {
+  margin: 0 0 var(--space-3);
+  color: var(--ink-muted);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/*
+ * The actions row is a row, so a button takes its own width rather than the
+ * column's: neither `Save settings` nor `Download my data` is a full-width
+ * commit at the end of a session screen.
+ */
+.settings-actions {
+  display: flex;
+}
+
+/* ── A locked week start ───────────────────────────────────────────────── */
+
+/*
+ * Frozen once a plan exists (SPEC.md §6.1) — and a frozen value is not a
+ * disabled `select`. It keeps a field's own shape, label above value, so the
+ * column does not break where the lock falls; what it drops is the control,
+ * not the value. The reason sits after the weekday in `meta` mono, beside it
+ * and never in place of it.
+ */
+.settings-frozen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-05);
+}
+
+.settings-frozen-label {
+  color: var(--ink-muted);
+}
+
+.settings-frozen-value {
+  margin: 0;
+  color: var(--ink);
+}
+
+.settings-frozen-reason {
+  color: var(--ink-muted);
+}
+
+/* ── The export sentence ───────────────────────────────────────────────── */
+
+.settings-export-desc {
+  margin: 0 0 var(--space-3);
+  color: var(--ink-secondary);
+}
