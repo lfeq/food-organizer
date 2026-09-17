@@ -1,0 +1,229 @@
+/*
+ * Button — one variant, one modifier class.
+ *
+ * Colour says what the action touches (green acts on the weekly plan, dark
+ * acts on the catalogue, accounts or session); shape says where it sits. The
+ * two vary independently, which is why they are two class families here and
+ * two props in src/components/button.tsx.
+ *
+ * States follow visual-system.md → "Interactive states": the ground holds
+ * still and the border and the ink move, except on a filled control, which
+ * has no border to promote and moves its own fill instead. Pressed is never
+ * optional — on a phone it is the only feedback a control gives.
+ *
+ * Every class here begins `button-`, matching the file name.
+ */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-05);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  color: var(--ink);
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  /* Nothing moves. 120ms on colour only — there is no elevation in this
+     design and therefore no third dimension to move through. */
+  transition: background-color 120ms, border-color 120ms, color 120ms;
+}
+
+/* A single action floating in a screen header. */
+.button--pill {
+  border-radius: var(--radius-pill);
+}
+
+/* A width-spanning form button: `Save dish`, `Sign in`. */
+.button--full {
+  display: flex;
+  width: 100%;
+  padding: var(--space-3) 0;
+}
+
+/* ── Primary — plan (green: acts on the weekly plan) ───────────────────── */
+
+.button--primary-plan {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--ink-on-accent);
+}
+
+.button--primary-plan:not(:disabled):hover {
+  background: var(--accent-hover);
+}
+
+.button--primary-plan:not(:disabled):active {
+  background: var(--accent-pressed);
+}
+
+/* ── Primary — catalogue (dark: acts on the catalogue, accounts, session) ─ */
+
+.button--primary-catalogue {
+  background: var(--ground-inverse);
+  border-color: transparent;
+  color: var(--ink-on-inverse);
+}
+
+.button--primary-catalogue:not(:disabled):hover {
+  background: var(--inverse-hover);
+}
+
+.button--primary-catalogue:not(:disabled):active {
+  background: var(--inverse-pressed);
+}
+
+/* ── Secondary ─────────────────────────────────────────────────────────── */
+
+/* The one control that steps `button` down a rung, to the row weight. */
+.button--secondary {
+  background: var(--ground-surface);
+  border-color: var(--rule-control);
+  color: var(--ink);
+  font-weight: var(--weight-row);
+}
+
+/* ── Small outline ─────────────────────────────────────────────────────── */
+
+.button--small-outline {
+  background: none;
+  border-color: var(--rule-control);
+  color: var(--ink);
+  padding: var(--space-05) var(--space-2);
+}
+
+/* ── Icon ──────────────────────────────────────────────────────────────── */
+
+/*
+ * 32×32 with a 14px glyph. Both are component dimensions rather than steps on
+ * the spacing ladder or the type scale, so they are written here, once — the
+ * same exception the sidebar's 184px takes. An icon button carries no label,
+ * so src/components/button.tsx requires an accessible name for it.
+ */
+.button--icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: none;
+  border-color: var(--rule-control);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ── Destructive ───────────────────────────────────────────────────────── */
+
+.button--destructive {
+  background: none;
+  border-color: var(--danger-rule);
+  color: var(--danger);
+  padding: var(--space-3);
+}
+
+/*
+ * The one control whose border promotes to its own colour rather than to ink:
+ * a destructive action must not look like an ordinary one at the moment of
+ * pressing it.
+ */
+.button--destructive:not(:disabled):hover,
+.button--destructive:not(:disabled):active {
+  border-color: var(--danger);
+}
+
+/* The pressed wash the visual system names inline; the palette gives it no
+   token, so it is written here as the sidebar's active ground is. */
+.button--destructive:not(:disabled):active {
+  background: rgba(138, 35, 35, 0.08);
+}
+
+/* ── Text action ───────────────────────────────────────────────────────── */
+
+/*
+ * No border, no ground, no radius. Vertical padding takes it to a 44px thumb
+ * target and an equal negative margin pulls that back, so the padding never
+ * becomes visible spacing. This is a standing rule, not the week stepper's
+ * local fix — visual-system.md → "The week stepper".
+ */
+.button--text-action {
+  display: inline-flex;
+  border: 0;
+  border-radius: 0;
+  padding: var(--space-3) 0;
+  margin: calc(-1 * var(--space-3)) 0;
+  background: none;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.button--text-action:not(:disabled):hover {
+  color: var(--accent-hover);
+  /* The only place an underline appears on hover. */
+  text-decoration: underline;
+}
+
+.button--text-action:not(:disabled):active {
+  color: var(--accent-pressed);
+}
+
+/* ── Outlined and ghost: the border and the ink move ───────────────────── */
+
+.button--secondary:not(:disabled):hover,
+.button--small-outline:not(:disabled):hover,
+.button--icon:not(:disabled):hover,
+.button--secondary:not(:disabled):active,
+.button--small-outline:not(:disabled):active,
+.button--icon:not(:disabled):active {
+  border-color: var(--rule-strong);
+}
+
+.button--secondary:not(:disabled):active,
+.button--small-outline:not(:disabled):active,
+.button--icon:not(:disabled):active {
+  background: var(--ground-sunken);
+}
+
+/* ── Focus ─────────────────────────────────────────────────────────────── */
+
+/*
+ * :focus-visible only, so a mouse click never leaves a ring behind. Drawn
+ * with `outline` rather than a shadow: there is no elevation in this design
+ * even here, and an outline follows the border radius without a second
+ * element.
+ */
+.button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.button:disabled:focus-visible {
+  outline: none;
+}
+
+/* ── Disabled ──────────────────────────────────────────────────────────── */
+
+/*
+ * Two treatments, because the levers differ: fading a fill leaves a shape
+ * that still reads as a button, while fading a 1px hairline attacks something
+ * close to invisible already. A disabled control keeps its own label; the
+ * reason sits beside it.
+ */
+.button:disabled {
+  cursor: not-allowed;
+}
+
+.button--primary-plan:disabled,
+.button--primary-catalogue:disabled {
+  opacity: 0.55;
+}
+
+.button--secondary:disabled,
+.button--small-outline:disabled,
+.button--icon:disabled,
+.button--destructive:disabled,
+.button--text-action:disabled {
+  border-color: var(--rule-inset);
+  color: var(--ink-muted);
+}

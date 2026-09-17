@@ -54,16 +54,29 @@ export const strings = {
   courseMainPlural: { en: "Mains",   es: "Fuertes" },
 
   // --- Plan screen ---
-  planGenerate:     { en: "Generate",                    es: "Generar" },
-  planRegenerate:   { en: "Regenerate",                  es: "Regenerar" },
-  planPastReadOnly: { en: "Past week — read only",       es: "Semana pasada — solo lectura" },
+  planGenerate:     { en: "Generate week",               es: "Generar semana" },
+  planRegenerate:   { en: "Regenerate week",             es: "Regenerar semana" },
+  planPastReadOnly: { en: "Read only",                   es: "Solo lectura" },
   planRerollDay:    { en: "↻ Reroll day",                es: "↻ Cambiar día" },
   planRerollIcon:   { en: "↻",                           es: "↻" },
   planToday:        { en: "today",                       es: "hoy" },
   planNoWeek:       { en: "No plan for this week yet.",  es: "Sin plan para esta semana todavía." },
-  planRepeatDish:    { en: "{dish} repeats this week — add more dishes to avoid duplicates.", es: "{dish} se repite esta semana — agrega más platillos para evitar duplicados." },
-  planRepeatCourses: { en: "{courses} repeat this week — add more dishes to avoid duplicates.", es: "{courses} se repiten esta semana — agrega más platillos para evitar duplicados." },
-  planRerollToast:  { en: "A dish now repeats this week — add more dishes to avoid it.", es: "Un platillo se repite esta semana — agrega más platillos para evitarlo." },
+  // The week stepper. The arrow is text riding the word and trailing the
+  // direction of travel — never an icon asset, and never the whole control:
+  // a bare `→` would have to carry "next *week*" on its own.
+  planStepNext:     { en: "Next week →",                 es: "La semana que viene →" },
+  planStepThis:     { en: "← This week",                 es: "← Esta semana" },
+  // The Notice's two messages. Each sentence states only what is true; the
+  // call to action is `planNoticeAction`, rendered as the Notice's own
+  // underlined link, so no sentence spells the fix out in prose as well.
+  planRepeatDish:    { en: "{dish} repeats this week.",    es: "{dish} se repite esta semana." },
+  planRepeatCourses: { en: "{courses} repeat this week.",  es: "{courses} se repiten esta semana." },
+  planNoticeRepeatTitle: { en: "This week repeats a dish", es: "Esta semana repite un platillo" },
+  planNoticeShortTitle:  { en: "Not enough dishes",        es: "Faltan platillos" },
+  planNoticeShort:       { en: "{courses} hold too few dishes to fill a week without repeating one.", es: "{courses} tienen muy pocos platillos para llenar una semana sin repetir alguno." },
+  planNoticeEmptyTitle:  { en: "This week cannot be generated", es: "No se puede generar esta semana" },
+  planNoticeEmpty:       { en: "{courses} hold no dishes, so no week can be drawn.", es: "{courses} no tienen platillos, así que no se puede generar la semana." },
+  planNoticeAction:      { en: "Add dishes",               es: "Agregar platillos" },
   planRegenTitle:   { en: "Regenerate this week?",       es: "¿Regenerar esta semana?" },
   planRegenNotice:  { en: "The days still ahead will be redrawn from the catalogue. This cannot be undone.", es: "Los días que faltan se volverán a sacar del catálogo. Esta acción no se puede deshacer." },
   planErrEmptyCourse:  { en: "Add at least one dish before generating: {courses}", es: "Agrega al menos un platillo antes de generar: {courses}" },

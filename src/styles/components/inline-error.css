@@ -1,0 +1,11 @@
+/*
+ * Inline error — plain --danger text, no container.
+ *
+ * There is no danger ground in this palette, and that is the point: an error
+ * in this system is a sentence, not a card. visual-system.md → "Inline error".
+ */
+
+.inline-error {
+  margin: 0;
+  color: var(--danger);
+}
