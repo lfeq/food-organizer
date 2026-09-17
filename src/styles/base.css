@@ -5,11 +5,6 @@
  * Literal font-size, line-height and letter-spacing values live here on
  * purpose: the visual system names no token for any of them. Colour, radius,
  * spacing and font weight all come from tokens.css.
- *
- * NOTE (expand–contract): src/styles/index.css is loaded BEFORE src/styles.css
- * so that, wherever this layer and the old stylesheet disagree, the old one
- * wins and an un-migrated screen renders exactly as it did. Ticket #114
- * deletes src/styles.css and this layer takes over.
  */
 
 /* ── Font faces ──────────────────────────────────────────────────────────

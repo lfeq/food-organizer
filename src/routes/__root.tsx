@@ -11,7 +11,6 @@ import { getLocale } from "#/locale-fns"
 import { getInstanceSettings } from "#/accounts-fns"
 import { LocaleContext } from "#/i18n"
 import designSystemCss from "../styles/index.css?url"
-import appCss from "../styles.css?url"
 
 export const Route = createRootRoute({
   head: () => ({
@@ -39,11 +38,9 @@ export const Route = createRootRoute({
         type: "font/woff2",
         crossOrigin: "anonymous",
       },
-      // The design system comes first so that, wherever it and the old
-      // stylesheet disagree, styles.css wins and an un-migrated screen
-      // renders exactly as it did. Ticket #114 removes the second line.
+      // The one stylesheet: src/styles/index.css is an @import manifest that
+      // Vite inlines into a single emitted asset. See css-structure.md.
       { rel: "stylesheet", href: designSystemCss },
-      { rel: "stylesheet", href: appCss },
     ],
   }),
   beforeLoad: async ({ location }) => {

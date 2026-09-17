@@ -122,10 +122,6 @@ export const strings = {
   // --- Accounts screen ---
   accountsH1:          { en: "Accounts",         es: "Integrantes" },
   accountsAddMember:   { en: "Add member",        es: "Agregar miembro" },
-  accountsColUsername: { en: "Username",          es: "Nombre de usuario" },
-  accountsColRole:     { en: "Role",              es: "Rol" },
-  accountsColStatus:   { en: "Status",            es: "Estado" },
-  accountsColActions:  { en: "Actions",           es: "Acciones" },
   accountsYou:         { en: "(you)",             es: "(tú)" },
   accountsRoleAdmin:   { en: "admin",             es: "administrador" },
   accountsRoleMember:  { en: "member",            es: "miembro" },
