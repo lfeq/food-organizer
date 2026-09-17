@@ -19,10 +19,10 @@ function HistoryPage() {
   const locale = useContext(LocaleContext)
 
   return (
-    <div className="history">
+    <div className="screen-shell">
       <Navigation />
 
-      <main className="history-main">
+      <main className="screen-shell-main">
         <div className="history-header">
           <h1 className="history-title type-title-page">{t(locale, "historyH1")}</h1>
         </div>
@@ -34,7 +34,7 @@ function HistoryPage() {
         {pastWeeks.length === 0 ? (
           <EmptyLine>{t(locale, "historyNone")}</EmptyLine>
         ) : (
-          <div className="history-weeks">
+          <div className="screen-shell-list">
             {/*
               The one place in this design where the whole row *is* the
               control, so the row is the link — not a list item holding one.
@@ -52,7 +52,7 @@ function HistoryPage() {
                   key={w.week_start}
                   to="/plan/$weekStart"
                   params={{ weekStart: w.week_start }}
-                  className="list-block-row history-row"
+                  className="list-block-row list-block-row--linked"
                 >
                   <span className="list-block-row-main">
                     <span className="list-block-row-name type-dish-card">

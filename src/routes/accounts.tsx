@@ -9,7 +9,7 @@ import { Navigation } from "#/components/navigation"
 import { RowActions, type RowAction } from "#/components/row-actions"
 import { Sheet, SheetAction, SheetActions } from "#/components/sheet"
 import { Tag } from "#/components/tag"
-import { LocaleContext, t, interpolate } from "#/i18n"
+import { LocaleContext, t, interpolate, type StringKey } from "#/i18n"
 import {
   listMembers,
   createMember,
@@ -18,6 +18,7 @@ import {
   setMemberRole,
   type Member,
 } from "#/accounts-fns"
+import type { ResultCode } from "#/result-codes"
 
 /**
  * Accounts — the member list, and nothing else.
@@ -26,6 +27,27 @@ import {
  * a member list and an instance's week start are not two views of one thing.
  * One screen, one subject — so this loader asks for members alone.
  */
+/**
+ * Every refusal this screen can be handed, said in the household's own
+ * language. The same shape every route uses: a `Partial<Record<…>>` map read
+ * by code, with `errGeneric` for a code that has no sentence of its own —
+ * which is what `DB_UNREACHABLE` wants, and nothing else should reach.
+ */
+const CREATE_ERROR_KEY: Partial<Record<ResultCode, StringKey>> = {
+  USERNAME_TAKEN: "accountsErrUsernameTaken",
+  USERNAME_INVALID: "accountsErrUsernameInvalid",
+}
+
+/**
+ * `Remove` and the role control share a map because they share a refusal: the
+ * last admin. It is the database floor answering a race rather than the
+ * everyday path — both controls are disabled before it can happen — and it is
+ * still translated, because a refusal the household cannot read is not one.
+ */
+const MEMBER_ERROR_KEY: Partial<Record<ResultCode, StringKey>> = {
+  LAST_ADMIN: "accountsErrLastAdmin",
+}
+
 export const Route = createFileRoute("/accounts")({
   beforeLoad: ({ context }) => {
     if (context.authState.member?.role !== "admin") {
@@ -80,13 +102,7 @@ function AccountsPage() {
     const res = await createMember({ data: { username } })
     setBusy(false)
     if (!res.ok) {
-      setError(
-        res.code === "USERNAME_TAKEN"
-          ? t(locale, "accountsErrUsernameTaken")
-          : res.code === "USERNAME_INVALID"
-            ? t(locale, "accountsErrUsernameInvalid")
-            : t(locale, "errGeneric"),
-      )
+      setError(t(locale, CREATE_ERROR_KEY[res.code] ?? "errGeneric"))
       return
     }
     // The generated password is shown **once** (SPEC.md §7.5): straight from
@@ -119,7 +135,7 @@ function AccountsPage() {
     const res = await removeMember({ data: { memberId: member.id } })
     setBusy(false)
     if (!res.ok) {
-      setError(t(locale, res.code === "LAST_ADMIN" ? "accountsErrLastAdmin" : "errGeneric"))
+      setError(t(locale, MEMBER_ERROR_KEY[res.code] ?? "errGeneric"))
       return
     }
     close()
@@ -135,7 +151,7 @@ function AccountsPage() {
     const res = await setMemberRole({ data: { memberId: member.id, role } })
     setBusy(false)
     if (!res.ok) {
-      setError(t(locale, res.code === "LAST_ADMIN" ? "accountsErrLastAdmin" : "errGeneric"))
+      setError(t(locale, MEMBER_ERROR_KEY[res.code] ?? "errGeneric"))
       return
     }
     close()
@@ -184,10 +200,10 @@ function AccountsPage() {
     openMember !== null && openMember.role === "admin" && adminCount <= 1
 
   return (
-    <div className="accounts">
+    <div className="screen-shell">
       <Navigation />
 
-      <main className="accounts-main">
+      <main className="screen-shell-main">
         <div className="accounts-header">
           <h1 className="accounts-title type-title-page">{t(locale, "accountsH1")}</h1>
           {/* Dark, not green: adding a member acts on accounts. */}
@@ -218,7 +234,7 @@ function AccountsPage() {
           the username, where the phone already puts them.
           visual-system.md → "Bilingual fit", "The accounts screen".
         */}
-        <div className="accounts-list">
+        <div className="screen-shell-list">
           <ul className="list-block">
             {members.map((m) => {
               const isLastAdmin = m.role === "admin" && adminCount <= 1

@@ -12,6 +12,7 @@ import { Notice, type NoticeForm, type NoticeProps } from "#/components/notice"
 import { Tag } from "#/components/tag"
 import { LocaleContext, t, interpolate, INTL_LOCALE, type Locale, type StringKey } from "#/i18n"
 import { catalogueNotice, countByCourse } from "#/catalogue-notice"
+import { COURSE_ORDER, COURSE_LABEL_KEY, COURSE_PLURAL_KEY } from "#/courses"
 import { listDishes } from "#/dishes-fns"
 import { addDays, hasElapsed, weekStartFor, type IsoDate } from "#/plan-dates"
 import {
@@ -24,36 +25,51 @@ import {
   type PlanDayRow,
 } from "#/plan-fns"
 import { repeatNotice } from "#/repeat-notice"
+import type { ResultCode } from "#/result-codes"
 import { weekRange } from "#/week-range"
 
-/** Soup, side, main — the order every card lays its courses out in. */
-const COURSE_ORDER: readonly Course[] = ["soup", "side", "main"]
-
-const COURSE_LABEL_KEY: Record<Course, StringKey> = {
-  soup: "courseSoup",
-  side: "courseSide",
-  main: "courseMain",
+/**
+ * Every refusal this screen can be handed, said in the household's own
+ * language. One shape for both: a `Partial<Record<…>>` map and a named
+ * fallback, so a code that grows a message later is one line, and a code with
+ * no entry still says something. `GENERATE_EMPTY_COURSE` is not in the first
+ * map because its sentence interpolates the courses it carries.
+ */
+const GENERATE_ERROR_KEY: Partial<Record<ResultCode, StringKey>> = {
+  WEEK_NOT_WRITABLE: "planErrNotWritable",
 }
 
-const COURSE_PLURAL_KEY: Record<Course, StringKey> = {
-  soup: "courseSoupPlural",
-  side: "courseSidePlural",
-  main: "courseMainPlural",
+const REROLL_ERROR_KEY: Partial<Record<ResultCode, StringKey>> = {
+  DAY_ELAPSED: "planErrDayElapsed",
+  WEEK_NOT_WRITABLE: "planErrNotWritable",
 }
 
 /**
- * Today, as the calendar on the wall reads it.
+ * Today, in the instance's timezone.
  *
- * Built from the local date parts rather than from `toISOString()`, which
- * would answer UTC and therefore hand back yesterday for most of the evening
- * in `America/Mexico_City`. Deriving today from the *instance* timezone is the
- * server's job (SPEC.md §6.1) and stays out of this file.
+ * Today is a function of `settings.timezone` (SPEC.md §6.1), not of whichever
+ * clock the browser is set to: which day is featured and which rows dim would
+ * otherwise be a day out for a household member travelling. `en-CA` is the
+ * locale that writes a date as `YYYY-MM-DD`, which is the shape every date in
+ * this app is held in. A timezone the database somehow holds but `Intl` will
+ * not accept falls back to the browser's own local date parts — still never
+ * `toISOString()`, which answers UTC and so hands back yesterday for most of
+ * the evening in `America/Mexico_City`.
  */
-function todayIso(): IsoDate {
-  const now = new Date()
-  const month = String(now.getMonth() + 1).padStart(2, "0")
-  const day = String(now.getDate()).padStart(2, "0")
-  return `${now.getFullYear()}-${month}-${day}`
+function todayIn(timezone: string): IsoDate {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date())
+  } catch {
+    const now = new Date()
+    const month = String(now.getMonth() + 1).padStart(2, "0")
+    const day = String(now.getDate()).padStart(2, "0")
+    return `${now.getFullYear()}-${month}-${day}`
+  }
 }
 
 export const Route = createFileRoute("/plan/$weekStart")({
@@ -61,7 +77,7 @@ export const Route = createFileRoute("/plan/$weekStart")({
     const settings = await getPlanSettings()
     const plan = await getWeekPlan({ data: { weekStart: params.weekStart } })
 
-    const today = todayIso()
+    const today = todayIn(settings.timezone)
     const currentWeekStr = weekStartFor(today, settings.week_start_dow)
     const nextWeekStr = addDays(currentWeekStr, 7)
 
@@ -121,17 +137,15 @@ function PlanPage() {
     const res = await generateWeek({ data: { weekStart } })
     setBusy(false)
     if (!res.ok) {
-      if (res.code === "GENERATE_EMPTY_COURSE") {
-        const courses = (res.detail ?? "")
-          .split(",")
-          .map((c) => t(locale, COURSE_PLURAL_KEY[c as Course] ?? "courseSoupPlural"))
-          .join(", ")
-        setError(interpolate(t(locale, "planErrEmptyCourse"), { courses }))
-      } else if (res.code === "WEEK_NOT_WRITABLE") {
-        setError(t(locale, "planErrNotWritable"))
-      } else {
-        setError(t(locale, "errGeneric"))
-      }
+      // The one refusal with data of its own: the server names the empty
+      // courses, so the sentence is interpolated rather than looked up.
+      setError(
+        res.code === "GENERATE_EMPTY_COURSE"
+          ? interpolate(t(locale, "planErrEmptyCourse"), {
+              courses: coursesIn(res.courses, locale),
+            })
+          : t(locale, GENERATE_ERROR_KEY[res.code] ?? "errGeneric"),
+      )
       return
     }
     await router.invalidate()
@@ -151,16 +165,14 @@ function PlanPage() {
     const res = await rerollDay({ data: { planDayId } })
     setBusy(false)
     if (!res.ok) {
+      setError(t(locale, REROLL_ERROR_KEY[res.code] ?? "planErrRerollFailed"))
       if (res.code === "DAY_ELAPSED") {
-        // The tab's "today" went stale — most likely across midnight. Say so,
-        // then redraw, so the day comes back dimmed and without its control
-        // instead of offering a retry that can only fail again (SPEC §9.2).
-        setError(t(locale, "planErrDayElapsed"))
+        // The tab's "today" went stale — most likely across midnight. Having
+        // said so, redraw, so the day comes back dimmed and without its
+        // control instead of offering a retry that can only fail again
+        // (SPEC §9.2). The message is the map's; the redraw is this code's
+        // alone, which is why it stays a branch.
         await router.invalidate()
-      } else if (res.code === "WEEK_NOT_WRITABLE") {
-        setError(t(locale, "planErrNotWritable"))
-      } else {
-        setError(t(locale, "planErrRerollFailed"))
       }
       return
     }
@@ -185,17 +197,18 @@ function PlanPage() {
         // opens into").
         weekRange(weekStart, locale)
 
+  // A course with no dishes is the one case where the precondition is knowable
+  // from the client, so the control is disabled rather than the failure
+  // reported. The Notice beside it is the reason; the button keeps its label.
+  const generateBlocked = catalogue?.kind === "empty"
+
   const notice = noticeFor({
     locale,
     hasPlan: Boolean(plan),
     repeat,
     catalogue,
+    generateBlocked,
   })
-
-  // A course with no dishes is the one case where the precondition is knowable
-  // from the client, so the control is disabled rather than the failure
-  // reported. The Notice beside it is the reason; the button keeps its label.
-  const generateBlocked = catalogue?.kind === "empty"
 
   function rerollFor(day: PlanDayRow, labelled: boolean) {
     // Absent, not disabled: an elapsed day loses its control entirely.
@@ -221,13 +234,13 @@ function PlanPage() {
   }
 
   return (
-    <div className="plan">
+    <div className="screen-shell">
       <Navigation />
 
-      <main className="plan-main">
+      <main className="screen-shell-main">
         <header className="plan-header">
           <div className="plan-week">
-            <h1 className="plan-range type-title-page">{weekLabel}</h1>
+            <h1 className="plan-range type-title-page type-title-page-desktop">{weekLabel}</h1>
             {isCurrentWeek || isNextWeek ? (
               <Button
                 variant="text-action"
@@ -356,22 +369,32 @@ function formatDay(date: IsoDate, locale: Locale) {
  * statement about the week the household is looking at; otherwise the
  * catalogue's, which is a statement about what can still be drawn. One Notice
  * either way, said once per week, never one per slot.
+ *
+ * **Except where the catalogue is what disables `Generate week`.** A disabled
+ * control keeps its own label and the reason sits beside it, never in place of
+ * it (visual-system.md, notice.tsx). Letting the repeat win there would leave
+ * the control dead with no reason anywhere on screen — a week can both repeat
+ * and hold an empty course, and #108's "repeat wins" is a tie-break between
+ * two statements, not a licence to hide the one that is also an explanation.
+ * Still one Notice per week either way.
  */
 function noticeFor({
   locale,
   hasPlan,
   repeat,
   catalogue,
+  generateBlocked,
 }: {
   locale: Locale
   hasPlan: boolean
   repeat: ReturnType<typeof repeatNotice>
   catalogue: ReturnType<typeof catalogueNotice>
+  generateBlocked: boolean
 }): NoticeProps | null {
   const form: NoticeForm = hasPlan ? "compact" : "full"
   const actionLabel = t(locale, "planNoticeAction")
 
-  if (repeat) {
+  if (repeat && !generateBlocked) {
     return {
       form,
       headline: t(locale, "planNoticeRepeatTitle"),

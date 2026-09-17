@@ -109,6 +109,23 @@ body {
   line-height: 1.15;
 }
 
+/*
+ * The week range is the one element in the app whose type *role* is a width
+ * question: `title-page` on the phone, `title-page-desktop` above 900px
+ * (visual-system.md → "The week stepper"). It carries both classes and this
+ * rule decides which one applies, so the choice lives in the type layer — the
+ * one file outside tokens.css that may hold a literal size — instead of a
+ * screen file restating 26px. Below the breakpoint `.type-title-page` wins on
+ * source order; above it the compound selector outranks both.
+ */
+@media (min-width: 900px) {
+  .type-title-page.type-title-page-desktop {
+    font-weight: var(--weight-title);
+    font-size: 26px;
+    line-height: 1.1;
+  }
+}
+
 .type-title-sheet {
   font-weight: var(--weight-title);
   font-size: 16px;

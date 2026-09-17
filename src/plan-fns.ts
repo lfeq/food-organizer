@@ -3,13 +3,14 @@ import { Effect, Exit } from "effect"
 import { PgClient } from "@effect/sql-pg"
 import { uuidv7 } from "uuidv7"
 import { Runtime } from "#/runtime.server"
-import { ok, err, type Result } from "#/result-codes"
+import { ok, err, errEmptyCourse, type Result } from "#/result-codes"
 import { drawN, pickReroll } from "#/generator"
 import { addDays, dayOfWeek, generateSplit, weekStartFor } from "#/plan-dates"
 import { rerollRefusal } from "#/plan-guards"
+import type { Course } from "#/courses"
 import type { RepeatingDish } from "#/repeat-notice"
 
-export type Course = "soup" | "side" | "main"
+export type { Course } from "#/courses"
 
 export type SlotRow = {
   course: Course
@@ -155,7 +156,7 @@ export const generateWeek = createServerFn({ method: "POST" })
               if (byCourse[c].length === 0) emptyCourses.push(c)
             }
             if (emptyCourses.length > 0) {
-              return err("GENERATE_EMPTY_COURSE", emptyCourses.join(",")) as Result<WeekPlan>
+              return errEmptyCourse(emptyCourses) as Result<WeekPlan>
             }
 
             // Which days this generate writes, and which it leaves alone. Elapsed

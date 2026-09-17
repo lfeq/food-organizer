@@ -21,6 +21,7 @@
 @import "./components/navigation.css";
 @import "./components/notice.css";
 @import "./components/row-actions.css";
+@import "./components/screen-shell.css";
 @import "./components/segmented-control.css";
 @import "./components/session-frame.css";
 @import "./components/sheet.css";
